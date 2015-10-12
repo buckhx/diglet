@@ -1,3 +1,3 @@
 # diglet
 
-Your friend in the tile business
+A tile is a girls best friend
