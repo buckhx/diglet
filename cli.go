@@ -12,6 +12,11 @@ func main() {
 	client(os.Args)
 }
 
+func die(msg string) {
+	fmt.Println(msg)
+	os.Exit(1)
+}
+
 func client(args []string) {
 	app := cli.NewApp()
 	app.Name = "diglet"
@@ -27,10 +32,12 @@ func client(args []string) {
 				mbt := c.String("mbtiles")
 				if mbt == "" {
 					cli.ShowSubcommandHelp(c)
-					fmt.Println("ERROR: --mbtiles flag is required")
-					os.Exit(0)
+					die("ERROR: --mbtiles flag is required")
 				}
-				s := diglib.NewServer(mbt, p)
+				s, err := diglib.MBTServer(mbt, p)
+				if err != nil {
+					die("ERROR: couldn't read mbtiles path: " + mbt)
+				}
 				s.Start()
 			},
 			Flags: []cli.Flag{
