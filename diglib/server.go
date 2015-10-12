@@ -1,7 +1,7 @@
 package diglib
 
 import (
-	//"encoding/json"
+	"encoding/json"
 	//"encoding/base64"
 	"log"
 	"net/http"
@@ -67,11 +67,22 @@ func TileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(tile.Data)
 }
 
+func MetadataHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println(r)
+	attrs, err := json.Marshal(ts.Metadata().Attributes())
+	if check(w, err) == true {
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(attrs)
+}
+
 func (s *Server) Start() (err error) {
 	log.Println("Starting server...")
 
 	r := mux.NewRouter()
-	r.HandleFunc("/tile/{z}/{x}/{y}", TileHandler)
+	r.HandleFunc("/tileset/{z}/{x}/{y}", TileHandler)
+	r.HandleFunc("/tileset/metadata", MetadataHandler)
 	http.Handle("/", r)
 
 	log.Printf("Now serving tiles from %s on port %s\n", s.TileData, s.Port)
