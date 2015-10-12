@@ -1,3 +1,3 @@
 # diglet
 
-A special tile server
+Your friend in the tile business

@@ -1,4 +1,4 @@
-package main
+package diglet
 
 import (
 	//"encoding/json"
@@ -10,6 +10,14 @@ import (
 	"github.com/buckhx/mbtiles"
 	"github.com/gorilla/mux"
 )
+
+type Server struct {
+	TileData, Port string
+}
+
+func NewServer(data, port string) *Server {
+	return &Server{data, port}
+}
 
 func check(w http.ResponseWriter, err error) (caught bool) {
 	caught = false
@@ -55,15 +63,16 @@ func TileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(tile.Data)
 }
 
-func main() {
+func (s *Server) Start() {
 	log.Println("Starting server...")
-	ts = mbtiles.ReadTileset("../mbtiles/resources/world_countries.mbtiles")
+	ts = mbtiles.ReadTileset(s.TileData)
+
 	r := mux.NewRouter()
 	r.HandleFunc("/tile/{z}/{x}/{y}", TileHandler)
 	http.Handle("/", r)
 
 	log.Println("Listening...")
-	err := http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(s.Port, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe error: ", err)
 	}
