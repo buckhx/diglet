@@ -1,9 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
-	"github.com/buckhx/diglet"
+	"github.com/buckhx/diglet/diglib"
 	"github.com/codegangsta/cli"
 )
 
@@ -19,13 +20,18 @@ func client(args []string) {
 	app.Commands = []cli.Command{
 		{
 			Name:        "start",
+			Usage:       "diglet start --mbtiles path/to/tiles",
 			Description: "Starts the diglet server",
 			Action: func(c *cli.Context) {
 				p := c.String("port")
 				mbt := c.String("mbtiles")
-				s := diglet.NewServer(mbt, p)
+				if mbt == "" {
+					cli.ShowSubcommandHelp(c)
+					fmt.Println("ERROR: --mbtiles flag is required")
+					os.Exit(0)
+				}
+				s := diglib.NewServer(mbt, p)
 				s.Start()
-
 			},
 			Flags: []cli.Flag{
 				cli.StringFlag{
@@ -35,9 +41,11 @@ func client(args []string) {
 				},
 				cli.StringFlag{
 					Name:  "mbtiles",
-					Usage: "Path to mbtiles to serve",
+					Value: "",
+					Usage: "REQUIRED: Path to mbtiles to serve",
 				},
 			},
 		},
 	}
+	app.Run(args)
 }

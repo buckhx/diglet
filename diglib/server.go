@@ -1,4 +1,4 @@
-package diglet
+package diglib
 
 import (
 	//"encoding/json"
@@ -16,6 +16,7 @@ type Server struct {
 }
 
 func NewServer(data, port string) *Server {
+	port = ":" + port
 	return &Server{data, port}
 }
 
