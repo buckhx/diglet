@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/buckhx/mbtiles"
 	"github.com/gorilla/mux"
@@ -53,18 +54,27 @@ func TileFromVars(vars map[string]string) (tile *mbtiles.Tile, err error) {
 
 func TileHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println(r)
+	var out []byte
+	var contentType string
 	vars := mux.Vars(r)
 	tile, _ := TileFromVars(vars)
-	/*
-		t, err := json.Marshal(tile)
+	switch {
+	case strings.EqualFold(ts.Metadata().Format(), "png"):
+		contentType = "image/png"
+		out = tile.Data
+	case strings.EqualFold(ts.Metadata().Format(), "jpg"):
+		contentType = "image/jpg"
+		out = tile.Data
+	default:
+		contentType = "application/json"
+		var err error
+		out, err = json.Marshal(tile)
 		if check(w, err) == true {
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-	*/
-	//img := base64.URLEncoding.EncodeToString(tile.Data)
-	w.Header().Set("Content-Type", "image/png")
-	w.Write(tile.Data)
+	}
+	w.Header().Set("Content-Type", contentType)
+	w.Write(out)
 }
 
 func MetadataHandler(w http.ResponseWriter, r *http.Request) {

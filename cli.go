@@ -36,6 +36,7 @@ func client(args []string) {
 				}
 				s, err := diglib.MBTServer(mbt, p)
 				if err != nil {
+					panic(err)
 					die("ERROR: couldn't read mbtiles path: " + mbt)
 				}
 				s.Start()
