@@ -1,6 +1,7 @@
 package diglib
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	//"encoding/base64"
 	"log"
@@ -61,19 +62,19 @@ func TileHandler(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case strings.EqualFold(ts.Metadata().Format(), "png"):
 		contentType = "image/png"
-		out = tile.Data
 	case strings.EqualFold(ts.Metadata().Format(), "jpg"):
 		contentType = "image/jpg"
-		out = tile.Data
-	default:
+	case strings.EqualFold(ts.Metadata().Format(), "pbf"):
+		contentType = "application/x-protobuf"
+	case strings.EqualFold(ts.Metadata().Format(), "json"):
 		contentType = "application/json"
-		var err error
-		out, err = json.Marshal(tile)
-		if check(w, err) == true {
-			return
-		}
+	default:
+		contentType = "application/octet-stream"
 	}
+	out = tile.Data
 	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Length", strconv.Itoa(binary.Size(out)))
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(out)
 }
 
