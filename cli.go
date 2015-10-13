@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/buckhx/diglet/diglib"
+	"github.com/buckhx/diglet/digletts"
 	"github.com/codegangsta/cli"
 )
 
@@ -34,7 +34,7 @@ func client(args []string) {
 					cli.ShowSubcommandHelp(c)
 					die("ERROR: --mbtiles flag is required")
 				}
-				s, err := diglib.MBTServer(mbt, p)
+				s, err := digletts.MBTServer(mbt, p)
 				if err != nil {
 					panic(err)
 					die("ERROR: couldn't read mbtiles path: " + mbt)

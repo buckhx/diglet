@@ -1,4 +1,4 @@
-package diglib
+package digletts
 
 import (
 	"encoding/binary"
@@ -66,6 +66,7 @@ func TileHandler(w http.ResponseWriter, r *http.Request) {
 		contentType = "image/jpg"
 	case strings.EqualFold(ts.Metadata().Format(), "pbf"):
 		contentType = "application/x-protobuf"
+		w.Header().Set("Content-Encoding", "gzip")
 	case strings.EqualFold(ts.Metadata().Format(), "json"):
 		contentType = "application/json"
 	default:
@@ -94,6 +95,8 @@ func (s *Server) Start() (err error) {
 	r := mux.NewRouter()
 	r.HandleFunc("/tileset/{z}/{x}/{y}", TileHandler)
 	r.HandleFunc("/tileset/metadata", MetadataHandler)
+	static := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
+	r.PathPrefix("/static/").Handler(static)
 	http.Handle("/", r)
 
 	log.Printf("Now serving tiles from %s on port %s\n", s.TileData, s.Port)
