@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/buckhx/mbtiles"
 	"github.com/gorilla/mux"
@@ -19,6 +18,21 @@ type Server struct {
 
 //TODO tile provider interface
 var ts *mbtiles.Tileset
+
+type header struct {
+	key, value string
+}
+
+var formatEncoding = map[mbtiles.Format][]header{
+	mbtiles.PNG:     []header{header{"Content-Type", "image/png"}},
+	mbtiles.JPG:     []header{header{"Content-Type", "image/jpeg"}},
+	mbtiles.GIF:     []header{header{"Content-Type", "image/gif"}},
+	mbtiles.WEBP:    []header{header{"Content-Type", "image/webp"}},
+	mbtiles.PBF_GZ:  []header{header{"Content-Type", "application/x-protobuf"}, header{"Content-Encoding", "gzip"}},
+	mbtiles.PBF_DF:  []header{header{"Content-Type", "application/x-protobuf"}, header{"Content-Encoding", "deflate"}},
+	mbtiles.UNKNOWN: []header{header{"Content-Type", "application/octet-stream"}},
+	mbtiles.EMPTY:   []header{header{"Content-Type", "application/octet-stream"}},
+}
 
 func MBTServer(mbt_path, port string) (s *Server, err error) {
 	port = ":" + port
@@ -55,28 +69,15 @@ func TileFromVars(vars map[string]string) (tile *mbtiles.Tile, err error) {
 
 func TileHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println(r)
-	var out []byte
-	var contentType string
 	vars := mux.Vars(r)
 	tile, _ := TileFromVars(vars)
-	switch {
-	case strings.EqualFold(ts.Metadata().Format(), "png"):
-		contentType = "image/png"
-	case strings.EqualFold(ts.Metadata().Format(), "jpg"):
-		contentType = "image/jpg"
-	case strings.EqualFold(ts.Metadata().Format(), "pbf"):
-		contentType = "application/x-protobuf"
-		w.Header().Set("Content-Encoding", "gzip")
-	case strings.EqualFold(ts.Metadata().Format(), "json"):
-		contentType = "application/json"
-	default:
-		contentType = "application/octet-stream"
+	headers := formatEncoding[tile.SniffFormat()]
+	for _, h := range headers {
+		w.Header().Set(h.key, h.value)
 	}
-	out = tile.Data
-	w.Header().Set("Content-Type", contentType)
-	w.Header().Set("Content-Length", strconv.Itoa(binary.Size(out)))
+	w.Header().Set("Content-Length", strconv.Itoa(binary.Size(tile.Data)))
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Write(out)
+	w.Write(tile.Data)
 }
 
 func MetadataHandler(w http.ResponseWriter, r *http.Request) {
