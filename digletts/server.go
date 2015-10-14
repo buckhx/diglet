@@ -58,7 +58,7 @@ func checks(errs ...error) {
 	}
 }
 
-func TileFromVars(vars map[string]string) (tile *mbtiles.Tile, err error) {
+func tileFromVars(vars map[string]string) (tile *mbtiles.Tile, err error) {
 	// TODO actually handle these
 	x, err := strconv.Atoi(vars["x"])
 	y, err := strconv.Atoi(vars["y"])
@@ -70,7 +70,7 @@ func TileFromVars(vars map[string]string) (tile *mbtiles.Tile, err error) {
 func TileHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println(r)
 	vars := mux.Vars(r)
-	tile, _ := TileFromVars(vars)
+	tile, _ := tileFromVars(vars)
 	headers := formatEncoding[tile.SniffFormat()]
 	for _, h := range headers {
 		w.Header().Set(h.key, h.value)
@@ -93,9 +93,7 @@ func MetadataHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) Start() (err error) {
 	log.Println("Starting server...")
 
-	r := mux.NewRouter()
-	r.HandleFunc("/tileset/{z}/{x}/{y}", TileHandler)
-	r.HandleFunc("/tileset/metadata", MetadataHandler)
+	r := BuildRouter()
 	static := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
 	r.PathPrefix("/static/").Handler(static)
 	http.Handle("/", r)
