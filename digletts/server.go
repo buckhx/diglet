@@ -26,17 +26,21 @@ func MBTServer(mbt_path, port string) (s *Server, err error) {
 func (s *Server) Start() (err error) {
 	log.Println("Starting server...")
 
-	TilesetRoutes("/tileset").Subrouter(s.Router)
-	static := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
-	s.Router.PathPrefix("/static/").Handler(static)
+	s.mountStatic()
+	_ = TilesetRoutes("/tileset").Subrouter(s.Router)
 	http.Handle("/", s.Router)
 
 	log.Printf("Now serving tiles from %s on port %s\n", s.TileData, s.Port)
 	err = http.ListenAndServe(s.Port, nil)
 	if err != nil {
-		log.Fatal("ListenAndServe error: ", err)
+		log.Fatal("Diglet error: ", err)
 	}
 	return
+}
+
+func (s *Server) mountStatic() {
+	static := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
+	s.Router.PathPrefix("/static/").Handler(static)
 }
 
 type Handler func(w http.ResponseWriter, r *http.Request)
