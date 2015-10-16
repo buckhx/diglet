@@ -4,22 +4,23 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/buckhx/mbtiles"
 	"github.com/gorilla/mux"
 )
 
 type Server struct {
-	TileData, Port string
-	Router         *mux.Router
+	DataDir, Port string
+	Router        *mux.Router
 }
 
-//TODO tile provider interface
-var ts *mbtiles.Tileset
-
-func MBTServer(mbt_path, port string) (s *Server, err error) {
+func MBTServer(dataPath, port string) (s *Server, err error) {
 	port = ":" + port
-	ts, err = mbtiles.ReadTileset(mbt_path)
-	s = &Server{mbt_path, port, mux.NewRouter()}
+	r := mux.NewRouter()
+	_ = TilesetRoutes("/tileset", dataPath).Subrouter(r)
+	s = &Server{
+		Router:  r,
+		DataDir: dataPath,
+		Port:    port,
+	}
 	return
 }
 
@@ -27,14 +28,11 @@ func (s *Server) Start() (err error) {
 	log.Println("Starting server...")
 
 	s.mountStatic()
-	_ = TilesetRoutes("/tileset").Subrouter(s.Router)
 	http.Handle("/", s.Router)
 
-	log.Printf("Now serving tiles from %s on port %s\n", s.TileData, s.Port)
+	log.Printf("Now serving tiles from %s on port %s\n", s.DataDir, s.Port)
 	err = http.ListenAndServe(s.Port, nil)
-	if err != nil {
-		log.Fatal("Diglet error: ", err)
-	}
+	check(err)
 	return
 }
 
@@ -43,7 +41,19 @@ func (s *Server) mountStatic() {
 	s.Router.PathPrefix("/static/").Handler(static)
 }
 
-type Handler func(w http.ResponseWriter, r *http.Request)
+type Handler func(w http.ResponseWriter, r *http.Request) (content []byte, err error)
+
+func (fn Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Println(r)
+	if content, err := fn(w, r); err != nil {
+		http.Error(w, err.Error(), 500)
+	} else {
+		if content != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(content)
+		}
+	}
+}
 
 type Route struct {
 	Pattern string
@@ -58,7 +68,7 @@ type RouteHandler struct {
 func (rh *RouteHandler) Subrouter(r *mux.Router) (subrouter *mux.Router) {
 	subrouter = r.PathPrefix(rh.Prefix).Subrouter()
 	for _, route := range rh.Routes {
-		subrouter.HandleFunc(route.Pattern, route.Handler)
+		subrouter.Handle(route.Pattern, route.Handler)
 	}
 	return
 }

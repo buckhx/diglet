@@ -1,22 +1,31 @@
 package digletts
 
 import (
-	"net/http"
+	"log"
+	"regexp"
+	"strings"
 )
 
-func check(w http.ResponseWriter, err error) (caught bool) {
-	caught = false
+func warn(err error, extra string) {
 	if err != nil {
-		caught = true
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("Diglet warning: %s - %s", err, extra)
 	}
-	return
+}
+
+func check(err error) {
+	if err != nil {
+		log.Fatal("Diglet error: %s", err)
+	}
 }
 
 func checks(errs ...error) {
 	for _, err := range errs {
-		if err != nil {
-			panic(err)
-		}
+		check(err)
 	}
+}
+
+var slugger = regexp.MustCompile("[^a-z0-9]+")
+
+func slugged(s string) string {
+	return strings.Trim(slugger.ReplaceAllString(strings.ToLower(s), "-"), "-")
 }

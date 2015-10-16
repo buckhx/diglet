@@ -3,29 +3,34 @@ package digletts
 import (
 	"encoding/binary"
 	"encoding/json"
-	"log"
+	"fmt"
 	"net/http"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/buckhx/mbtiles"
 	"github.com/gorilla/mux"
 )
 
-func TilesetRoutes(prefix string) (r *RouteHandler) {
+var bag *TilesetBag
+
+func TilesetRoutes(prefix, mbtPath string) (r *RouteHandler) {
+	bag = ReadTilesets(mbtPath)
 	r = &RouteHandler{prefix, []Route{
-		Route{"/{z}/{x}/{y}", TileHandler},
-		Route{"/metadata", MetadataHandler},
-		//Route{"/{db}/{z}/{x}/{y}", TileHandler},
-		//Route{"/{db}/metadata", MetadataHandler},
-		//Route{"/", ListHandler},
+		Route{"/{ts}/{z}/{x}/{y}", TileHandler},
+		Route{"/{ts}/metadata", MetadataHandler},
+		Route{"/", ListHandler},
 	}}
 	return
 }
 
-func TileHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println(r)
+func TileHandler(w http.ResponseWriter, r *http.Request) (content []byte, err error) {
 	vars := mux.Vars(r)
-	tile, _ := tileFromVars(vars)
+	tile, err := bag.tileFromVars(vars)
+	if err != nil {
+		return
+	}
 	headers := formatEncoding[tile.SniffFormat()]
 	for _, h := range headers {
 		w.Header().Set(h.key, h.value)
@@ -33,34 +38,33 @@ func TileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Length", strconv.Itoa(binary.Size(tile.Data)))
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(tile.Data)
+	return
 }
 
-func MetadataHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println(r)
-	attrs, err := json.Marshal(ts.Metadata().Attributes())
-	if check(w, err) == true {
-		return
+func MetadataHandler(w http.ResponseWriter, r *http.Request) (content []byte, err error) {
+	vars := mux.Vars(r)
+	slug := vars["ts"]
+	if ts, ok := bag.Tilesets[slug]; ok {
+		content, err = json.Marshal(ts.Metadata().Attributes())
+	} else {
+		err = fmt.Errorf("No tileset named %q", slug)
 	}
-	WriteJson(w, attrs)
+	return
 }
 
-/*
-func ListHandler(w http.ResponseWriter, r *http.Request) {
-	names = make([]string, 0, len(dbs))
-	for name := dbs {
-		names = append(names, name)
-	}
-	output, err := json.Marshal(ts.Metadata().Attributes())
-	if check(w, err) == true {
-		return
-	}
-	WriteJson(w, output)
-}
-*/
-
-func WriteJson(w http.ResponseWriter, output []byte) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(output)
+func ListHandler(w http.ResponseWriter, r *http.Request) (content []byte, err error) {
+	/*
+		names = make([]string, 0, len(dbs))
+		for name := dbs {
+			names = append(names, name)
+		}
+		output, err := json.Marshal(ts.Metadata().Attributes())
+		if check(w, err) == true {
+			return
+		}
+		WriteJson(w, output)
+	*/
+	return
 }
 
 type header struct {
@@ -78,22 +82,46 @@ var formatEncoding = map[mbtiles.Format][]header{
 	mbtiles.EMPTY:   []header{header{"Content-Type", "application/octet-stream"}},
 }
 
-func tileFromVars(vars map[string]string) (tile *mbtiles.Tile, err error) {
-	// TODO actually handle these
-	x, err := strconv.Atoi(vars["x"])
-	y, err := strconv.Atoi(vars["y"])
-	z, err := strconv.Atoi(vars["z"])
-	tile, err = ts.ReadSlippyTile(x, y, z)
+type TilesetBag struct {
+	Path     string
+	Tilesets map[string]*mbtiles.Tileset
+}
+
+func ReadTilesets(dir string) (bag *TilesetBag) {
+	bag = &TilesetBag{dir, make(map[string]*mbtiles.Tileset)}
+	mbtPaths, err := filepath.Glob(filepath.Join(dir, "*.mbtiles"))
+	check(err)
+	for _, path := range mbtPaths {
+		ts, err := mbtiles.ReadTileset(path)
+		if err != nil {
+			warn(err, "skipping "+path)
+			continue
+		}
+		name := cleanTilesetName(path)
+		if _, exists := bag.Tilesets[name]; exists {
+			check(fmt.Errorf("Multiple tilesets with slug %q like %q", name, path))
+		}
+		bag.Tilesets[name] = ts
+	}
 	return
 }
 
-/*
-type TilesetProvider struct {
-	Path string
-	Tilesets map[string]*Tileset
+func (bag *TilesetBag) tileFromVars(vars map[string]string) (tile *mbtiles.Tile, err error) {
+	slug := vars["ts"]
+	x, err := strconv.Atoi(vars["x"])
+	y, err := strconv.Atoi(vars["y"])
+	z, err := strconv.Atoi(vars["z"])
+	if ts, ok := bag.Tilesets[slug]; ok && err == nil {
+		tile, err = ts.ReadSlippyTile(x, y, z)
+	} else {
+		err = fmt.Errorf("No tileset with slug %q", slug)
+	}
+	return
 }
 
-func readDBs(path string) map[]{
-
+func cleanTilesetName(path string) (slug string) {
+	f := filepath.Base(path)
+	f = strings.TrimSuffix(f, filepath.Ext(f))
+	slug = slugged(f)
+	return
 }
-*/
