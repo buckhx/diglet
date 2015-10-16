@@ -20,7 +20,7 @@
 	    zoom: 6
 	});
 	map.addLayer(baselayer);
-	var mvt = new L.TileLayer.MVTSource({url: "/tileset/{z}/{x}/{y}"})
+	var mvt = new L.TileLayer.MVTSource({url: "/tileset/counties/{z}/{x}/{y}"})
 	//var mvt = new L.tileLayer("/tileset/{z}/{x}/{y}")
 	map.addLayer(mvt)
   </script>

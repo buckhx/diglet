@@ -53,17 +53,11 @@ func MetadataHandler(w http.ResponseWriter, r *http.Request) (content []byte, er
 }
 
 func ListHandler(w http.ResponseWriter, r *http.Request) (content []byte, err error) {
-	/*
-		names = make([]string, 0, len(dbs))
-		for name := dbs {
-			names = append(names, name)
-		}
-		output, err := json.Marshal(ts.Metadata().Attributes())
-		if check(w, err) == true {
-			return
-		}
-		WriteJson(w, output)
-	*/
+	names := make([]string, 0, len(bag.Tilesets))
+	for name := range bag.Tilesets {
+		names = append(names, name)
+	}
+	content, err = json.Marshal(names)
 	return
 }
 
