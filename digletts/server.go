@@ -1,6 +1,7 @@
 package digletts
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 
@@ -41,18 +42,55 @@ func (s *Server) mountStatic() {
 	s.Router.PathPrefix("/static/").Handler(static)
 }
 
-type Handler func(w http.ResponseWriter, r *http.Request) (content []byte, err error)
+type Handler func(w http.ResponseWriter, r *http.Request) (response *JsonResponse)
 
-func (fn Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (handle Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Println(r)
-	if content, err := fn(w, r); err != nil {
-		http.Error(w, err.Error(), 500)
-	} else {
-		if content != nil {
+	response := handle(w, r)
+	if response != nil {
+		content, err := response.Marshal()
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+		} else if response.Code != 200 {
+			http.Error(w, response.Status, response.Code)
+		} else {
 			w.Header().Set("Content-Type", "application/json")
 			w.Write(content)
 		}
+
 	}
+}
+
+type JsonResponse struct {
+	Status  string
+	Code    int
+	Content []byte
+}
+
+func Success(content interface{}) (response *JsonResponse) {
+	c, err := json.Marshal(content)
+	if err != nil {
+		response = Error(500, "wtf-need-content")
+	}
+	response = &JsonResponse{
+		Code:    200,
+		Status:  "success",
+		Content: c,
+	}
+	return
+}
+
+func Error(code int, message string) (response *JsonResponse) {
+	response = &JsonResponse{
+		Code:    code,
+		Status:  "error",
+		Content: []byte(message),
+	}
+	return
+}
+
+func (r *JsonResponse) Marshal() ([]byte, error) {
+	return json.Marshal(r)
 }
 
 type Route struct {

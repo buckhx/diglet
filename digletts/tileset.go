@@ -2,7 +2,6 @@ package digletts
 
 import (
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -25,7 +24,7 @@ func TilesetRoutes(prefix, mbtPath string) (r *RouteHandler) {
 	return
 }
 
-func TileHandler(w http.ResponseWriter, r *http.Request) (content []byte, err error) {
+func TileHandler(w http.ResponseWriter, r *http.Request) (response *JsonResponse) {
 	vars := mux.Vars(r)
 	tile, err := bag.tileFromVars(vars)
 	if err != nil {
@@ -41,25 +40,25 @@ func TileHandler(w http.ResponseWriter, r *http.Request) (content []byte, err er
 	return
 }
 
-func MetadataHandler(w http.ResponseWriter, r *http.Request) (content []byte, err error) {
+func MetadataHandler(w http.ResponseWriter, r *http.Request) (response *JsonResponse) {
 	//TODO if there's a json field, try to deserialze that
 	vars := mux.Vars(r)
 	slug := vars["ts"]
 	if ts, ok := bag.Tilesets[slug]; ok {
-		content, err = json.Marshal(ts.Metadata().Attributes())
+		response = Success(ts.Metadata().Attributes())
 	} else {
-		err = fmt.Errorf("No tileset named %q", slug)
+		response = Error(http.StatusBadRequest, fmt.Sprintf("No tileset named %q", slug))
 	}
 	return
 }
 
-func ListHandler(w http.ResponseWriter, r *http.Request) (content []byte, err error) {
+func ListHandler(w http.ResponseWriter, r *http.Request) (response *JsonResponse) {
 	//TODO include refresh and metdata flag
 	names := make([]string, 0, len(bag.Tilesets))
 	for name := range bag.Tilesets {
 		names = append(names, name)
 	}
-	content, err = json.Marshal(names)
+	response = Success(names)
 	return
 }
 
