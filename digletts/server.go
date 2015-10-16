@@ -64,18 +64,14 @@ func (handle Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type JsonResponse struct {
 	Status  string
 	Code    int
-	Content []byte
+	Content interface{}
 }
 
 func Success(content interface{}) (response *JsonResponse) {
-	c, err := json.Marshal(content)
-	if err != nil {
-		response = Error(500, "wtf-need-content")
-	}
 	response = &JsonResponse{
 		Code:    200,
 		Status:  "success",
-		Content: c,
+		Content: content,
 	}
 	return
 }
@@ -84,7 +80,7 @@ func Error(code int, message string) (response *JsonResponse) {
 	response = &JsonResponse{
 		Code:    code,
 		Status:  "error",
-		Content: []byte(message),
+		Content: message,
 	}
 	return
 }
