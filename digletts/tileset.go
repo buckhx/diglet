@@ -19,7 +19,7 @@ func TilesetRoutes(prefix, mbtPath string) (r *RouteHandler) {
 	bag = ReadTilesets(mbtPath)
 	r = &RouteHandler{prefix, []Route{
 		Route{"/{ts}/{z}/{x}/{y}", TileHandler},
-		Route{"/{ts}/metadata", MetadataHandler},
+		Route{"/{ts}", MetadataHandler},
 		Route{"/", ListHandler},
 	}}
 	return
@@ -42,6 +42,7 @@ func TileHandler(w http.ResponseWriter, r *http.Request) (content []byte, err er
 }
 
 func MetadataHandler(w http.ResponseWriter, r *http.Request) (content []byte, err error) {
+	//TODO if there's a json field, try to deserialze that
 	vars := mux.Vars(r)
 	slug := vars["ts"]
 	if ts, ok := bag.Tilesets[slug]; ok {
@@ -53,6 +54,7 @@ func MetadataHandler(w http.ResponseWriter, r *http.Request) (content []byte, er
 }
 
 func ListHandler(w http.ResponseWriter, r *http.Request) (content []byte, err error) {
+	//TODO include refresh and metdata flag
 	names := make([]string, 0, len(bag.Tilesets))
 	for name := range bag.Tilesets {
 		names = append(names, name)
