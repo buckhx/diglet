@@ -53,12 +53,11 @@ func MetadataHandler(w http.ResponseWriter, r *http.Request) (response *JsonResp
 }
 
 func ListHandler(w http.ResponseWriter, r *http.Request) (response *JsonResponse) {
-	//TODO include refresh and metdata flag
-	names := make([]string, 0, len(bag.Tilesets))
-	for name := range bag.Tilesets {
-		names = append(names, name)
+	tilesets := make(map[string]map[string]string)
+	for name, ts := range bag.Tilesets {
+		tilesets[name] = ts.Metadata().Attributes()
 	}
-	response = Success(names)
+	response = Success(tilesets)
 	return
 }
 

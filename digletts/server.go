@@ -50,9 +50,9 @@ func (handle Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if response != nil {
 		content, err := response.Marshal()
 		if err != nil {
-			http.Error(w, err.Error(), 500)
-		} else if response.Code != 200 {
-			http.Error(w, response.Status, response.Code)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		} else if response.Code != http.StatusOK {
+			http.Error(w, string(content), response.Code)
 		} else {
 			w.Header().Set("Content-Type", "application/json")
 			w.Write(content)
@@ -62,14 +62,14 @@ func (handle Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type JsonResponse struct {
-	Status  string
-	Code    int
-	Content interface{}
+	Status  string      `json:"status"`
+	Code    int         `json:"code"`
+	Content interface{} `json:"content"`
 }
 
 func Success(content interface{}) (response *JsonResponse) {
 	response = &JsonResponse{
-		Code:    200,
+		Code:    http.StatusOK,
 		Status:  "success",
 		Content: content,
 	}
