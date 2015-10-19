@@ -1,0 +1,24 @@
+language: go
+go:
+  - release
+script:
+  - go generate
+  - go test -v ./...
+  - go get github.com/mitchellh/gox
+  - gox -build-toolchain -os="linux darwin windows" -arch="386 amd64"
+  - gox -os="linux darwin windows" -arch="386 amd64" -verbose
+deploy:
+  provider: releases
+  api_key:
+    secure: deOCUCLGWGcjaYl9i8UscjO/ha+cSerrh4I8OuFVwAyaSPXbkoktA4srEWx+3oMLw0C+GTLwhhA2wjnYDi/CwoGmcv7TAggrIwK5oOjPjMVh/Y3ctjk+zM0LyNTot1/SBS2Fpzgm7u2BaoT+irhYMt+JaG4DQgj/RSCoVLBD4Z5JKCq70NMGisr3Ym+1QmneAvwe/tfwUkh+8docfO/R9BtPel+zivScVPRw5SX75rRyVyZQaeYg00Fuhd7hbg5OvYdZT/R2zEiNHFImO2OAkoSwnBoCEQ02RfbOdyRijo4ceOLcmreOfvic9JvwGKJP9dELu8ubNnGLv1X7ostzPJyfPp0UsT4UVRVMUsC4T90x3DzENHEciHbUr2IWFGYBulAXurN0J4RqCLf1Vv+yjv8JxQH2Wt/AyLwzShbvlXfsCk4IVhU61P48r/ytdP/FyEDAGSjtZ/xr+WG7sMKjs3om658vw/WUoRRaAmsMrPZ+PZKyPTq5RZT6eIuAeayudOthoUYrpSKIuOyn/RgbL8vOrzIcPfe2kn3jqVO11JE9KAWMCPmEvjeDIoGD6dKlLqF+ludFhJohYPHZrqpCfr+ayUWCtjmmamcHKDcKmsPt/Ta9gEdtD/EzU5/Kx9rvKdF9ipTpp7McV0GjnQRa4uuIPuERKG/fMX1pYimnDfU=
+  file: 
+    - "diglet_darwin_amd64"
+    - "diglet_darwin_386"
+    - "diglet_linux_amd64"
+    - "diglet_linux_386"
+    - "diglet_windows_amd64"
+    - "diglet_windows_386"
+  on:
+    repo: buckhx/diglet
+    tags: true
+    branch: master
