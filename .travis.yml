@@ -17,7 +17,7 @@ deploy:
   on:
     repo: buckhx/diglet
     tags: true
-    branch: master
+    all_branches: true
 addons:
   apt:
     packages:
