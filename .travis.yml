@@ -11,7 +11,7 @@ env:
     - GOOS=windows GOARCH=386 CC=386-w64-mingw32-gcc CGO_LDFLAGS="-lssp" EXT=.exe
     - GOOS=windows GOARCH=amd64 CC=x86_64-w64-mingw32-gcc CGO_LDFLAGS="-lssp" EXT=.exe
 install:
-  - cd $GOROOT && ./make.bash  &&cd $GOPATH/src/github.com/buckhx/diglet
+  - cd $GOROOT/src && ./make.bash  && cd $GOPATH/src/github.com/buckhx/diglet
 script:
   - go generate
   - go test -v ./...
