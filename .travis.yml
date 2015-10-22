@@ -5,18 +5,19 @@ env:
   global: 
     - CGO_ENABLED=1
   matrix:
-    - OS=linux ARCH=amd64
-    - OS=linux ARCH=386
-    - OS=linux ARCH=arm GOXCC=arm-linux-gnueabi-gcc
-    - OS=windows ARCH=386 GOXCC=386-w64-mingw32-gcc LDFLAGS="-lssp" EXT=.exe
-    - OS=windows ARCH=amd64 GOXCC=x86_64-w64-mingw32-gcc LDFLAGS="-lssp" EXT=.exe
+    - GOOS=linux GOARCH=amd64
+    - GOOS=linux GOARCH=386
+    - GOOS=linux GOARCH=arm CC=arm-linux-gnueabi-gcc
+    - GOOS=windows GOARCH=386 CC=386-w64-mingw32-gcc CGO_LDFLAGS="-lssp" EXT=.exe
+    - GOOS=windows GOARCH=amd64 CC=x86_64-w64-mingw32-gcc CGO_LDFLAGS="-lssp" EXT=.exe
 install:
-  - go get github.com/mitchellh/gox
-  - env CC=$GOXCC CGO_LDFLAGS=$LDFLAGS gox -build-toolchain -os="$OS" -arch="$ARCH"
+  - cd $GOROOT/src && ./make.bash  && cd $GOPATH/src/github.com/buckhx/diglet
   - go get ./...
 script:
+  - go generate
   - go test -v ./...
-  - env CC=$GOXCC CGO_LDFLAGS=$LDFLAGS gox -os="$OS" -arch="$ARCH"
+  - go build -o "diglet_${GOOS}_${GOARCH}${EXT}"
+  - ls
 deploy:
   provider: releases
   api_key:
@@ -31,7 +32,7 @@ addons:
   apt:
     packages:
       - g++-multilib
-      - gcc-mingw-w64
+      - gcc-mingw-w64-x86-64
       #- gcc-arm-linux-gnueabi
 cache:
   - apt
