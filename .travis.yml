@@ -8,15 +8,15 @@ env:
     - OS=linux ARCH=amd64
     - OS=linux ARCH=386
     - OS=linux ARCH=arm GOXCC=arm-linux-gnueabi-gcc
-    - OS=windows ARCH=386 GOXCC=386-w64-mingw32-gcc CGO_LDFLAGS="-lssp" EXT=.exe
-    - OS=windows ARCH=amd64 GOXCC=x86_64-w64-mingw32-gcc CGO_LDFLAGS="-lssp" EXT=.exe
+    - OS=windows ARCH=386 GOXCC=386-w64-mingw32-gcc LDFLAGS="-lssp" EXT=.exe
+    - OS=windows ARCH=amd64 GOXCC=x86_64-w64-mingw32-gcc LDFLAGS="-lssp" EXT=.exe
 install:
   - go get github.com/mitchellh/gox
   - gox -build-toolchain -os="$OS" -arch="$ARCH"
   - go get ./...
 script:
   - go test -v ./...
-  - env CC=$GOXCC gox -os="$OS" -arch="$ARCH"
+  - env CC=$GOXCC CGO_LDFLAGS=$LDFLAGS gox -os="$OS" -arch="$ARCH"
   - ls
 deploy:
   provider: releases
