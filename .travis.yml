@@ -1,19 +1,23 @@
 language: go
 go:
   - release
+env:
+  - OS=linux ARCH=386
+  - OS=linux ARCH=amd64
+  - OS=linux ARCH=arm CC=arm-linux-gnueabi-gcc
+  - OS=windows ARCH=386 CC=i686-w64-mingw32-gcc LDFLAGS="-lssp" EXT=.exe
+  - OS=windows ARCH=amd64 CC=x86_64-w64-mingw32-gcc LDFLAGS="-lssp" EXT=.exe
+
 script:
   - go generate
   - go test -v ./...
-  - go get github.com/mitchellh/gox
-  - gox -cgo -build-toolchain -os="linux" -arch="386 amd64"
-  - gox -cgo -os="linux" -arch="386 amd64" -verbose
+  - GOOS=$OS GOARCH=$ARCH CC=$CC CGO_LDFLAGS=$LDFLAGS CGO_ENABLED=1 go build -o "diglet_${OS}_${ARCH}${EXT}"
 deploy:
   provider: releases
   api_key:
     secure: RSdgJIY0LlhMilzx7zXO+LBR4A/K6sgtCvOWZ+4sQ7xKm+eUT0i/sB0IPAge/9RT+KAXKvdeNrsJVGfXQIQAc39KOUXfplv1DGY4zNdbBRDySA2t7i+WsXbwZrR3wCSP0GrMs5ogT5LXA//17pdBk0bz94KSvn5MGNhNZIPmqrFINkfZnj1JX1Jh9WiX17e5VBsv0GRnCy+iTycm6LivtU6JFfZkJ3Bzksa90yXzMQnCjvewHHjzHmfTolmraPFUBwikwm4TkXriLJ6z4hbUPenLMvXEBW/wtGRjh/krAykc8OAPVDhup22WjBEClnDt1FNiCGP2i2IOYnCee9wr/08IkUcJ5Fslh3TgQ29q/BnDJA1IaJ5hFur2HOjPklktJw40PeKJcgYeaMm3fgZbzH5DFkGh2topXQ6N7pDkeeioXM5KP61qjD8Asb48ErU0Z2qqL0VfMHPPEmHttFlsbjAfKuBPtNDY2iBB393KWkeIaXbpuwK+TlxKbbZ7EBMRY2zNPC698ixQFyLeOhtAxfLtPGlRD3Smd0x0sDzk0ovIkd7GNhAUNAHvTxZSjxqK4gwDTaIM2gDgdWk4BM5617M+fYrUmYSzS0uSXk6fH+G+M9KqwHuy10ytZ6mPHi9nkNsI/onv/Og5gEEnDYoR7GtSyQgQ9tXOIyF8zUylqYg=
   file: 
-    - "diglet_linux_amd64"
-    - "diglet_linux_386"
+    - "diglet_${OS}_${ARCH}${EXT}"
   on:
     repo: buckhx/diglet
     tags: true
@@ -22,5 +26,7 @@ addons:
   apt:
     packages:
       - g++-multilib
+      - mingw-w64
+      - gcc-arm-linux-gnueabi
 cache:
-  -apt
+  - apt

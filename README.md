@@ -27,22 +27,21 @@ We'll include a script and or directions for building on your own.
 
 #### Major releases will have platform specific binaries
 
-
 ## Some food for thought
 
-#### A tile is a girls best friend
-#### A tile is forever
-#### Divas. Desire. Tiles.
-#### Our reputation shines as brightly as our tiles
-#### The ultimate in luxury and tiles
-#### Tiles by the Yard
-#### The Tiler of Kings
-#### Every tile begins with z
-#### Your tiles should be as unique as you are
-#### Tiles of brillance
-#### Tiles, together.
-#### Always the crowning tile
-#### Strikingly brilliant. Remarkable. Tiles.
-#### Preciously exclusive tiles
-#### Tiles that brings out the luxury in you
+##### A tile is a girls best friend
+##### A tile is forever
+##### Divas. Desire. Tiles.
+##### Our reputation shines as brightly as our tiles
+##### The ultimate in luxury and tiles
+##### Tiles by the Yard
+##### The Tiler of Kings
+##### Every tile begins with z
+##### Your tiles should be as unique as you are
+##### Tiles of brillance
+##### Tiles, together.
+##### Always the crowning tile
+##### Strikingly brilliant. Remarkable. Tiles.
+##### Preciously exclusive tiles
+##### Tiles that brings out the luxury in you
 
