@@ -2,17 +2,21 @@ language: go
 go:
   - release
 env:
-  - OS=linux ARCH=amd64
-  - OS=linux ARCH=386
-  - OS=linux ARCH=arm CC=arm-linux-gnueabi-gcc
-  - OS=windows ARCH=386 CC=i686-w64-mingw32-gcc LDFLAGS="-lssp" EXT=.exe
-  - OS=windows ARCH=amd64 CC=x86_64-w64-mingw32-gcc LDFLAGS="-lssp" EXT=.exe
+  - GOOS=linux GOARCH=amd64
+  - GOOS=linux GOARCH=386
+  - GOOS=linux GOARCH=arm CC=arm-linux-gnueabi-gcc
+  - GOOS=windows GOARCH=386 CC=386-w64-mingw32-gcc CGO_LDFLAGS="-lssp" EXT=.exe
+  - GOOS=windows GOARCH=amd64 CC=x86_64-w64-mingw32-gcc CGO_LDFLAGS="-lssp" EXT=.exe
+  - GOOS=windows GOARCH=amd64 CC=x86_64-w64-mingw32-gcc CGO_LDFLAGS="-lssp" EXT=.exe
+  global: 
+    - CGO_ENABLED=1
 install:
-  - cd $GOROOT/src && ./make.bash --no-clean
+  - go get github.com/mitchellh/gox
+  - gox -cgo -build-toolchain -os="$OS" -arch="$ARCH"
 script:
   - go generate
   - go test -v ./...
-  - GOOS=$OS GOARCH=$ARCH CC=$CC CGO_LDFLAGS=$LDFLAGS CGO_ENABLED=1 go build -o "diglet_${OS}_${ARCH}${EXT}"
+  - go build -o "diglet_${OS}_${ARCH}${EXT}"
 deploy:
   provider: releases
   api_key:
