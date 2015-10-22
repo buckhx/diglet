@@ -3,20 +3,20 @@ go:
   - release
 env:
   global: 
-    - CGO_ENABLED=1
+    #- CGO_ENABLED=1
   matrix:
-    - GOOS=linux GOARCH=amd64
-    - GOOS=linux GOARCH=386
-    - GOOS=linux GOARCH=arm CC=arm-linux-gnueabi-gcc
-    - GOOS=windows GOARCH=386 CC=386-w64-mingw32-gcc CGO_LDFLAGS="-lssp" EXT=.exe
-    - GOOS=windows GOARCH=amd64 CC=x86_64-w64-mingw32-gcc CGO_LDFLAGS="-lssp" EXT=.exe
+    - OS=linux ARCH=amd64
+    - OS=linux ARCH=386
+    - OS=linux ARCH=arm GOCC=arm-linux-gnueabi-gcc
+    - OS=windows ARCH=386 GOCC=386-w64-mingw32-gcc LDFLAGS="-lssp" EXT=.exe
+    - OS=windows ARCH=amd64 GOCC=x86_64-w64-mingw32-gcc LDFLAGS="-lssp" EXT=.exe
 install:
-  - cd $GOROOT/src && ./make.bash  && cd $GOPATH/src/github.com/buckhx/diglet
+  #- cd $GOROOT/src && ./make.bash  && cd $GOPATH/src/github.com/buckhx/diglet
+  - go generate
   - go get ./...
 script:
-  - go generate
   - go test -v ./...
-  - go build -o "diglet_${GOOS}_${GOARCH}${EXT}"
+  - env GOOS=$OS GOARCH=$ARCH CC=$GOCC CGO_LDFLAGS=$LDFLAGS CGO_ENABLED=1 go build -o "diglet_${OS}_${ARCH}${EXT}"
   - ls
 deploy:
   provider: releases
