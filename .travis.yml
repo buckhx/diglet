@@ -32,7 +32,7 @@ addons:
   apt:
     packages:
       - g++-multilib
-      - gcc-mingw-w64-x86-64
+      - gcc-mingw
       #- gcc-arm-linux-gnueabi
 cache:
   - apt
