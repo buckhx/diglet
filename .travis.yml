@@ -12,12 +12,11 @@ env:
     - OS=windows ARCH=amd64 GOXCC=x86_64-w64-mingw32-gcc LDFLAGS="-lssp" EXT=.exe
 install:
   - go get github.com/mitchellh/gox
-  - gox -build-toolchain -os="$OS" -arch="$ARCH"
+  - env CC=$GOXCC CGO_LDFLAGS=$LDFLAGS gox -build-toolchain -os="$OS" -arch="$ARCH"
   - go get ./...
 script:
   - go test -v ./...
   - env CC=$GOXCC CGO_LDFLAGS=$LDFLAGS gox -os="$OS" -arch="$ARCH"
-  - ls
 deploy:
   provider: releases
   api_key:
@@ -32,7 +31,7 @@ addons:
   apt:
     packages:
       - g++-multilib
-      - gcc-mingw-w64-x86-64
+      - gcc-mingw-w64
       #- gcc-arm-linux-gnueabi
 cache:
   - apt
