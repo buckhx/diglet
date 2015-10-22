@@ -12,6 +12,7 @@ env:
     - GOOS=windows GOARCH=amd64 CC=x86_64-w64-mingw32-gcc CGO_LDFLAGS="-lssp" EXT=.exe
 install:
   - cd $GOROOT/src && ./make.bash  && cd $GOPATH/src/github.com/buckhx/diglet
+  - go get ./...
 script:
   - go generate
   - go test -v ./...
@@ -31,6 +32,6 @@ addons:
     packages:
       - g++-multilib
       - mingw-w64
-      - gcc-arm-linux-gnueabi
+      #- gcc-arm-linux-gnueabi
 cache:
   - apt
