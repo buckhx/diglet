@@ -11,12 +11,12 @@ env:
     - OS=windows ARCH=386 CC=386-w64-mingw32-gcc CGO_LDFLAGS="-lssp" EXT=.exe
     - OS=windows ARCH=amd64 CC=x86_64-w64-mingw32-gcc CGO_LDFLAGS="-lssp" EXT=.exe
 install:
-  - cd $GOROOT/src && ./make.bash  && cd $GOPATH/src/github.com/buckhx/diglet
+  - go get github.com/mitchellh/gox
+  - gox -build-toolchain -os="$OS" -arch="$ARCH"
   - go get ./...
 script:
-  - go generate
   - go test -v ./...
-  - env GOOS=$OS GOARCH=$ARCH go build -o "diglet_${OS}_${ARCH}${EXT}"
+  - gox -os="$OS" -arch="$ARCH"
   - ls
 deploy:
   provider: releases
