@@ -3,6 +3,7 @@ package digletts
 import (
 	"encoding/binary"
 	"fmt"
+	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -24,6 +25,7 @@ func TilesetRoutes(prefix, mbtPath string) (r *RouteHandler) {
 	return
 }
 
+// Reads the tile, dynamically determines enconding and content-type
 func TileHandler(w http.ResponseWriter, r *http.Request) (response *JsonResponse) {
 	vars := mux.Vars(r)
 	tile, err := bag.tileFromVars(vars)
@@ -40,6 +42,7 @@ func TileHandler(w http.ResponseWriter, r *http.Request) (response *JsonResponse
 	return
 }
 
+// Get the metadatadata map from the tileset
 func MetadataHandler(w http.ResponseWriter, r *http.Request) (response *JsonResponse) {
 	//TODO if there's a json field, try to deserialze that
 	vars := mux.Vars(r)
@@ -52,7 +55,13 @@ func MetadataHandler(w http.ResponseWriter, r *http.Request) (response *JsonResp
 	return
 }
 
+// List the tilesets available on the server
+// refresh=true will reload the tilesets from disk
 func ListHandler(w http.ResponseWriter, r *http.Request) (response *JsonResponse) {
+	if strings.ToLower(r.URL.Query().Get("refresh")) == "true" {
+		log.Printf("Reloading tilesets from disk at %s", bag.Path)
+		bag = ReadTilesets(bag.Path)
+	}
 	tilesets := make(map[string]map[string]string)
 	for name, ts := range bag.Tilesets {
 		tilesets[name] = ts.Metadata().Attributes()
@@ -76,6 +85,7 @@ var formatEncoding = map[mbtiles.Format][]header{
 	mbtiles.EMPTY:   []header{header{"Content-Type", "application/octet-stream"}},
 }
 
+// Container for tilesets loaded from disk
 type TilesetBag struct {
 	Path     string
 	Tilesets map[string]*mbtiles.Tileset

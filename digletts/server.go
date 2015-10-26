@@ -16,6 +16,7 @@ type Server struct {
 func MBTServer(dataPath, port string) (s *Server, err error) {
 	port = ":" + port
 	r := mux.NewRouter()
+	r.StrictSlash(true)
 	_ = TilesetRoutes("/tileset", dataPath).Subrouter(r)
 	s = &Server{
 		Router:  r,
