@@ -1,8 +1,11 @@
 package digletts
 
 import (
+	"encoding/binary"
 	"log"
+	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/buckhx/mbtiles"
@@ -49,4 +52,15 @@ var formatEncoding = map[mbtiles.Format][]header{
 	mbtiles.PBF_DF:  []header{header{"Content-Type", "application/x-protobuf"}, header{"Content-Encoding", "deflate"}},
 	mbtiles.UNKNOWN: []header{header{"Content-Type", "application/octet-stream"}},
 	mbtiles.EMPTY:   []header{header{"Content-Type", "application/octet-stream"}},
+}
+
+func sprintSizeOf(v interface{}) string {
+	return strconv.Itoa(binary.Size(v))
+}
+
+func cleanTilesetName(path string) (slug string) {
+	f := filepath.Base(path)
+	f = strings.TrimSuffix(f, filepath.Ext(f))
+	slug = slugged(f)
+	return
 }

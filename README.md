@@ -1,5 +1,7 @@
 # diglet
 
+[![Build Status](https://travis-ci.org/buckhx/diglet.svg?branch=master)](https://travis-ci.org/buckhx/diglet)
+
 A tile server in a single binary.
 
 There are some unique features in the pipeline for dynamically serving tiles, but

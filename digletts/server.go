@@ -55,10 +55,11 @@ func (handle Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else if response.Code != http.StatusOK {
 			http.Error(w, string(content), response.Code)
 		} else {
+			w.Header().Set("Content-Length", sprintSizeOf(content))
+			w.Header().Set("Access-Control-Allow-Origin", "*")
 			w.Header().Set("Content-Type", "application/json")
 			w.Write(content)
 		}
-
 	}
 }
 
