@@ -3,7 +3,6 @@ package digletts
 import (
 	"encoding/binary"
 	"fmt"
-	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -11,12 +10,13 @@ import (
 
 	"github.com/buckhx/mbtiles"
 	"github.com/gorilla/mux"
+	fsnotify "gopkg.in/fsnotify.v1"
 )
 
-var bag *TilesetBag
+var tilesets *TilesetIndex
 
 func TilesetRoutes(prefix, mbtPath string) (r *RouteHandler) {
-	bag = ReadTilesets(mbtPath)
+	tilesets = ReadTilesets(mbtPath)
 	r = &RouteHandler{prefix, []Route{
 		Route{"/{ts}/{z}/{x}/{y}", TileHandler},
 		Route{"/{ts}", MetadataHandler},
@@ -28,7 +28,7 @@ func TilesetRoutes(prefix, mbtPath string) (r *RouteHandler) {
 // Reads the tile, dynamically determines enconding and content-type
 func TileHandler(w http.ResponseWriter, r *http.Request) (response *JsonResponse) {
 	vars := mux.Vars(r)
-	tile, err := bag.tileFromVars(vars)
+	tile, err := tilesets.tileFromVars(vars)
 	if err != nil {
 		return
 	}
@@ -47,7 +47,7 @@ func MetadataHandler(w http.ResponseWriter, r *http.Request) (response *JsonResp
 	//TODO if there's a json field, try to deserialze that
 	vars := mux.Vars(r)
 	slug := vars["ts"]
-	if ts, ok := bag.Tilesets[slug]; ok {
+	if ts, ok := tilesets.Tilesets[slug]; ok {
 		response = Success(ts.Metadata().Attributes())
 	} else {
 		response = Error(http.StatusBadRequest, fmt.Sprintf("No tileset named %q", slug))
@@ -56,66 +56,93 @@ func MetadataHandler(w http.ResponseWriter, r *http.Request) (response *JsonResp
 }
 
 // List the tilesets available on the server
-// refresh=true will reload the tilesets from disk
 func ListHandler(w http.ResponseWriter, r *http.Request) (response *JsonResponse) {
-	if strings.ToLower(r.URL.Query().Get("refresh")) == "true" {
-		log.Printf("Reloading tilesets from disk at %s", bag.Path)
-		bag = ReadTilesets(bag.Path)
+	tss := make(map[string]map[string]string)
+	for name, ts := range tilesets.Tilesets {
+		tss[name] = ts.Metadata().Attributes()
 	}
-	tilesets := make(map[string]map[string]string)
-	for name, ts := range bag.Tilesets {
-		tilesets[name] = ts.Metadata().Attributes()
-	}
-	response = Success(tilesets)
+	response = Success(tss)
 	return
-}
-
-type header struct {
-	key, value string
-}
-
-var formatEncoding = map[mbtiles.Format][]header{
-	mbtiles.PNG:     []header{header{"Content-Type", "image/png"}},
-	mbtiles.JPG:     []header{header{"Content-Type", "image/jpeg"}},
-	mbtiles.GIF:     []header{header{"Content-Type", "image/gif"}},
-	mbtiles.WEBP:    []header{header{"Content-Type", "image/webp"}},
-	mbtiles.PBF_GZ:  []header{header{"Content-Type", "application/x-protobuf"}, header{"Content-Encoding", "gzip"}},
-	mbtiles.PBF_DF:  []header{header{"Content-Type", "application/x-protobuf"}, header{"Content-Encoding", "deflate"}},
-	mbtiles.UNKNOWN: []header{header{"Content-Type", "application/octet-stream"}},
-	mbtiles.EMPTY:   []header{header{"Content-Type", "application/octet-stream"}},
 }
 
 // Container for tilesets loaded from disk
-type TilesetBag struct {
+type TilesetIndex struct {
 	Path     string
 	Tilesets map[string]*mbtiles.Tileset
+	Watcher  *fsnotify.Watcher
 }
 
-func ReadTilesets(dir string) (bag *TilesetBag) {
-	bag = &TilesetBag{dir, make(map[string]*mbtiles.Tileset)}
-	mbtPaths, err := filepath.Glob(filepath.Join(dir, "*.mbtiles"))
+// Creates a new tileset index, but does not read the tile tilesets from disk
+func NewTilesetIndex(mbtilesDir string) (tsi *TilesetIndex) {
+	watcher, err := fsnotify.NewWatcher()
 	check(err)
-	for _, path := range mbtPaths {
-		ts, err := mbtiles.ReadTileset(path)
-		if err != nil {
-			warn(err, "skipping "+path)
-			continue
-		}
-		name := cleanTilesetName(path)
-		if _, exists := bag.Tilesets[name]; exists {
-			check(fmt.Errorf("Multiple tilesets with slug %q like %q", name, path))
-		}
-		bag.Tilesets[name] = ts
+	watcher.Add(mbtilesDir)
+	tsi = &TilesetIndex{
+		Path:     mbtilesDir,
+		Tilesets: make(map[string]*mbtiles.Tileset),
+		Watcher:  watcher,
 	}
 	return
 }
 
-func (bag *TilesetBag) tileFromVars(vars map[string]string) (tile *mbtiles.Tile, err error) {
+// Create a new tilesetindex and read the tilesets contents from disk
+// Spawns goroutine that will refresh TIlesets from disk on changes
+func ReadTilesets(mbtilesDir string) (tsi *TilesetIndex) {
+	tsi = NewTilesetIndex(mbtilesDir)
+	mbtPaths, err := filepath.Glob(filepath.Join(mbtilesDir, "*.mbtiles"))
+	check(err)
+	readTileset := func(path string) (ts *mbtiles.Tileset) {
+		ts, err := mbtiles.ReadTileset(path)
+		if err != nil {
+			warn(err, "skipping "+path)
+			return
+		}
+		name := cleanTilesetName(path)
+		if _, exists := tsi.Tilesets[name]; exists {
+			check(fmt.Errorf("Multiple tilesets with slug %q like %q", name, path))
+		}
+		return
+
+	}
+	for _, path := range mbtPaths {
+		if ts := readTileset(path); ts != nil {
+			name := cleanTilesetName(path)
+			tsi.Tilesets[name] = ts
+		}
+	}
+	watchMbtilesDir := func() {
+		for {
+			select {
+			case event := <-tsi.Watcher.Events:
+				info("fsnotfy triggered %s", event.String())
+				name := cleanTilesetName(event.Name)
+				switch event.Op {
+				case fsnotify.Create, fsnotify.Write:
+					if ts := readTileset(event.Name); ts != nil {
+						tsi.Tilesets[name] = ts
+					}
+				case fsnotify.Remove, fsnotify.Remove:
+					if _, ok := tsi.Tilesets[name]; ok {
+						delete(tsi.Tilesets, name)
+					}
+				default:
+					continue
+				}
+			case err := <-tsi.Watcher.Errors:
+				warn(err, "fsnotify")
+			}
+		}
+	}
+	go watchMbtilesDir()
+	return
+}
+
+func (tsi *TilesetIndex) tileFromVars(vars map[string]string) (tile *mbtiles.Tile, err error) {
 	slug := vars["ts"]
 	x, err := strconv.Atoi(vars["x"])
 	y, err := strconv.Atoi(vars["y"])
 	z, err := strconv.Atoi(vars["z"])
-	if ts, ok := bag.Tilesets[slug]; ok && err == nil {
+	if ts, ok := tsi.Tilesets[slug]; ok && err == nil {
 		tile, err = ts.ReadSlippyTile(x, y, z)
 	} else {
 		err = fmt.Errorf("No tileset with slug %q", slug)
