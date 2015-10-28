@@ -1,3 +1,4 @@
+// Package digletss is a diglet tile server
 package digletts
 
 import (

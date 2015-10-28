@@ -26,7 +26,7 @@ func (tse *TsEvent) String() string {
 	return fmt.Sprintf("%s %s", tse.Name, tse.Op)
 }
 
-// Container for tilesets loaded from disk
+// TilesetIndex is a container for tilesets loaded from disk
 type TilesetIndex struct {
 	Path     string
 	Tilesets map[string]*mbtiles.Tileset
@@ -34,7 +34,7 @@ type TilesetIndex struct {
 	watcher  *fsnotify.Watcher
 }
 
-// Creates a new tileset index, but does not read the tile tilesets from disk
+// NewTilesetIndex creates a new tileset index, but does not read the tile tilesets from disk
 func NewTilesetIndex(mbtilesDir string) (tsi *TilesetIndex) {
 	watcher, err := fsnotify.NewWatcher()
 	check(err)
@@ -48,8 +48,8 @@ func NewTilesetIndex(mbtilesDir string) (tsi *TilesetIndex) {
 	return
 }
 
-// Create a new tilesetindex and read the tilesets contents from disk
-// Spawns goroutine that will refresh TIlesets from disk on changes
+// ReadTilesets create a new tilesetindex and read the tilesets contents from disk
+// It spawns goroutine that will refresh Tilesets from disk on changes
 func ReadTilesets(mbtilesDir string) (tsi *TilesetIndex) {
 	tsi = NewTilesetIndex(mbtilesDir)
 	mbtPaths, err := filepath.Glob(filepath.Join(mbtilesDir, "*.mbtiles"))
