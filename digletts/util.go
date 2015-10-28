@@ -11,8 +11,8 @@ import (
 	"github.com/buckhx/mbtiles"
 )
 
-func info(format string, vals ...string) {
-	log.Printf("Diglet info: "+format, vals)
+func info(format string, vals ...interface{}) {
+	log.Printf("Diglet info: "+format, vals...)
 
 }
 func warn(err error, extra string) {

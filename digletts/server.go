@@ -3,7 +3,6 @@ package digletts
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -28,12 +27,12 @@ func MBTServer(dataPath, port string) (s *Server, err error) {
 }
 
 func (s *Server) Start() (err error) {
-	log.Println("Starting server...")
+	info("Starting server...")
 
 	s.mountStatic()
 	http.Handle("/", s.Router)
 
-	log.Printf("Now serving tiles from %s on port %s\n", s.DataDir, s.Port)
+	info("Now serving tiles from %s on port %s", s.DataDir, s.Port)
 	err = http.ListenAndServe(s.Port, nil)
 	check(err)
 	return
@@ -47,7 +46,7 @@ func (s *Server) mountStatic() {
 type Handler func(w http.ResponseWriter, r *http.Request) (response *JsonResponse)
 
 func (handle Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Println(r)
+	info("Request - %v", r)
 	response := handle(w, r)
 	if response != nil {
 		content, err := response.Marshal()
