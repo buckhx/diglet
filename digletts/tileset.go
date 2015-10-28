@@ -22,6 +22,11 @@ func TilesetRoutes(prefix, mbtPath string) (r *RouteHandler) {
 		Route{"/{ts}", MetadataHandler},
 		Route{"/", ListHandler},
 	}}
+	go func() {
+		for event := range tilesets.Events {
+			info("Tileset Change - %s", event.String())
+		}
+	}()
 	return
 }
 
@@ -65,11 +70,28 @@ func ListHandler(w http.ResponseWriter, r *http.Request) (response *JsonResponse
 	return
 }
 
+type TsOp uint32
+
+const (
+	Upsert TsOp = 1 << iota
+	Remove
+)
+
+type TsEvent struct {
+	Name string
+	Op   TsOp
+}
+
+func (tse *TsEvent) String() string {
+	return fmt.Sprintf("%s %s", tse.Name, tse.Op)
+}
+
 // Container for tilesets loaded from disk
 type TilesetIndex struct {
 	Path     string
 	Tilesets map[string]*mbtiles.Tileset
-	Watcher  *fsnotify.Watcher
+	Events   chan TsEvent
+	watcher  *fsnotify.Watcher
 }
 
 // Creates a new tileset index, but does not read the tile tilesets from disk
@@ -80,7 +102,8 @@ func NewTilesetIndex(mbtilesDir string) (tsi *TilesetIndex) {
 	tsi = &TilesetIndex{
 		Path:     mbtilesDir,
 		Tilesets: make(map[string]*mbtiles.Tileset),
-		Watcher:  watcher,
+		Events:   make(chan TsEvent),
+		watcher:  watcher,
 	}
 	return
 }
@@ -113,22 +136,30 @@ func ReadTilesets(mbtilesDir string) (tsi *TilesetIndex) {
 	watchMbtilesDir := func() {
 		for {
 			select {
-			case event := <-tsi.Watcher.Events:
-				info("fsnotfy triggered %s", event.String())
+			case event := <-tsi.watcher.Events:
+				//TODO make isMbtilesFile
+				if !strings.HasSuffix(event.Name, ".mbtiles") {
+					continue
+				}
+				info("fsnotify triggered %s", event.String())
 				name := cleanTilesetName(event.Name)
 				switch event.Op {
-				case fsnotify.Create, fsnotify.Write:
+				case fsnotify.Write:
+					tsi.Events <- TsEvent{Op: Upsert, Name: name}
+				case fsnotify.Create:
 					if ts := readTileset(event.Name); ts != nil {
 						tsi.Tilesets[name] = ts
 					}
-				case fsnotify.Remove, fsnotify.Remove:
+					tsi.Events <- TsEvent{Op: Upsert, Name: name}
+				case fsnotify.Remove, fsnotify.Rename:
 					if _, ok := tsi.Tilesets[name]; ok {
 						delete(tsi.Tilesets, name)
 					}
+					tsi.Events <- TsEvent{Op: Remove, Name: name}
 				default:
 					continue
 				}
-			case err := <-tsi.Watcher.Errors:
+			case err := <-tsi.watcher.Errors:
 				warn(err, "fsnotify")
 			}
 		}
