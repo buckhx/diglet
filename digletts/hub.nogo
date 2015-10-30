@@ -1,0 +1,75 @@
+// Copyright 2013 The Gorilla WebSocket Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package digletts
+
+// hub maintains the set of active connections and broadcasts messages to the
+// connections.
+type TilesetTopic struct {
+	conns      map[*connection]bool
+	events     chan TsEvent
+	register   chan *connection
+	unregister chan *connection
+}
+
+func (t *TilesetTopic) open() {
+	for {
+		select {
+		case c := <-t.register:
+			t.conns[c] = true
+		case c := <-t.unregister:
+			if _, ok := t.conns[c]; ok {
+				delete(t.conns, c)
+				close(c.send)
+			}
+		case e := <-t.event:
+			for c := range t.conns {
+				select {
+				case c.send <- e:
+				default:
+					close(c.send)
+					delete(t.conns, c)
+				}
+			}
+		}
+	}
+	//TODO: close
+}
+
+func (t *TilesetTopic) shut() {
+
+}
+
+func newTilesetTopic(name string) (topic *TilesetTopic) {
+	topic = &TilesetTopic{
+		name:       name,
+		events:     make(chan TsEvent),
+		register:   make(chan *connection),
+		unregister: make(chan *connection),
+		conns:      make(map[*connection]bool),
+	}
+	return
+}
+
+type hub struct {
+	tilesets TilesetIndex
+	topics   map[string]*TilesetTopic
+}
+
+func (h *hub) listen() {
+	for _, topic := range h.topics {
+		go topic.open()
+	}
+}
+
+func newHub(mbtPath) (h *hub) {
+	h = &hub{
+		tilesets: ReadTilesets(mbtPath),
+		topics:   make(map[string]*TilesetTopic),
+	}
+	for slug, _ := range h.tilesets.Tilesets {
+		h.topics[slug] = newTilesetTopic(slug)
+	}
+	return
+}

@@ -2,7 +2,6 @@
 package digletts
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -43,7 +42,7 @@ func (s *Server) mountStatic() {
 	s.Router.PathPrefix("/static/").Handler(static)
 }
 
-type Handler func(w http.ResponseWriter, r *http.Request) (response *JsonResponse)
+type Handler func(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage)
 
 func (handle Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	info("Request - %v", r)
@@ -52,8 +51,8 @@ func (handle Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		content, err := response.Marshal()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
-		} else if response.Code != http.StatusOK {
-			http.Error(w, string(content), response.Code)
+		} else if response.Error != nil {
+			http.Error(w, string(content), response.Error.Code)
 		} else {
 			w.Header().Set("Content-Length", sprintSizeOf(content))
 			w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -61,34 +60,6 @@ func (handle Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.Write(content)
 		}
 	}
-}
-
-type JsonResponse struct {
-	Status  string      `json:"status"`
-	Code    int         `json:"code"`
-	Content interface{} `json:"content"`
-}
-
-func Success(content interface{}) (response *JsonResponse) {
-	response = &JsonResponse{
-		Code:    http.StatusOK,
-		Status:  "success",
-		Content: content,
-	}
-	return
-}
-
-func Error(code int, message string) (response *JsonResponse) {
-	response = &JsonResponse{
-		Code:    code,
-		Status:  "error",
-		Content: message,
-	}
-	return
-}
-
-func (r *JsonResponse) Marshal() ([]byte, error) {
-	return json.Marshal(r)
 }
 
 type Route struct {
