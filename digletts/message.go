@@ -27,9 +27,9 @@ func (msg *RequestMessage) Validate() (rErr *ResponseError) {
 }
 
 func LoadRequestMessage(data []byte) (msg *RequestMessage, rErr *ResponseError) {
-	err := json.Unmarshal(data, msg)
+	err := json.Unmarshal(data, &msg)
 	if err != nil {
-		rErr = &ResponseError{Code: RpcParseError, Message: err.Error()}
+		rErr = &ResponseError{Code: RpcInvalidRequestError, Message: "JSON-RPC requires fields: {'id', 'jsonrpc', 'method', 'params'}"}
 	} else {
 		rErr = msg.Validate()
 	}

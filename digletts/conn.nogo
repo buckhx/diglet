@@ -1,3 +1,7 @@
+// curl -XPOST http://192.168.33.10:8080/tileset/countries/rpc -H "Content-Type: application/json" -H "Accept:
+// application/json" -d '{"jsonrpc":"2.0", "id":12, "method": "Tileset.Tile", "params": {"x": "0", "y": "0", "z":
+// "0"}}'
+
 // Copyright 2013 The Gorilla WebSocket Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.

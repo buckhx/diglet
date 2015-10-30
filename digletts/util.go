@@ -58,6 +58,10 @@ func sprintSizeOf(v interface{}) string {
 	return strconv.Itoa(binary.Size(v))
 }
 
+func itoa(v int) string {
+	return strconv.Itoa(v)
+}
+
 func cleanTilesetName(path string) (slug string) {
 	f := filepath.Base(path)
 	f = strings.TrimSuffix(f, filepath.Ext(f))

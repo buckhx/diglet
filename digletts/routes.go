@@ -2,6 +2,7 @@ package digletts
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -13,6 +14,7 @@ func TilesetRoutes(prefix, mbtPath string) (r *RouteHandler) {
 	tilesets = ReadTilesets(mbtPath)
 	r = &RouteHandler{prefix, []Route{
 		//Route{"/io/{ts}", ioHandler},
+		Route{"/{ts}/rpc", rpcHandler},
 		Route{"/{ts}/{z}/{x}/{y}", tileHandler},
 		Route{"/{ts}", metadataHandler},
 		Route{"/", listHandler},
@@ -33,6 +35,7 @@ func tileHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) 
 	vars := mux.Vars(r)
 	tile, err := tilesets.tileFromVars(vars)
 	if err != nil {
+		msg = ErrorMsg(http.StatusBadRequest, err.Error())
 		return
 	}
 	headers := formatEncoding[tile.SniffFormat()]
@@ -65,6 +68,52 @@ func listHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) 
 		tss[name] = ts.Metadata().Attributes()
 	}
 	msg = SuccessMsg(tss)
+	return
+}
+
+// Content-Type: MUST be application/json.
+// Content-Length: MUST contain the correct length according to the HTTP-specification.
+// Accept: MUST be application/json.
+func rpcHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
+	//TODO does id need to be passed to errors as well?
+	//TODO switch
+	if r.Method != "POST" {
+		msg = ErrorMsg(http.StatusMethodNotAllowed, "Requires method: POST")
+	} else if r.Header.Get("Content-Type") != "application/json" {
+		msg = ErrorMsg(http.StatusUnsupportedMediaType, "Requires media type: application/json")
+	} else if r.Header.Get("Accept") != "application/json" {
+		msg = ErrorMsg(http.StatusNotAcceptable, "Must accept: application/json")
+		//TODO figure out if the content length is actually needed
+		//} else if r.Header.Get("Content-Length") != itoa(int(r.ContentLength)) {
+		//	msg = ErrorMsg(http.StatusPreconditionFailed, "Incorrect: Content-Length")
+	} else {
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			msg = ErrorMsg(http.StatusBadRequest, "Could not read body")
+		}
+		req, rErr := LoadRequestMessage(body)
+		if rErr != nil {
+			msg = ErrorMsg(rErr.Code, rErr.Message)
+			return
+		}
+		//TODO switch
+		method := *req.Method
+		if method == "Tileset.Tile" {
+			tile, err := tilesets.tileFromVars(req.Params)
+			if err != nil {
+				msg = ErrorMsg(http.StatusBadRequest, err.Error())
+			} else {
+				msg = &ResponseMessage{
+					Error:   nil,
+					Id:      req.Id,
+					JsonRpc: "2.0",
+					Result:  tile.Data,
+				}
+			}
+		} else {
+			msg = ErrorMsg(RpcMethodNotFoundError, "Method Not Found: "+method)
+		}
+	}
 	return
 }
 
