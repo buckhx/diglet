@@ -12,10 +12,10 @@ const (
 )
 
 type RequestMessage struct {
-	Id      *uint             `json:"id"`
-	JsonRpc string            `json:"jsonrpc"`
-	Method  *string           `json:"method"`
-	Params  map[string]string `json:"params"`
+	Id      *uint                  `json:"id"`
+	JsonRpc string                 `json:"jsonrpc"`
+	Method  *string                `json:"method"`
+	Params  map[string]interface{} `json:"params"`
 }
 
 func (msg *RequestMessage) Validate() (rErr *ResponseError) {
@@ -29,7 +29,7 @@ func (msg *RequestMessage) Validate() (rErr *ResponseError) {
 func LoadRequestMessage(data []byte) (msg *RequestMessage, rErr *ResponseError) {
 	err := json.Unmarshal(data, &msg)
 	if err != nil {
-		rErr = &ResponseError{Code: RpcInvalidRequestError, Message: "JSON-RPC requires fields: {'id', 'jsonrpc', 'method', 'params'}"}
+		rErr = &ResponseError{Code: RpcInvalidRequestError, Message: "JSON-RPC requires valid json with fields: {'id', 'jsonrpc', 'method', 'params'}"}
 	} else {
 		rErr = msg.Validate()
 	}

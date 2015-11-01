@@ -113,7 +113,11 @@ func (tsi *TilesetIndex) tileFromVars(vars map[string]string) (tile *mbtiles.Til
 	x, err := strconv.Atoi(vars["x"])
 	y, err := strconv.Atoi(vars["y"])
 	z, err := strconv.Atoi(vars["z"])
-	if ts, ok := tsi.Tilesets[slug]; ok && err == nil {
+	if err != nil {
+		err = fmt.Errorf("Invalid tile params %s", vars)
+		return
+	}
+	if ts, ok := tsi.Tilesets[slug]; ok {
 		tile, err = ts.ReadSlippyTile(x, y, z)
 	} else {
 		err = fmt.Errorf("No tileset with slug %q", slug)

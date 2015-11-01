@@ -77,15 +77,16 @@ func listHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) 
 func rpcHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 	//TODO does id need to be passed to errors as well?
 	//TODO switch
+	vars := mux.Vars(r)
 	if r.Method != "POST" {
 		msg = ErrorMsg(http.StatusMethodNotAllowed, "Requires method: POST")
 	} else if r.Header.Get("Content-Type") != "application/json" {
-		msg = ErrorMsg(http.StatusUnsupportedMediaType, "Requires media type: application/json")
+		msg = ErrorMsg(http.StatusUnsupportedMediaType, "Requires Content-Type: application/json")
 	} else if r.Header.Get("Accept") != "application/json" {
-		msg = ErrorMsg(http.StatusNotAcceptable, "Must accept: application/json")
-		//TODO figure out if the content length is actually needed
-		//} else if r.Header.Get("Content-Length") != itoa(int(r.ContentLength)) {
-		//	msg = ErrorMsg(http.StatusPreconditionFailed, "Incorrect: Content-Length")
+		msg = ErrorMsg(http.StatusNotAcceptable, "Requires Accept: application/json")
+	} else if r.Header.Get("Content-Length") == "" {
+		//TODO is it necessary to asset lenght is correct?
+		msg = ErrorMsg(http.StatusLengthRequired, "Requires valid Content-Length")
 	} else {
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
@@ -99,7 +100,29 @@ func rpcHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 		//TODO switch
 		method := *req.Method
 		if method == "Tileset.Tile" {
-			tile, err := tilesets.tileFromVars(req.Params)
+			slug := vars["ts"]
+			ts, ok := tilesets.Tilesets[slug]
+			if !ok {
+				msg = ErrorMsg(http.StatusBadRequest, "No tileset with slug "+slug)
+				return
+			}
+			var x, y, z int
+			if xf, ok := req.Params["x"].(float64); !ok {
+				err = fmt.Errorf("Cannot parse param %q %q", "x", req.Params["x"])
+			} else if yf, ok := req.Params["y"].(float64); !ok {
+				err = fmt.Errorf("Cannot parse param %q %q", "y", req.Params["y"])
+			} else if zf, ok := req.Params["z"].(float64); !ok {
+				err = fmt.Errorf("Cannot parse param %q %q", "z", req.Params["z"])
+			} else {
+				x = int(xf)
+				y = int(yf)
+				z = int(zf)
+			}
+			if err != nil {
+				msg = ErrorMsg(http.StatusBadRequest, err.Error())
+				return
+			}
+			tile, err := ts.ReadSlippyTile(x, y, z)
 			if err != nil {
 				msg = ErrorMsg(http.StatusBadRequest, err.Error())
 			} else {
@@ -107,7 +130,7 @@ func rpcHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 					Error:   nil,
 					Id:      req.Id,
 					JsonRpc: "2.0",
-					Result:  tile.Data,
+					Result:  tile,
 				}
 			}
 		} else {
