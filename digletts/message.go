@@ -1,6 +1,10 @@
 package digletts
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"io"
+	"io/ioutil"
+)
 
 const (
 	RpcParseError          int = -32700
@@ -26,16 +30,26 @@ func (msg *RequestMessage) Validate() (rErr *ResponseError) {
 	return
 }
 
-func LoadRequestMessage(data []byte) (msg *RequestMessage, rErr *ResponseError) {
+func LoadRequestMessage(data []byte) (msg *RequestMessage, rerr *ResponseError) {
 	err := json.Unmarshal(data, &msg)
 	if err != nil {
-		rErr = &ResponseError{Code: RpcInvalidRequestError, Message: "JSON-RPC requires valid json with fields: {'id', 'jsonrpc', 'method', 'params'}"}
+		rerr = &ResponseError{Code: RpcInvalidRequestError, Message: "JSON-RPC requires valid json with fields: {'id', 'jsonrpc', 'method', 'params'}"}
 	} else {
-		rErr = msg.Validate()
+		rerr = msg.Validate()
 	}
-	if rErr != nil {
+	if rerr != nil {
+		//TODO check if this is neceaary
 		msg = nil
 	}
+	return
+}
+
+func ReadRequestMessage(content io.Reader) (msg *RequestMessage, rerr *ResponseError) {
+	body, err := ioutil.ReadAll(content)
+	if err != nil {
+		rerr = &ResponseError{Code: RpcParseError, Message: "Could not read body"}
+	}
+	msg, rerr = LoadRequestMessage(body)
 	return
 }
 

@@ -2,7 +2,6 @@ package digletts
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -71,6 +70,7 @@ func listHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) 
 	return
 }
 
+// From http://www.jsonrpc.org/specification
 // Content-Type: MUST be application/json.
 // Content-Length: MUST contain the correct length according to the HTTP-specification.
 // Accept: MUST be application/json.
@@ -78,34 +78,32 @@ func rpcHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 	//TODO does id need to be passed to errors as well?
 	//TODO switch
 	vars := mux.Vars(r)
-	if r.Method != "POST" {
+	switch {
+	case r.Method != "POST":
 		msg = ErrorMsg(http.StatusMethodNotAllowed, "Requires method: POST")
-	} else if r.Header.Get("Content-Type") != "application/json" {
+	case r.Header.Get("Content-Type") != "application/json":
 		msg = ErrorMsg(http.StatusUnsupportedMediaType, "Requires Content-Type: application/json")
-	} else if r.Header.Get("Accept") != "application/json" {
+	case r.Header.Get("Accept") != "application/json":
 		msg = ErrorMsg(http.StatusNotAcceptable, "Requires Accept: application/json")
-	} else if r.Header.Get("Content-Length") == "" {
+	case r.Header.Get("Content-Length") == "":
 		//TODO is it necessary to asset lenght is correct?
 		msg = ErrorMsg(http.StatusLengthRequired, "Requires valid Content-Length")
-	} else {
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			msg = ErrorMsg(http.StatusBadRequest, "Could not read body")
-		}
-		req, rErr := LoadRequestMessage(body)
-		if rErr != nil {
-			msg = ErrorMsg(rErr.Code, rErr.Message)
+	default:
+		req, rerr := ReadRequestMessage(r.Body)
+		if rerr != nil {
+			msg = ErrorMsg(rerr.Code, rerr.Message)
 			return
 		}
 		//TODO switch
 		method := *req.Method
-		if method == "Tileset.Tile" {
+		if method == "get_tile" {
 			slug := vars["ts"]
 			ts, ok := tilesets.Tilesets[slug]
 			if !ok {
 				msg = ErrorMsg(http.StatusBadRequest, "No tileset with slug "+slug)
 				return
 			}
+			var err error
 			var x, y, z int
 			if xf, ok := req.Params["x"].(float64); !ok {
 				err = fmt.Errorf("Cannot parse param %q %q", "x", req.Params["x"])
