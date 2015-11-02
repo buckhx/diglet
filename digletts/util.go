@@ -2,6 +2,7 @@ package digletts
 
 import (
 	"encoding/binary"
+	"fmt"
 	"log"
 	"path/filepath"
 	"regexp"
@@ -66,5 +67,31 @@ func cleanTilesetName(path string) (slug string) {
 	f := filepath.Base(path)
 	f = strings.TrimSuffix(f, filepath.Ext(f))
 	slug = slugged(f)
+	return
+}
+
+func assertString(params map[string]interface{}, key string) (v string, err error) {
+	v, ok := params[key].(string)
+	if !ok {
+		err = fmt.Errorf("Cannot parse param %q %q", key, params[key])
+	}
+	return
+}
+
+func assertInt(params map[string]interface{}, key string) (v int, err error) {
+	fv, ok := params[key].(float64)
+	if !ok {
+		err = fmt.Errorf("Cannot parse param %q %q", key, params[key])
+	}
+	v = int(fv)
+	return
+}
+
+func validateParams(params map[string]interface{}, keys []string) (err error) {
+	for _, key := range keys {
+		if _, ok := params[key]; !ok {
+			err = fmt.Errorf("Missing param: %q", key)
+		}
+	}
 	return
 }
