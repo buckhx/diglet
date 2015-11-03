@@ -32,28 +32,21 @@ func TilesetRoutes(prefix, mbtPath string) (r *RouteHandler) {
 // Reads the tile, dynamically determines enconding and content-type
 func tileHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 	vars := mux.Vars(r)
-	x, err := atoi(vars["x"])
-	if err != nil {
-		panic(err)
-		msg = ErrorMsg(http.StatusBadRequest, "Could not parse param x: "+vars["x"])
-		return
-	}
-	y, err := atoi(vars["y"])
-	if err != nil {
-		msg = ErrorMsg(http.StatusBadRequest, "Could not parse param y: "+vars["y"])
-		return
-	}
-	z, err := atoi(vars["z"])
-	if err != nil {
-		msg = ErrorMsg(http.StatusBadRequest, "Could not parse param z: "+vars["z"])
-		return
+	xyz := make([3]float64)
+	for i, v := range []string{vars["x"], vars["y"], vars["z"]} {
+		iv, err := atoi(vars["x"])
+		if err != nil {
+			msg = ErrorMsg(http.StatusBadRequest, "Could not parse url tile coordinate param: "+v)
+			return
+		}
+		xyz[i] = float64(iv)
 	}
 	method := GetTile
 	params := map[string]interface{}{
 		"tileset": vars["ts"],
-		"x":       float64(x),
-		"y":       float64(y),
-		"z":       float64(z),
+		"x":       xyz[0],
+		"y":       xyz[1],
+		"z":       xyz[2],
 	}
 	resp, rerr := methods.Execute(method, params)
 	if rerr != nil {
