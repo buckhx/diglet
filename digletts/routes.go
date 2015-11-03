@@ -32,30 +32,31 @@ func TilesetRoutes(prefix, mbtPath string) (r *RouteHandler) {
 // Reads the tile, dynamically determines enconding and content-type
 func tileHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 	vars := mux.Vars(r)
-	xyz := make([3]float64)
+	xyz := make([]float64, 3)
 	for i, v := range []string{vars["x"], vars["y"], vars["z"]} {
-		iv, err := atoi(vars["x"])
+		iv, err := atoi(v)
 		if err != nil {
 			msg = ErrorMsg(http.StatusBadRequest, "Could not parse url tile coordinate param: "+v)
 			return
 		}
 		xyz[i] = float64(iv)
+		// json passes nums as float64 and we leverage the json-rpc implementation
+		// we could make an XYZ struct that could be helpful (in mbtiles)
 	}
-	method := GetTile
 	params := map[string]interface{}{
 		"tileset": vars["ts"],
 		"x":       xyz[0],
 		"y":       xyz[1],
 		"z":       xyz[2],
 	}
-	resp, rerr := methods.Execute(method, params)
+	resp, rerr := methods.Execute(GetTile, params)
 	if rerr != nil {
 		msg = ErrorMsg(http.StatusBadRequest, rerr.Message)
 		return
 	}
 	tile, err := assertTile(resp.Result)
 	if err != nil {
-		msg = ErrorMsg(http.StatusInternalServerError, "Internal Error asserting tile")
+		msg = ErrorMsg(http.StatusInternalServerError, "Internal Error asserting tile contents")
 		return
 	}
 	headers := formatEncoding[tile.SniffFormat()]
