@@ -59,8 +59,16 @@ func sprintSizeOf(v interface{}) string {
 	return strconv.Itoa(binary.Size(v))
 }
 
+func sprintf(format string, vals ...interface{}) string {
+	return fmt.Sprintf(format, vals...)
+}
+
 func itoa(v int) string {
 	return strconv.Itoa(v)
+}
+
+func atoi(v string) (int, error) {
+	return strconv.Atoi(v)
 }
 
 func cleanTilesetName(path string) (slug string) {
@@ -87,6 +95,13 @@ func assertInt(params map[string]interface{}, key string) (v int, err error) {
 	return
 }
 
+func assertTile(t interface{}) (tile *mbtiles.Tile, err error) {
+	tile, ok := t.(*mbtiles.Tile)
+	if !ok {
+		err = fmt.Errorf("Cannot cast tile %q", t)
+	}
+	return
+}
 func validateParams(params map[string]interface{}, keys []string) (err error) {
 	for _, key := range keys {
 		if _, ok := params[key]; !ok {

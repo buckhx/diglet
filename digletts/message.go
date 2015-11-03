@@ -7,12 +7,13 @@ import (
 )
 
 const (
-	RpcParseError          int = -32700
-	RpcInvalidRequestError int = -32600
-	RpcMethodNotFoundError int = -32601
-	RpcInvalidParamsError  int = -32602
-	RpcInternalError       int = -32603
-	RpcServerError         int = -32000
+	RpcVersion        string = "2.0"
+	RpcParseError     int    = -32700
+	RpcInvalidRequest int    = -32600
+	RpcMethodNotFound int    = -32601
+	RpcInvalidParams  int    = -32602
+	RpcInternalError  int    = -32603
+	RpcServerError    int    = -32000
 )
 
 type RequestMessage struct {
@@ -22,18 +23,29 @@ type RequestMessage struct {
 	Params  map[string]interface{} `json:"params"`
 }
 
-func (msg *RequestMessage) Validate() (rErr *ResponseError) {
-	if msg.JsonRpc != "2.0" {
-		rErr = &ResponseError{Code: RpcInvalidRequestError, Message: "jsonrpc != 2.0"}
+func (req *RequestMessage) Validate() (rerr *ResponseError) {
+	if req.JsonRpc != RpcVersion {
+		rerr = Errorm(RpcInvalidRequest, "jsonrpc != "+RpcVersion)
 	}
-	//TODO validate methods
+	if req.Method == nil {
+		rerr = Errorm(RpcInvalidRequest, "Request is missing field 'method'")
+	}
+	return
+}
+
+func (req *RequestMessage) ExecuteMethod() (msg *ResponseMessage) {
+	msg, rerr := methods.Execute(*req.Method, req.Params)
+	if rerr != nil {
+		msg = ErrorMsg(rerr.Code, rerr.Message)
+	}
+	msg.Id = req.Id
 	return
 }
 
 func LoadRequestMessage(data []byte) (msg *RequestMessage, rerr *ResponseError) {
 	err := json.Unmarshal(data, &msg)
 	if err != nil {
-		rerr = &ResponseError{Code: RpcInvalidRequestError, Message: "JSON-RPC requires valid json with fields: {'id', 'jsonrpc', 'method', 'params'}"}
+		rerr = Errorm(RpcInvalidRequest, "JSON-RPC requires valid json with fields: {'id', 'jsonrpc', 'method', 'params'}")
 	} else {
 		rerr = msg.Validate()
 	}
@@ -70,11 +82,19 @@ type ResponseError struct {
 	Message string      `json:"message"`
 }
 
+func Errorm(code int, message string) (rerr *ResponseError) {
+	rerr = &ResponseError{
+		Code:    code,
+		Message: message,
+	}
+	return
+}
+
 func SuccessMsg(content interface{}) (msg *ResponseMessage) {
 	msg = &ResponseMessage{
 		Error:   nil,
 		Id:      nil,
-		JsonRpc: "2.0",
+		JsonRpc: RpcVersion,
 		Result:  content,
 	}
 	return
@@ -87,7 +107,7 @@ func ErrorMsg(code int, message string) (msg *ResponseMessage) {
 			Message: message,
 		},
 		Id:      nil,
-		JsonRpc: "2.0",
+		JsonRpc: RpcVersion,
 		Result:  nil,
 	}
 	return

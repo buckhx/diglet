@@ -13,7 +13,7 @@ func TilesetRoutes(prefix, mbtPath string) (r *RouteHandler) {
 	tilesets = ReadTilesets(mbtPath)
 	r = &RouteHandler{prefix, []Route{
 		//Route{"/io/{ts}", ioHandler},
-		Route{"/{ts}/rpc", rpcHandler},
+		Route{"/rpc", rpcHandler},
 		Route{"/{ts}/{z}/{x}/{y}", tileHandler},
 		Route{"/{ts}", metadataHandler},
 		Route{"/", listHandler},
@@ -32,9 +32,37 @@ func TilesetRoutes(prefix, mbtPath string) (r *RouteHandler) {
 // Reads the tile, dynamically determines enconding and content-type
 func tileHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 	vars := mux.Vars(r)
-	tile, err := tilesets.tileFromVars(vars)
+	x, err := atoi(vars["x"])
 	if err != nil {
-		msg = ErrorMsg(http.StatusBadRequest, err.Error())
+		panic(err)
+		msg = ErrorMsg(http.StatusBadRequest, "Could not parse param x: "+vars["x"])
+		return
+	}
+	y, err := atoi(vars["y"])
+	if err != nil {
+		msg = ErrorMsg(http.StatusBadRequest, "Could not parse param y: "+vars["y"])
+		return
+	}
+	z, err := atoi(vars["z"])
+	if err != nil {
+		msg = ErrorMsg(http.StatusBadRequest, "Could not parse param z: "+vars["z"])
+		return
+	}
+	method := GetTile
+	params := map[string]interface{}{
+		"tileset": vars["ts"],
+		"x":       float64(x),
+		"y":       float64(y),
+		"z":       float64(z),
+	}
+	resp, rerr := methods.Execute(method, params)
+	if rerr != nil {
+		msg = ErrorMsg(http.StatusBadRequest, rerr.Message)
+		return
+	}
+	tile, err := assertTile(resp.Result)
+	if err != nil {
+		msg = ErrorMsg(http.StatusInternalServerError, "Internal Error asserting tile")
 		return
 	}
 	headers := formatEncoding[tile.SniffFormat()]
@@ -75,9 +103,6 @@ func listHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) 
 // Content-Length: MUST contain the correct length according to the HTTP-specification.
 // Accept: MUST be application/json.
 func rpcHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
-	//TODO does id need to be passed to errors as well?
-	//TODO switch
-	vars := mux.Vars(r)
 	switch {
 	case r.Method != "POST":
 		msg = ErrorMsg(http.StatusMethodNotAllowed, "Requires method: POST")
@@ -89,50 +114,10 @@ func rpcHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 		//TODO is it necessary to asset lenght is correct?
 		msg = ErrorMsg(http.StatusLengthRequired, "Requires valid Content-Length")
 	default:
-		req, rerr := ReadRequestMessage(r.Body)
-		if rerr != nil {
+		if req, rerr := ReadRequestMessage(r.Body); rerr != nil {
 			msg = ErrorMsg(rerr.Code, rerr.Message)
-			return
-		}
-		//TODO switch
-		method := *req.Method
-		if method == "get_tile" {
-			slug := vars["ts"]
-			ts, ok := tilesets.Tilesets[slug]
-			if !ok {
-				msg = ErrorMsg(http.StatusBadRequest, "No tileset with slug "+slug)
-				return
-			}
-			var err error
-			var x, y, z int
-			if xf, ok := req.Params["x"].(float64); !ok {
-				err = fmt.Errorf("Cannot parse param %q %q", "x", req.Params["x"])
-			} else if yf, ok := req.Params["y"].(float64); !ok {
-				err = fmt.Errorf("Cannot parse param %q %q", "y", req.Params["y"])
-			} else if zf, ok := req.Params["z"].(float64); !ok {
-				err = fmt.Errorf("Cannot parse param %q %q", "z", req.Params["z"])
-			} else {
-				x = int(xf)
-				y = int(yf)
-				z = int(zf)
-			}
-			if err != nil {
-				msg = ErrorMsg(http.StatusBadRequest, err.Error())
-				return
-			}
-			tile, err := ts.ReadSlippyTile(x, y, z)
-			if err != nil {
-				msg = ErrorMsg(http.StatusBadRequest, err.Error())
-			} else {
-				msg = &ResponseMessage{
-					Error:   nil,
-					Id:      req.Id,
-					JsonRpc: "2.0",
-					Result:  tile,
-				}
-			}
 		} else {
-			msg = ErrorMsg(RpcMethodNotFoundError, "Method Not Found: "+method)
+			msg = req.ExecuteMethod()
 		}
 	}
 	return
