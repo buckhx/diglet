@@ -23,69 +23,81 @@ type RequestMessage struct {
 	Params  map[string]interface{} `json:"params"`
 }
 
-func (req *RequestMessage) Validate() (rerr *ResponseError) {
+func (req *RequestMessage) Validate() (err *CodedError) {
 	if req.JsonRpc != RpcVersion {
-		rerr = Errorm(RpcInvalidRequest, "jsonrpc != "+RpcVersion)
+		err = cerrorf(RpcInvalidRequest, "jsonrpc != "+RpcVersion)
 	}
 	if req.Method == nil {
-		rerr = Errorm(RpcInvalidRequest, "Request is missing field 'method'")
+		err = cerrorf(RpcInvalidRequest, "Request is missing field 'method'")
 	}
 	return
 }
 
 func (req *RequestMessage) ExecuteMethod() (msg *ResponseMessage) {
-	msg, rerr := methods.Execute(*req.Method, req.Params)
-	if rerr != nil {
-		msg = ErrorMsg(rerr.Code, rerr.Message)
-	}
+	msg = methods.Execute(*req.Method, req.Params)
 	msg.Id = req.Id
 	return
 }
 
-func LoadRequestMessage(data []byte) (msg *RequestMessage, rerr *ResponseError) {
-	err := json.Unmarshal(data, &msg)
-	if err != nil {
-		rerr = Errorm(RpcInvalidRequest, "JSON-RPC requires valid json with fields: {'id', 'jsonrpc', 'method', 'params'}")
+func LoadRequestMessage(data []byte) (msg *RequestMessage, err *CodedError) {
+	if merr := json.Unmarshal(data, &msg); merr != nil {
+		hint := "JSON-RPC requires valid json with fields: {'id', 'jsonrpc', 'method','params'}"
+		err = cerrorf(RpcInvalidRequest, hint)
 	} else {
-		rerr = msg.Validate()
-	}
-	if rerr != nil {
-		//TODO check if this is neceaary
-		msg = nil
+		err = msg.Validate()
 	}
 	return
 }
 
-func ReadRequestMessage(content io.Reader) (msg *RequestMessage, rerr *ResponseError) {
-	body, err := ioutil.ReadAll(content)
-	if err != nil {
-		rerr = &ResponseError{Code: RpcParseError, Message: "Could not read body"}
+func ReadRequestMessage(content io.Reader) (msg *RequestMessage, err *CodedError) {
+	if body, ioerr := ioutil.ReadAll(content); ioerr != nil {
+		err = cerrorf(RpcParseError, "Could not read body")
+	} else {
+		msg, err = LoadRequestMessage(body)
 	}
-	msg, rerr = LoadRequestMessage(body)
 	return
 }
 
 type ResponseMessage struct {
-	Error   *ResponseError `json:"error"`
-	Id      *uint          `json:"id"`
-	JsonRpc string         `json:"jsonrpc"`
-	Result  interface{}    `json:"result"`
+	Error   *CodedError `json:"error"`
+	Id      *uint       `json:"id"`
+	JsonRpc string      `json:"jsonrpc"`
+	Result  interface{} `json:"result"`
 }
 
 func (msg *ResponseMessage) Marshal() ([]byte, error) {
 	return json.Marshal(msg)
 }
 
-type ResponseError struct {
+type CodedError struct {
 	Code    int         `json:"code"`
 	Data    interface{} `json:"data"`
 	Message string      `json:"message"`
 }
 
-func Errorm(code int, message string) (rerr *ResponseError) {
-	rerr = &ResponseError{
+func (err *CodedError) Error() string {
+	return sprintf("Error %s: %s", err.Code, err.Message)
+}
+
+func (err *CodedError) ResponseMessage() (msg *ResponseMessage) {
+	// not sure if Error: should be refernce to this
+	msg = &ResponseMessage{
+		Error: &CodedError{
+			Code:    err.Code,
+			Data:    err.Data,
+			Message: err.Message,
+		},
+		Id:      nil,
+		JsonRpc: RpcVersion,
+		Result:  nil,
+	}
+	return
+}
+
+func cerrorf(code int, msg string, vals ...interface{}) (err *CodedError) {
+	err = &CodedError{
 		Code:    code,
-		Message: message,
+		Message: sprintf(msg, vals...),
 	}
 	return
 }
@@ -96,19 +108,6 @@ func SuccessMsg(content interface{}) (msg *ResponseMessage) {
 		Id:      nil,
 		JsonRpc: RpcVersion,
 		Result:  content,
-	}
-	return
-}
-
-func ErrorMsg(code int, message string) (msg *ResponseMessage) {
-	msg = &ResponseMessage{
-		Error: &ResponseError{
-			Code:    code,
-			Message: message,
-		},
-		Id:      nil,
-		JsonRpc: RpcVersion,
-		Result:  nil,
 	}
 	return
 }

@@ -63,6 +63,10 @@ func sprintf(format string, vals ...interface{}) string {
 	return fmt.Sprintf(format, vals...)
 }
 
+func errorf(format string, vals ...interface{}) error {
+	return fmt.Errorf(format, vals...)
+}
+
 func itoa(v int) string {
 	return strconv.Itoa(v)
 }
@@ -78,26 +82,20 @@ func cleanTilesetName(path string) (slug string) {
 	return
 }
 
-func assertString(params map[string]interface{}, key string) (v string, err error) {
-	v, ok := params[key].(string)
-	if !ok {
-		err = fmt.Errorf("Cannot parse param %q %q", key, params[key])
+func assertString(v interface{}) error {
+	if _, ok := v.(string); !ok {
+		return fmt.Errorf("Cannot assert string %q", v)
 	}
-	return
 }
 
-func assertInt(params map[string]interface{}, key string) (v int, err error) {
-	fv, ok := params[key].(float64)
-	if !ok {
-		err = fmt.Errorf("Cannot parse param %q %q", key, params[key])
+func assertNumber(v interface{}) error {
+	if _, ok := params[key].(float64); !ok {
+		return fmt.Errorf("Cannot parse param %q %q", key, params[key])
 	}
-	v = int(fv)
-	return
 }
 
-func assertTile(t interface{}) (tile *mbtiles.Tile, err error) {
-	tile, ok := t.(*mbtiles.Tile)
-	if !ok {
+func castTile(t interface{}) (tile *mbtiles.Tile, err error) {
+	if tile, ok := t.(*mbtiles.Tile); !ok {
 		err = fmt.Errorf("Cannot cast tile %q", t)
 	}
 	return
