@@ -77,6 +77,9 @@ func rawTileHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessag
 		}
 	}
 	resp := methods.Execute(GetTile, ivars)
+	if resp.Result == nil {
+		return
+	}
 	if tile, err := castTile(resp.Result); err != nil {
 		errorlog(err)
 		msg = cerrorf(http.StatusInternalServerError, "Internal Error casting tile contents").ResponseMessage()
