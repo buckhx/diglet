@@ -1,7 +1,7 @@
 package digletts
 
 import (
-	"fmt"
+	//"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -13,9 +13,9 @@ func TilesetRoutes(prefix, mbtPath string) (r *RouteHandler) {
 	tilesets = ReadTilesets(mbtPath)
 	r = &RouteHandler{prefix, []Route{
 		//Route{"/io/{ts}", ioHandler},
-		Route{"/rpc", rpcHandler},
-		Route{"/{ts}/{z}/{x}/{y}", tileHandler},
-		Route{"/{ts}", metadataHandler},
+		//Route{"/rpc", rpcHandler},
+		//Route{"/{ts}/{z}/{x}/{y}", tileHandler},
+		Route{"/{tileset}", metadataHandler},
 		Route{"/", listHandler},
 	}}
 	/*
@@ -29,6 +29,7 @@ func TilesetRoutes(prefix, mbtPath string) (r *RouteHandler) {
 	return
 }
 
+/*
 // Reads the tile, dynamically determines enconding and content-type
 func tileHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 	vars := mux.Vars(r)
@@ -69,29 +70,22 @@ func tileHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) 
 	return
 }
 
+*/
 // Get the metadatadata map from the tileset
-func metadataHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
-	//TODO if there's a json field, try to deserialze that
-	vars := mux.Vars(r)
-	slug := vars["ts"]
-	if ts, ok := tilesets.Tilesets[slug]; ok {
-		msg = SuccessMsg(ts.Metadata().Attributes())
-	} else {
-		msg = ErrorMsg(http.StatusBadRequest, fmt.Sprintf("No tileset named %q", slug))
+func metadataHandler(w http.ResponseWriter, r *http.Request) *ResponseMessage {
+	ivars := make(map[string]interface{})
+	for k, v := range mux.Vars(r) {
+		ivars[k] = v
 	}
-	return
+	return methods.Execute(GetTileset, ivars)
 }
 
 // List the tilesets available on the server
-func listHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
-	tss := make(map[string]map[string]string)
-	for name, ts := range tilesets.Tilesets {
-		tss[name] = ts.Metadata().Attributes()
-	}
-	msg = SuccessMsg(tss)
-	return
+func listHandler(w http.ResponseWriter, r *http.Request) *ResponseMessage {
+	return methods.Execute(ListTilesets, map[string]interface{}{})
 }
 
+/*
 // From http://www.jsonrpc.org/specification
 // Content-Type: MUST be application/json.
 // Content-Length: MUST contain the correct length according to the HTTP-specification.
@@ -117,7 +111,6 @@ func rpcHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 	return
 }
 
-/*
 func ioHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 	if r.Method != "GET" {
 		msg = ErrorMsg(http.StatusMethodNotAllowed, "Only GET can be upgraded")

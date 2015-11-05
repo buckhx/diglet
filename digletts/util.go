@@ -82,24 +82,28 @@ func cleanTilesetName(path string) (slug string) {
 	return
 }
 
-func assertString(v interface{}) error {
+func assertString(v interface{}) (err error) {
 	if _, ok := v.(string); !ok {
-		return fmt.Errorf("Cannot assert string %q", v)
+		err = fmt.Errorf("Cannot assert string %q", v)
 	}
+	return
 }
 
-func assertNumber(v interface{}) error {
-	if _, ok := params[key].(float64); !ok {
-		return fmt.Errorf("Cannot parse param %q %q", key, params[key])
+func assertNumber(v interface{}) (err error) {
+	if _, ok := v.(float64); !ok {
+		err = fmt.Errorf("Cannot assert number %q", v)
 	}
+	return
 }
 
 func castTile(t interface{}) (tile *mbtiles.Tile, err error) {
-	if tile, ok := t.(*mbtiles.Tile); !ok {
+	tile, ok := t.(*mbtiles.Tile)
+	if !ok {
 		err = fmt.Errorf("Cannot cast tile %q", t)
 	}
 	return
 }
+
 func validateParams(params map[string]interface{}, keys []string) (err error) {
 	for _, key := range keys {
 		if _, ok := params[key]; !ok {
