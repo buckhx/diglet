@@ -36,14 +36,14 @@ type Method struct {
 	Route   string
 }
 
-func (m Method) GatherParams(params map[string]interface{}) (mParams MethodParams, err error) {
+func (m Method) BuildParams(params map[string]interface{}) (mParams MethodParams, err error) {
+	// TODO do we need a copy?
 	mParams = make(MethodParams)
 	for key, param := range m.Params {
 		if raw, ok := params[key]; !ok {
 			err = errorf("Missing param: %q", key)
 		} else {
 			if err = param.Validator(raw); err == nil {
-				// Probably needs to be a reference
 				mParams[key] = Param{
 					Key:       key,
 					Value:     raw,
@@ -70,7 +70,7 @@ func (m *MethodIndex) Execute(methodName string, params map[string]interface{}) 
 	if method, ok := m.Methods[methodName]; !ok {
 		err = cerrorf(RpcMethodNotFound, "The method does not exist! %q", method)
 	} else {
-		mParams, perr := method.GatherParams(params)
+		mParams, perr := method.BuildParams(params)
 		if perr != nil {
 			err = cerrorf(RpcInvalidParams, perr.Error())
 		} else {

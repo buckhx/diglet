@@ -17,6 +17,8 @@ func TilesetRoutes(prefix, mbtPath string) (r *RouteHandler) {
 		//Route{"/{ts}/{z}/{x}/{y}", tileHandler},
 		Route{"/{tileset}", metadataHandler},
 		Route{"/", listHandler},
+		Route{"/help/", listHandler},
+		Route{"/help/{method}", listHandler},
 	}}
 	/*
 		go func() {
