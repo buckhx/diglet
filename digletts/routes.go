@@ -1,7 +1,6 @@
 package digletts
 
 import (
-	//"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -12,14 +11,11 @@ var tilesets *TilesetIndex
 func TilesetRoutes(prefix, mbtPath string) (r *RouteHandler) {
 	tilesets = ReadTilesets(mbtPath)
 	r = &RouteHandler{prefix, []Route{
-		//Route{"/io/{ts}", ioHandler},
+		//Route{"/io", ioHandler},
 		//Route{"/rpc", rpcHandler},
-		//Route{"/{ts}/{z}/{x}/{y}", tileHandler},
-		Route{"/{tileset}", metadataHandler},
-		Route{"/", listHandler},
-		Route{"/help/", listHandler},
-		Route{"/help/{method}", listHandler},
+		Route{"/{tileset}/{z}/{x}/{y}", rawTileHandler},
 	}}
+	r.CollectMethodRoutes(methods)
 	/*
 		go func() {
 			for event := range tilesets.Events {
@@ -31,60 +27,69 @@ func TilesetRoutes(prefix, mbtPath string) (r *RouteHandler) {
 	return
 }
 
-/*
-// Reads the tile, dynamically determines enconding and content-type
-func tileHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
-	vars := mux.Vars(r)
-	xyz := make([]float64, 3)
-	for i, v := range []string{vars["x"], vars["y"], vars["z"]} {
-		iv, err := atoi(v)
-		if err != nil {
-			msg = ErrorMsg(http.StatusBadRequest, "Could not parse url tile coordinate param: "+v)
-			return
-		}
-		xyz[i] = float64(iv)
-		// json passes nums as float64 and we leverage the json-rpc implementation
-		// we could make an XYZ struct that could be helpful (in mbtiles)
+type Route struct {
+	Pattern string
+	Handler HTTPHandler
+}
+
+type RouteHandler struct {
+	Prefix string
+	Routes []Route
+}
+
+func (h *RouteHandler) Subrouter(r *mux.Router) (subrouter *mux.Router) {
+	subrouter = r.PathPrefix(h.Prefix).Subrouter()
+	for _, route := range h.Routes {
+		subrouter.Handle(route.Pattern, route.Handler)
 	}
-	params := map[string]interface{}{
-		"tileset": vars["ts"],
-		"x":       xyz[0],
-		"y":       xyz[1],
-		"z":       xyz[2],
-	}
-	resp, rerr := methods.Execute(GetTile, params)
-	if rerr != nil {
-		msg = ErrorMsg(http.StatusBadRequest, rerr.Message)
-		return
-	}
-	tile, err := assertTile(resp.Result)
-	if err != nil {
-		msg = ErrorMsg(http.StatusInternalServerError, "Internal Error asserting tile contents")
-		return
-	}
-	headers := formatEncoding[tile.SniffFormat()]
-	for _, h := range headers {
-		w.Header().Set(h.key, h.value)
-	}
-	w.Header().Set("Content-Length", sprintSizeOf(tile.Data))
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Write(tile.Data)
 	return
 }
 
-*/
-// Get the metadatadata map from the tileset
-func metadataHandler(w http.ResponseWriter, r *http.Request) *ResponseMessage {
-	ivars := make(map[string]interface{})
-	for k, v := range mux.Vars(r) {
-		ivars[k] = v
+func (h *RouteHandler) CollectMethodRoutes(methods MethodIndex) {
+	for n, m := range methods.Methods {
+		if m.Route != "" {
+			name := n // for the sake of the closure
+			method := m
+			h.Routes = append(h.Routes, Route{
+				Pattern: method.Route,
+				Handler: func(w http.ResponseWriter, r *http.Request) *ResponseMessage {
+					ivars := make(map[string]interface{})
+					for k, v := range mux.Vars(r) {
+						ivars[k] = v
+					}
+					//TODO get url params and merge w/ ivars
+					return methods.Execute(name, ivars)
+				},
+			})
+		}
 	}
-	return methods.Execute(GetTileset, ivars)
 }
 
-// List the tilesets available on the server
-func listHandler(w http.ResponseWriter, r *http.Request) *ResponseMessage {
-	return methods.Execute(ListTilesets, map[string]interface{}{})
+// Reads the tile, dynamically determines enconding and content-type
+func rawTileHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
+	ivars := make(map[string]interface{})
+	for k, v := range mux.Vars(r) {
+		// cast xyz to float64
+		if fv, err := atof(v); err == nil {
+			ivars[k] = fv
+		} else {
+			ivars[k] = v
+		}
+	}
+	resp := methods.Execute(GetTile, ivars)
+	if tile, err := castTile(resp.Result); err != nil {
+		errorlog(err)
+		msg = cerrorf(http.StatusInternalServerError, "Internal Error casting tile contents").ResponseMessage()
+	} else {
+		headers := formatEncoding[tile.SniffFormat()]
+		for _, h := range headers {
+			w.Header().Set(h.key, h.value)
+		}
+		w.Header().Set("Content-Length", sprintSizeOf(tile.Data))
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Write(tile.Data)
+	}
+	return
 }
 
 /*

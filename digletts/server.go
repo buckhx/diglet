@@ -42,9 +42,9 @@ func (s *Server) mountStatic() {
 	s.Router.PathPrefix("/static/").Handler(static)
 }
 
-type Handler func(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage)
+type HTTPHandler func(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage)
 
-func (handle Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (handle HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	info("Request - %v", r)
 	response := handle(w, r)
 	if response != nil {
@@ -60,22 +60,4 @@ func (handle Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.Write(content)
 		}
 	}
-}
-
-type Route struct {
-	Pattern string
-	Handler Handler
-}
-
-type RouteHandler struct {
-	Prefix string
-	Routes []Route
-}
-
-func (rh *RouteHandler) Subrouter(r *mux.Router) (subrouter *mux.Router) {
-	subrouter = r.PathPrefix(rh.Prefix).Subrouter()
-	for _, route := range rh.Routes {
-		subrouter.Handle(route.Pattern, route.Handler)
-	}
-	return
 }

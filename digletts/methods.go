@@ -87,8 +87,7 @@ func (m *MethodIndex) Execute(methodName string, params map[string]interface{}) 
 
 var methods = MethodIndex{Methods: map[string]Method{
 	GetTile: Method{
-		Name:  GetTile,
-		Route: "/{tileset}/{z}/{x}/{y}",
+		Name: GetTile,
 		Params: MethodParams{
 			"tileset": {Validator: assertString},
 			"x":       {Validator: assertNumber},
@@ -125,7 +124,7 @@ var methods = MethodIndex{Methods: map[string]Method{
 	},
 	GetTileset: Method{
 		Name:  GetTileset,
-		Route: "/",
+		Route: "/{tileset}",
 		Params: MethodParams{
 			"tileset": {Validator: assertString},
 		},

@@ -16,15 +16,20 @@ func info(format string, vals ...interface{}) {
 	log.Printf("Diglet info: "+format, vals...)
 
 }
+
 func warn(err error, extra string) {
 	if err != nil {
 		log.Printf("Diglet warning: %s - %s", err, extra)
 	}
 }
 
+func errorlog(err ...error) {
+	log.Printf("Diglet error: %s", err)
+}
+
 func check(err error) {
 	if err != nil {
-		log.Fatal("Diglet error: %s", err)
+		log.Fatal("Fatal Diglet error: %s", err)
 	}
 }
 
@@ -73,6 +78,10 @@ func itoa(v int) string {
 
 func atoi(v string) (int, error) {
 	return strconv.Atoi(v)
+}
+
+func atof(v string) (float64, error) {
+	return strconv.ParseFloat(v, 64)
 }
 
 func cleanTilesetName(path string) (slug string) {
