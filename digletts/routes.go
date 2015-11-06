@@ -49,7 +49,12 @@ func (h *RouteHandler) CollectMethodRoutes(methods MethodIndex) {
 	helpRoute := Route{
 		Pattern: "/help",
 		Handler: func(w http.ResponseWriter, r *http.Request) *ResponseMessage {
-			return SuccessMsg(methods.Methods)
+			helper := make(map[string][]string)
+			for name, _ := range methods.Methods {
+				helper["methods"] = append(helper["methods"], name)
+			}
+			helper["info"] = append(helper["info"], "Use help/{method} for method help")
+			return SuccessMsg(helper)
 		},
 	}
 	subhelpRoute := Route{
