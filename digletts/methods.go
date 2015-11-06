@@ -7,9 +7,10 @@ const (
 )
 
 type Param struct {
-	Key       string
-	Value     interface{}
-	Validator func(interface{}) error
+	Key       string                  `json:"key,omitempty"`
+	Value     interface{}             `json:"value,omitempty"`
+	Validator func(interface{}) error `json:"-"`
+	Help      string                  `json:"help,omitempty"`
 }
 
 func (p Param) GetInt() int {
@@ -30,36 +31,39 @@ type MethodHandler func(params MethodParams) (interface{}, *CodedError)
 type MethodParams map[string]Param
 
 type Method struct {
-	Name    string
-	Handler MethodHandler
-	Params  MethodParams
-	Route   string
+	Name    string        `json:"name"`
+	Handler MethodHandler `json:"-"`
+	Params  MethodParams  `json:"params,omitempty"`
+	Route   string        `json:"route,omitempty"`
+	Help    string        `json:"help,omitempty"`
 }
 
-func (m Method) BuildParams(params map[string]interface{}) (mParams MethodParams, err error) {
+func (m Method) BuildParams(params map[string]interface{}) (MethodParams, error) {
 	// TODO do we need a copy?
-	mParams = make(MethodParams)
+	mParams := make(MethodParams)
 	for key, param := range m.Params {
 		if raw, ok := params[key]; !ok {
-			err = errorf("Missing param: %q", key)
+			return nil, errorf("Missing param: %s", key)
 		} else {
-			if err = param.Validator(raw); err == nil {
+			if err := param.Validator(raw); err == nil {
 				mParams[key] = Param{
 					Key:       key,
 					Value:     raw,
 					Validator: param.Validator,
 				}
 			} else {
+				return nil, errorf("Invalid param %s: %s", key, raw)
 			}
 		}
 	}
-	return
+	return mParams, nil
 }
 
 func (m Method) Execute(params MethodParams) (interface{}, *CodedError) {
 	return m.Handler(params)
 }
 
+// Route order is not guaranteed here, might want to have a list instead w/ map view
 type MethodIndex struct {
 	Methods map[string]Method
 }
@@ -68,7 +72,7 @@ func (m *MethodIndex) Execute(methodName string, params map[string]interface{}) 
 	var err *CodedError
 	var content interface{}
 	if method, ok := m.Methods[methodName]; !ok {
-		err = cerrorf(RpcMethodNotFound, "The method does not exist! %q", method)
+		err = cerrorf(RpcMethodNotFound, "The method does not exist! %s", method)
 	} else {
 		mParams, perr := method.BuildParams(params)
 		if perr != nil {
@@ -89,10 +93,10 @@ var methods = MethodIndex{Methods: map[string]Method{
 	GetTile: Method{
 		Name: GetTile,
 		Params: MethodParams{
-			"tileset": {Validator: assertString},
-			"x":       {Validator: assertNumber},
-			"y":       {Validator: assertNumber},
-			"z":       {Validator: assertNumber},
+			"tileset": {Validator: assertString, Help: "Tileset to read from"},
+			"x":       {Validator: assertNumber, Help: "E/W Coordinate"},
+			"y":       {Validator: assertNumber, Help: "N/S Cooredinate"},
+			"z":       {Validator: assertNumber, Help: "Zoom level Coordinate"},
 		},
 		Handler: func(params MethodParams) (tile interface{}, err *CodedError) {
 			x := params["x"].GetInt()
@@ -100,7 +104,7 @@ var methods = MethodIndex{Methods: map[string]Method{
 			z := params["z"].GetInt()
 			slug := params["tileset"].GetString()
 			if ts, ok := tilesets.Tilesets[slug]; !ok {
-				err = cerrorf(RpcInvalidRequest, "Cannot find tileset %q", slug)
+				err = cerrorf(RpcInvalidRequest, "Cannot find tileset %s", slug)
 			} else {
 				var tserr error
 				if tile, tserr = ts.ReadSlippyTile(x, y, z); tserr != nil {
@@ -109,6 +113,7 @@ var methods = MethodIndex{Methods: map[string]Method{
 			}
 			return
 		},
+		Help: "Retrieve a tile, the response's data field will be binary of the contents",
 	},
 	ListTilesets: Method{
 		Name:   ListTilesets,
@@ -121,21 +126,23 @@ var methods = MethodIndex{Methods: map[string]Method{
 			}
 			return dict, nil
 		},
+		Help: "List all of the tilesets available, including their metadata",
 	},
 	GetTileset: Method{
 		Name:  GetTileset,
 		Route: "/{tileset}",
 		Params: MethodParams{
-			"tileset": {Validator: assertString},
+			"tileset": {Validator: assertString, Help: "Tileset to query for metadata"},
 		},
 		Handler: func(params MethodParams) (attrs interface{}, err *CodedError) {
 			slug := params["tileset"].GetString()
 			if ts, ok := tilesets.Tilesets[slug]; ok {
 				attrs = ts.Metadata().Attributes()
 			} else {
-				err = cerrorf(RpcInvalidRequest, "No tileset named %q", slug)
+				err = cerrorf(RpcInvalidRequest, "No tileset named %s", slug)
 			}
 			return
 		},
+		Help: "Query for the tilesets metadata, all values are string representations",
 	},
 }}
