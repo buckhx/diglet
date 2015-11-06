@@ -159,8 +159,10 @@ func ioHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 		return
 	}
 	c := &connection{send: make(chan []byte, 256), ws: ws}
-	//hub.subscribe <- c
-	//the subscribe needs to come from a notification
+	//--> SUBSCRIBE on tile load -> {tileset, tileXYZ}
+	//--> UNSUBSCRIBE on tile unload -> {tileset, tileXYZ}
+	//--> LIST_SUBSCRIPTIONS
+	//<-- {tileset, tile, data, type}
 	go c.writePump()
 	c.readPump()
 	return
