@@ -12,19 +12,6 @@ type Server struct {
 	Router        *mux.Router
 }
 
-func MBTServer(dataPath, port string) (s *Server, err error) {
-	port = ":" + port
-	r := mux.NewRouter()
-	r.StrictSlash(true)
-	_ = TilesetRoutes("/tileset", dataPath).Subrouter(r)
-	s = &Server{
-		Router:  r,
-		DataDir: dataPath,
-		Port:    port,
-	}
-	return
-}
-
 func (s *Server) Start() (err error) {
 	info("Starting server...")
 
@@ -40,24 +27,4 @@ func (s *Server) Start() (err error) {
 func (s *Server) mountStatic() {
 	static := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
 	s.Router.PathPrefix("/static/").Handler(static)
-}
-
-type HTTPHandler func(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage)
-
-func (handle HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	info("Request - %v", r)
-	response := handle(w, r)
-	if response != nil {
-		content, err := response.Marshal()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		} else if response.Error != nil {
-			http.Error(w, string(content), response.Error.Code)
-		} else {
-			w.Header().Set("Content-Length", sprintSizeOf(content))
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(content)
-		}
-	}
 }

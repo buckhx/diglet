@@ -2,30 +2,10 @@ package digletts
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 )
-
-var tilesets *TilesetIndex
-
-func TilesetRoutes(prefix, mbtPath string) (r *RouteHandler) {
-	tilesets = ReadTilesets(mbtPath)
-	r = &RouteHandler{prefix, []Route{
-		//Route{"/io", ioHandler},
-		Route{"/rpc", rpcHandler},
-		Route{"/{tileset}/{z}/{x}/{y}", rawTileHandler},
-	}}
-	r.CollectMethodRoutes(methods)
-	/*
-		go func() {
-			for event := range tilesets.Events {
-				tilehub.broadcast <- event
-				info("Tileset Change - %s", event.String())
-			}
-		}()
-	*/
-	return
-}
 
 type Route struct {
 	Pattern string
@@ -88,6 +68,26 @@ func (h *RouteHandler) CollectMethodRoutes(methods MethodIndex) {
 	}
 }
 
+type HTTPHandler func(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage)
+
+func (handle HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	info("Request - %v", r)
+	response := handle(w, r)
+	if response != nil {
+		content, err := response.Marshal()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		} else if response.Error != nil {
+			http.Error(w, string(content), response.Error.Code)
+		} else {
+			w.Header().Set("Content-Length", sprintSizeOf(content))
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(content)
+		}
+	}
+}
+
 // Reads the tile, dynamically determines enconding and content-type
 func rawTileHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 	ivars := make(map[string]interface{})
@@ -101,6 +101,9 @@ func rawTileHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessag
 	}
 	resp := methods.Execute(GetTile, ivars)
 	if resp.Result == nil {
+		return
+	} else if dojson := r.URL.Query().Get("json"); strings.ToLower(dojson) == "true" {
+		msg = resp
 		return
 	}
 	if tile, err := castTile(resp.Result); err != nil {
