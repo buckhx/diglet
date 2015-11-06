@@ -5,6 +5,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+var hub *IoHub
 var tilesets *TilesetIndex
 
 var methods = MethodIndex{Methods: map[string]Method{
@@ -70,6 +71,8 @@ func MBTServer(mbtPath, port string) (s *Server, err error) {
 	r := mux.NewRouter()
 	r.StrictSlash(true)
 	tilesets = ReadTilesets(mbtPath)
+	hub := NewHub(tilesets)
+	go hub.publish(tilesets.Events)
 	routes := &RouteHandler{"/tileset", []Route{
 		//Route{"/io", ioHandler},
 		Route{"/rpc", rpcHandler},

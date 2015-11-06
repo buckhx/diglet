@@ -147,7 +147,6 @@ func rpcHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 	return
 }
 
-/*
 func ioHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 	if r.Method != "GET" {
 		msg = cerrorf(http.StatusMethodNotAllowed, "Only GET can be upgraded").ResponseMessage()
@@ -159,15 +158,10 @@ func ioHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 		msg = cerrorf(http.StatusInternalServerError, "Request can't be upgraded").ResponseMessage()
 		return
 	}
-	vars := mux.Vars(r)
-	slug := vars["ts"]
-	if ts, ok := tilesets.Tilesets[slug]; !ok {
-		msg = cerrorf(http.StatusBadRequest, fmt.Sprintf("No tileset named %q", slug)).ResponseMessage()
-		return
-	}
 	c := &connection{send: make(chan []byte, 256), ws: ws}
-	h.register <- c
+	//hub.subscribe <- c
+	//the subscribe needs to come from a notification
 	go c.writePump()
 	c.readPump()
+	return
 }
-*/

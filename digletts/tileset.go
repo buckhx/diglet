@@ -3,7 +3,6 @@ package digletts
 import (
 	"fmt"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/buckhx/mbtiles"
@@ -105,22 +104,5 @@ func ReadTilesets(mbtilesDir string) (tsi *TilesetIndex) {
 		}
 	}
 	go watchMbtilesDir()
-	return
-}
-
-func (tsi *TilesetIndex) tileFromVars(vars map[string]string) (tile *mbtiles.Tile, err error) {
-	slug := vars["ts"]
-	x, err := strconv.Atoi(vars["x"])
-	y, err := strconv.Atoi(vars["y"])
-	z, err := strconv.Atoi(vars["z"])
-	if err != nil {
-		err = fmt.Errorf("Invalid tile params %s", vars)
-		return
-	}
-	if ts, ok := tsi.Tilesets[slug]; ok {
-		tile, err = ts.ReadSlippyTile(x, y, z)
-	} else {
-		err = fmt.Errorf("No tileset with slug %q", slug)
-	}
 	return
 }
