@@ -42,7 +42,7 @@ func (h *RouteHandler) CollectMethodRoutes(methods MethodIndex) {
 		Handler: func(w http.ResponseWriter, r *http.Request) *ResponseMessage {
 			name := mux.Vars(r)["method"]
 			if method, ok := methods.Methods[name]; !ok {
-				return cerrorf(RpcMethodNotFound, "The method does not exist! %s", name).ResponseMessage()
+				return cerrorf(RpcMethodNotFound, "The limit does not exist! %s", name).ResponseMessage()
 			} else {
 				return SuccessMsg(method)
 			}
@@ -158,12 +158,15 @@ func ioHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 		msg = cerrorf(http.StatusInternalServerError, "Request can't be upgraded").ResponseMessage()
 		return
 	}
-	c := &connection{send: make(chan []byte, 256), ws: ws}
+	c := NewConnection(ws)
+	if err := c.listen(); err != nil {
+		msg = cerrorf(400, "WS connection closed with error: %s", err).ResponseMessage()
+	} else {
+		msg = SuccessMsg("WS connection closed succesfully")
+	}
 	//--> SUBSCRIBE on tile load -> {tileset, tileXYZ}
 	//--> UNSUBSCRIBE on tile unload -> {tileset, tileXYZ}
 	//--> LIST_SUBSCRIPTIONS
 	//<-- {tileset, tile, data, type}
-	go c.writePump()
-	c.readPump()
 	return
 }

@@ -27,7 +27,7 @@ func (t *TilesetTopic) open() {
 		case e := <-t.events:
 			//if event was REMOVE, shut topic
 			for c := range t.subscribers {
-				//c.events <- e
+				c.events <- e
 				info("%s -> %s", e, c)
 			}
 		case <-t.shut:
