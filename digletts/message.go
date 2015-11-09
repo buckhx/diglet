@@ -24,11 +24,14 @@ type RequestMessage struct {
 }
 
 func (req *RequestMessage) Validate() (err *CodedError) {
-	if req.JsonRpc != RpcVersion {
+	switch {
+	case req.JsonRpc != RpcVersion:
 		err = cerrorf(RpcInvalidRequest, "jsonrpc != "+RpcVersion)
-	}
-	if req.Method == nil {
+	case req.Method == nil:
 		err = cerrorf(RpcInvalidRequest, "Request is missing field 'method'")
+	case req.Params == nil:
+		// still want to inject params even if they weren't passed
+		req.Params = make(map[string]interface{})
 	}
 	return
 }

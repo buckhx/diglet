@@ -177,8 +177,8 @@ func ioHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 		//END
 	*/
 	c := NewConnection(ws)
-	if err := c.listen(); err != nil {
-		msg = cerrorf(400, "WS connection closed with error: %s", err).ResponseMessage()
+	if cerr := c.listen(); cerr != nil {
+		msg = cerr.ResponseMessage()
 	} else {
 		msg = SuccessMsg("WS connection closed succesfully")
 	}

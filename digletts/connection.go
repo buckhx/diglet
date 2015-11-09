@@ -39,21 +39,29 @@ var upgrader = websocket.Upgrader{
 }
 
 // readPump pumps messages from the websocket connection to the hub.
-func (c *connection) listen() error {
-	defer func() {
-		c.ws.Close()
-	}()
+func (c *connection) listen() *CodedError {
+	defer c.ws.Close()
 	c.ws.SetReadLimit(maxMessageSize)
 	c.ws.SetReadDeadline(time.Now().Add(pongWait))
 	c.ws.SetPongHandler(func(string) error { c.ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
 		var req RequestMessage
 		if err := c.ws.ReadJSON(&req); err != nil {
-			return err
-		}
-		req.Params["wsconn"] = c
-		if msg := req.ExecuteMethod(); msg != nil {
-			c.respond(msg)
+			// TODO figure out if this bloats from nor receiving close
+			// Should this close the connection?
+			warn(err, "readjson error")
+			cerr := cerrorf(RpcInvalidRequest, err.Error())
+			c.respond(cerr.ResponseMessage())
+			return cerr
+			//return cerrorf(400, err.Error())
+		} else if cerr := req.Validate(); cerr != nil {
+			c.respond(cerr.ResponseMessage())
+			//return cerr
+		} else {
+			req.Params["wsconn"] = c
+			if msg := req.ExecuteMethod(); msg != nil {
+				warn(c.respond(msg), "conn respond")
+			}
 		}
 	}
 }
