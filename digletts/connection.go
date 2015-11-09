@@ -40,6 +40,7 @@ var upgrader = websocket.Upgrader{
 
 // readPump pumps messages from the websocket connection to the hub.
 func (c *connection) listen() *CodedError {
+	go c.subscribe()
 	defer c.ws.Close()
 	c.ws.SetReadLimit(maxMessageSize)
 	c.ws.SetReadDeadline(time.Now().Add(pongWait))
