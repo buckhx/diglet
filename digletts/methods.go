@@ -1,11 +1,5 @@
 package digletts
 
-const (
-	GetTile      string = "get_tile"
-	GetTileset   string = "get_tileset"
-	ListTilesets string = "list_tilesets"
-)
-
 type Param struct {
 	Key       string                  `json:"key,omitempty"`
 	Value     interface{}             `json:"value,omitempty"`
@@ -18,8 +12,17 @@ func (p Param) GetInt() int {
 	return int(v)
 }
 
+func (p Param) GetUint() uint {
+	v := p.Value.(float64)
+	return uint(v)
+}
+
 func (p Param) GetString() string {
 	return p.Value.(string)
+}
+
+func (p Param) GetConnection() *connection {
+	return p.Value.(*connection)
 }
 
 func (p Param) Validate() error {

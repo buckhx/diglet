@@ -8,6 +8,14 @@ import (
 var hub *IoHub
 var tilesets *TilesetIndex
 
+const (
+	GetTile         string = "get_tile"
+	GetTileset      string = "get_tileset"
+	ListTilesets    string = "list_tilesets"
+	SubscribeTile   string = "subscribe_tile"
+	UnsubscribeTile string = "unsubscribe_tile"
+)
+
 var methods = MethodIndex{Methods: map[string]Method{
 	GetTile: Method{
 		Name: GetTile,
@@ -64,6 +72,57 @@ var methods = MethodIndex{Methods: map[string]Method{
 		},
 		Help: "Query for the tilesets metadata, all values are string representations",
 	},
+	SubscribeTile: Method{
+		Name: SubscribeTile,
+		Params: MethodParams{
+			"tileset": {Validator: assertString, Help: "Tileset to subscribe to"},
+			"x":       {Validator: assertNumber, Help: "E/W Coordinate"},
+			"y":       {Validator: assertNumber, Help: "N/S Cooredinate"},
+			"z":       {Validator: assertNumber, Help: "Zoom level Coordinate"},
+		},
+		Handler: func(params MethodParams) (v interface{}, err *CodedError) {
+			x := params["x"].GetInt()
+			y := params["y"].GetInt()
+			z := params["z"].GetInt()
+			slug := params["tileset"].GetString()
+			conn := params["wsconn"].GetConnection()
+			reqId := params["request_id"].GetUint()
+			if _, ok := tilesets.Tilesets[slug]; !ok {
+				err = cerrorf(RpcInvalidRequest, "Cannot find tileset %s", slug)
+			} else {
+				xyz := TileXYZ{Tileset: slug, X: x, Y: y, Z: z}
+				conn.bindTile(xyz, reqId)
+				conn.notify("Subscribed to tile %s", xyz)
+			}
+			return
+		},
+		Help: "Subscribe to changes on a specific tile, changes will be pushd with the same request id",
+	},
+	UnsubscribeTile: Method{
+		Name: UnsubscribeTile,
+		Params: MethodParams{
+			"tileset": {Validator: assertString, Help: "Tileset to subscribe to"},
+			"x":       {Validator: assertNumber, Help: "E/W Coordinate"},
+			"y":       {Validator: assertNumber, Help: "N/S Cooredinate"},
+			"z":       {Validator: assertNumber, Help: "Zoom level Coordinate"},
+		},
+		Handler: func(params MethodParams) (v interface{}, err *CodedError) {
+			x := params["x"].GetInt()
+			y := params["y"].GetInt()
+			z := params["z"].GetInt()
+			slug := params["tileset"].GetString()
+			conn := params["wsconn"].GetConnection()
+			if _, ok := tilesets.Tilesets[slug]; !ok {
+				err = cerrorf(RpcInvalidRequest, "Cannot find tileset %s", slug)
+			} else {
+				xyz := TileXYZ{Tileset: slug, X: x, Y: y, Z: z}
+				conn.unbindTile(xyz)
+				conn.notify("Unsubscribed from tile %s", xyz)
+			}
+			return
+		},
+		Help: "Unsubscribe from a tile",
+	},
 }}
 
 func MBTServer(mbtPath, port string) (s *Server, err error) {
@@ -74,7 +133,7 @@ func MBTServer(mbtPath, port string) (s *Server, err error) {
 	hub := NewHub(tilesets)
 	go hub.publish(tilesets.Events)
 	routes := &RouteHandler{"/tileset", []Route{
-		//Route{"/io", ioHandler},
+		Route{"/io", ioHandler},
 		Route{"/rpc", rpcHandler},
 		Route{"/{tileset}/{z}/{x}/{y}", rawTileHandler},
 	}}

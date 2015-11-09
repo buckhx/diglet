@@ -30,6 +30,7 @@ type connection struct {
 
 	// Buffered channel of outbound messages.
 	events chan TsEvent
+	tiles  map[TileXYZ]uint
 }
 
 var upgrader = websocket.Upgrader{
@@ -50,14 +51,26 @@ func (c *connection) listen() error {
 		if err := c.ws.ReadJSON(&req); err != nil {
 			return err
 		}
+		req.Params["wsconn"] = c
 		if msg := req.ExecuteMethod(); msg != nil {
-			if payload, err := msg.Marshal(); err != nil {
-				return err
-			} else {
-				c.write(websocket.TextMessage, payload)
-			}
+			c.respond(msg)
 		}
 	}
+}
+
+// Format, vals will be sprintf'd
+func (c *connection) notify(format string, vals ...interface{}) error {
+	msg := sprintf(format, vals...)
+	return c.respond(SuccessMsg(msg))
+}
+
+func (c *connection) respond(msg *ResponseMessage) error {
+	if payload, err := msg.Marshal(); err != nil {
+		return err
+	} else {
+		c.write(websocket.TextMessage, payload)
+	}
+	return nil
 }
 
 // write writes a message with the given message type and payload.
@@ -96,10 +109,20 @@ func (c *connection) subscribe() {
 	}
 }
 
+func (c *connection) bindTile(xyz TileXYZ, reqId uint) {
+	//TODO if concurrent access, use mutex
+	c.tiles[xyz] = reqId
+}
+
+func (c *connection) unbindTile(xyz TileXYZ) {
+	//TODO if concurrent access, use mutex
+	delete(c.tiles, xyz)
+}
+
 func NewConnection(ws *websocket.Conn) *connection {
 	return &connection{
 		events: make(chan TsEvent),
+		tiles:  make(map[TileXYZ]uint),
 		ws:     ws,
 	}
-
 }

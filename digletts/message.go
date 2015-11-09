@@ -34,9 +34,19 @@ func (req *RequestMessage) Validate() (err *CodedError) {
 }
 
 func (req *RequestMessage) ExecuteMethod() (msg *ResponseMessage) {
+	req.Params["request_id"] = req.Id //inject request_id
 	msg = methods.Execute(*req.Method, req.Params)
 	msg.Id = req.Id
 	return
+}
+
+func (req *RequestMessage) String() string {
+	if b, err := json.Marshal(req); err != nil {
+		warn(err, "Could not marshal tile_xyz")
+		return sprintf("Could not marshal tile_xyz %s", req)
+	} else {
+		return string(b)
+	}
 }
 
 func LoadRequestMessage(data []byte) (msg *RequestMessage, err *CodedError) {
@@ -59,10 +69,10 @@ func ReadRequestMessage(content io.Reader) (msg *RequestMessage, err *CodedError
 }
 
 type ResponseMessage struct {
-	Error   *CodedError `json:"error"`
-	Id      *uint       `json:"id"`
-	JsonRpc string      `json:"jsonrpc"`
-	Result  interface{} `json:"result"`
+	Error   *CodedError `json:"error,omitempty"`
+	Id      *uint       `json:"id,omitempty"`
+	JsonRpc string      `json:"jsonrpc,omitempty"`
+	Result  interface{} `json:"result,omitempty"`
 }
 
 func (msg *ResponseMessage) Marshal() ([]byte, error) {
@@ -71,7 +81,7 @@ func (msg *ResponseMessage) Marshal() ([]byte, error) {
 
 type CodedError struct {
 	Code    int         `json:"code"`
-	Data    interface{} `json:"data"`
+	Data    interface{} `json:"data,omitempty"`
 	Message string      `json:"message"`
 }
 
@@ -110,4 +120,20 @@ func SuccessMsg(content interface{}) (msg *ResponseMessage) {
 		Result:  content,
 	}
 	return
+}
+
+type TileXYZ struct {
+	Tileset string `json:"tileset"`
+	X       int    `json:"x"`
+	Y       int    `json:"y"`
+	Z       int    `json:"z"`
+}
+
+func (xyz TileXYZ) String() string {
+	if b, err := json.Marshal(xyz); err != nil {
+		warn(err, "Could not marshal tile_xyz")
+		return sprintf("Could not marshal tile_xyz %s", xyz)
+	} else {
+		return string(b)
+	}
 }

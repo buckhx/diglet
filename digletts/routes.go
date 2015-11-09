@@ -30,10 +30,14 @@ func (h *RouteHandler) CollectMethodRoutes(methods MethodIndex) {
 		Pattern: "/help",
 		Handler: func(w http.ResponseWriter, r *http.Request) *ResponseMessage {
 			helper := make(map[string][]string)
-			for name, _ := range methods.Methods {
+			for name, method := range methods.Methods {
 				helper["methods"] = append(helper["methods"], name)
+				if method.Route == "" {
+					helper["io_methods"] = append(helper["io_methods"], name)
+				}
 			}
 			helper["info"] = append(helper["info"], "Use help/{method} for method help")
+			helper["info"] = append(helper["info"], "io_methods are only usable through websockets")
 			return SuccessMsg(helper)
 		},
 	}
@@ -154,10 +158,24 @@ func ioHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 	}
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		errorlog(err)
-		msg = cerrorf(http.StatusInternalServerError, "Request can't be upgraded").ResponseMessage()
+		msg = cerrorf(http.StatusBadRequest, "Request can't be upgraded").ResponseMessage()
 		return
 	}
+	/*
+		//START
+		defer ws.Close()
+		ws.SetReadLimit(512)
+		for {
+			var req RequestMessage
+			if err := ws.ReadJSON(&req); err != nil {
+				warn(err, "trying to ws.readjson")
+				msg = cerrorf(500, err.Error()).ResponseMessage()
+				return
+			}
+			info("%s", &req)
+		}
+		//END
+	*/
 	c := NewConnection(ws)
 	if err := c.listen(); err != nil {
 		msg = cerrorf(400, "WS connection closed with error: %s", err).ResponseMessage()
