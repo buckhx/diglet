@@ -36,13 +36,6 @@ func (req *RequestMessage) Validate() (err *CodedError) {
 	return
 }
 
-func (req *RequestMessage) ExecuteMethod() (msg *ResponseMessage) {
-	req.Params["request_id"] = req.Id //inject request_id
-	msg = methods.Execute(*req.Method, req.Params)
-	msg.Id = req.Id
-	return
-}
-
 func (req *RequestMessage) String() string {
 	if b, err := json.Marshal(req); err != nil {
 		warn(err, "Could not marshal tile_xyz")
@@ -50,6 +43,10 @@ func (req *RequestMessage) String() string {
 	} else {
 		return string(b)
 	}
+}
+
+func (req *RequestMessage) MethodName() string {
+	return *req.Method
 }
 
 func LoadRequestMessage(data []byte) (msg *RequestMessage, err *CodedError) {

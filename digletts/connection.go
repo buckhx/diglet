@@ -30,7 +30,7 @@ type connection struct {
 
 	// Buffered channel of outbound messages.
 	events chan TsEvent
-	tiles  map[TileXYZ]uint
+	tiles  map[TileXYZ]*string
 }
 
 var upgrader = websocket.Upgrader{
@@ -40,7 +40,7 @@ var upgrader = websocket.Upgrader{
 
 // readPump pumps messages from the websocket connection to the hub.
 func (c *connection) listen() *CodedError {
-	go c.subscribe()
+	go c.publish()
 	defer c.ws.Close()
 	c.ws.SetReadLimit(maxMessageSize)
 	c.ws.SetReadDeadline(time.Now().Add(pongWait))
@@ -50,7 +50,7 @@ func (c *connection) listen() *CodedError {
 		if err := c.ws.ReadJSON(&req); err != nil {
 			// TODO figure out if this bloats from nor receiving close
 			// Should this close the connection?
-			warn(err, "readjson error")
+			// warn(err, "readjson error")
 			cerr := cerrorf(RpcInvalidRequest, err.Error())
 			c.respond(cerr.ResponseMessage())
 			return cerr
@@ -59,9 +59,12 @@ func (c *connection) listen() *CodedError {
 			c.respond(cerr.ResponseMessage())
 			//return cerr
 		} else {
-			req.Params["wsconn"] = c
-			if msg := req.ExecuteMethod(); msg != nil {
-				warn(c.respond(msg), "conn respond")
+			ctx := &RequestContext{
+				Request:    &req,
+				Connection: c,
+			}
+			if msg := ctx.Execute(); msg != nil {
+				warn(c.respond(msg), "conn respond error")
 			}
 		}
 	}
@@ -89,7 +92,7 @@ func (c *connection) write(mt int, payload []byte) error {
 }
 
 // writePump pumps messages from the hub to the websocket connection.
-func (c *connection) subscribe() {
+func (c *connection) publish() {
 	//subscribe to tileset channel...
 	//hub.subscribe <- c
 	pinger := time.NewTicker(pingPeriod)
@@ -111,27 +114,37 @@ func (c *connection) subscribe() {
 			//if err := c.write(websocket.TextMessage, payload); err != nil {
 		case <-pinger.C:
 			if err := c.write(websocket.PingMessage, []byte{}); err != nil {
-				warn(err, "ping fucked")
+				//warn(err, "ping fucked")
 				return
 			}
 		}
 	}
 }
 
-func (c *connection) bindTile(xyz TileXYZ, reqId uint) {
+func (c *connection) subscribe(ts string) {
+	hub.subscribe(ts, c)
+}
+
+func (c *connection) unsubscribe(ts string) {
+	hub.unsubscribe(ts, c)
+}
+
+func (c *connection) bindTile(xyz TileXYZ, reqId *string) {
 	//TODO if concurrent access, use mutex
+	c.subscribe(xyz.Tileset)
 	c.tiles[xyz] = reqId
 }
 
 func (c *connection) unbindTile(xyz TileXYZ) {
 	//TODO if concurrent access, use mutex
+	//TODO When can we unsub from hub?, might need to keep a counter on ts
 	delete(c.tiles, xyz)
 }
 
 func NewConnection(ws *websocket.Conn) *connection {
 	return &connection{
 		events: make(chan TsEvent),
-		tiles:  make(map[TileXYZ]uint),
+		tiles:  make(map[TileXYZ]*string),
 		ws:     ws,
 	}
 }

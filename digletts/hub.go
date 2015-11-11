@@ -76,6 +76,24 @@ func (h *IoHub) publish(events <-chan TsEvent) {
 	}
 }
 
+func (h *IoHub) subscribe(tilesetSlug string, conn *connection) (err error) {
+	if topic, ok := h.topics[tilesetSlug]; ok {
+		topic.subscribe <- conn
+	} else {
+		err = errorf("Topic does not exist for tileset %s", tilesetSlug)
+	}
+	return
+}
+
+func (h *IoHub) unsubscribe(tilesetSlug string, conn *connection) (err error) {
+	if topic, ok := h.topics[tilesetSlug]; ok {
+		topic.unsubscribe <- conn
+	} else {
+		err = errorf("Topic does not exist for tileset %s", tilesetSlug)
+	}
+	return
+}
+
 func NewHub(tilesets *TilesetIndex) (h *IoHub) {
 	h = &IoHub{
 		tilesets: tilesets,

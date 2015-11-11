@@ -25,7 +25,8 @@ var methods = MethodIndex{Methods: map[string]Method{
 			"y":       {Validator: assertNumber, Help: "N/S Cooredinate"},
 			"z":       {Validator: assertNumber, Help: "Zoom level Coordinate"},
 		},
-		Handler: func(params MethodParams) (tile interface{}, err *CodedError) {
+		Handler: func(ctx *RequestContext) (tile interface{}, err *CodedError) {
+			params := ctx.Params
 			x := params["x"].GetInt()
 			y := params["y"].GetInt()
 			z := params["z"].GetInt()
@@ -46,7 +47,7 @@ var methods = MethodIndex{Methods: map[string]Method{
 		Name:   ListTilesets,
 		Route:  "/",
 		Params: MethodParams{},
-		Handler: func(params MethodParams) (interface{}, *CodedError) {
+		Handler: func(ctx *RequestContext) (tile interface{}, err *CodedError) {
 			dict := make(map[string]map[string]string)
 			for name, ts := range tilesets.Tilesets {
 				dict[name] = ts.Metadata().Attributes()
@@ -61,7 +62,8 @@ var methods = MethodIndex{Methods: map[string]Method{
 		Params: MethodParams{
 			"tileset": {Validator: assertString, Help: "Tileset to query for metadata"},
 		},
-		Handler: func(params MethodParams) (attrs interface{}, err *CodedError) {
+		Handler: func(ctx *RequestContext) (attrs interface{}, err *CodedError) {
+			params := ctx.Params
 			slug := params["tileset"].GetString()
 			if ts, ok := tilesets.Tilesets[slug]; ok {
 				attrs = ts.Metadata().Attributes()
@@ -80,19 +82,18 @@ var methods = MethodIndex{Methods: map[string]Method{
 			"y":       {Validator: assertNumber, Help: "N/S Cooredinate"},
 			"z":       {Validator: assertNumber, Help: "Zoom level Coordinate"},
 		},
-		Handler: func(params MethodParams) (v interface{}, err *CodedError) {
+		Handler: func(ctx *RequestContext) (tile interface{}, err *CodedError) {
+			params := ctx.Params
 			x := params["x"].GetInt()
 			y := params["y"].GetInt()
 			z := params["z"].GetInt()
 			slug := params["tileset"].GetString()
-			conn := params["wsconn"].GetConnection()
-			reqId := params["request_id"].GetUint()
 			if _, ok := tilesets.Tilesets[slug]; !ok {
 				err = cerrorf(RpcInvalidRequest, "Cannot find tileset %s", slug)
 			} else {
 				xyz := TileXYZ{Tileset: slug, X: x, Y: y, Z: z}
-				conn.bindTile(xyz, reqId)
-				conn.notify("Subscribed to tile %s", xyz)
+				ctx.Connection.bindTile(xyz, ctx.Request.Id)
+				ctx.Connection.notify("Subscribed to tile %s", xyz)
 			}
 			return
 		},
@@ -106,18 +107,18 @@ var methods = MethodIndex{Methods: map[string]Method{
 			"y":       {Validator: assertNumber, Help: "N/S Cooredinate"},
 			"z":       {Validator: assertNumber, Help: "Zoom level Coordinate"},
 		},
-		Handler: func(params MethodParams) (v interface{}, err *CodedError) {
+		Handler: func(ctx *RequestContext) (v interface{}, err *CodedError) {
+			params := ctx.Params
 			x := params["x"].GetInt()
 			y := params["y"].GetInt()
 			z := params["z"].GetInt()
 			slug := params["tileset"].GetString()
-			conn := params["wsconn"].GetConnection()
 			if _, ok := tilesets.Tilesets[slug]; !ok {
 				err = cerrorf(RpcInvalidRequest, "Cannot find tileset %s", slug)
 			} else {
 				xyz := TileXYZ{Tileset: slug, X: x, Y: y, Z: z}
-				conn.unbindTile(xyz)
-				conn.notify("Unsubscribed from tile %s", xyz)
+				ctx.Connection.unbindTile(xyz)
+				ctx.Connection.notify("Unsubscribed from tile %s", xyz)
 			}
 			return
 		},

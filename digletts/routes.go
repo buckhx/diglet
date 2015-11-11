@@ -60,12 +60,17 @@ func (h *RouteHandler) CollectMethodRoutes(methods MethodIndex) {
 			h.Routes = append(h.Routes, Route{
 				Pattern: method.Route,
 				Handler: func(w http.ResponseWriter, r *http.Request) *ResponseMessage {
-					ivars := make(map[string]interface{})
-					for k, v := range mux.Vars(r) {
-						ivars[k] = v
-					}
 					//TODO get url params and merge w/ ivars
-					return methods.Execute(name, ivars)
+					req := &RequestMessage{
+						Params: VarsInterface(mux.Vars(r)),
+						Method: &name,
+					}
+					ctx := &RequestContext{
+						HTTPWriter: &w,
+						HTTPReader: r,
+						Request:    req,
+					}
+					return ctx.Execute()
 				},
 			})
 		}
@@ -94,6 +99,7 @@ func (handle HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Reads the tile, dynamically determines enconding and content-type
 func rawTileHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
+	//TODO wrap RequestContext and use method
 	ivars := make(map[string]interface{})
 	for k, v := range mux.Vars(r) {
 		// cast xyz to float64
@@ -103,7 +109,7 @@ func rawTileHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessag
 			ivars[k] = v
 		}
 	}
-	resp := methods.Execute(GetTile, ivars)
+	resp := methods.Execute(nil)
 	if resp.Result == nil {
 		return
 	} else if dojson := r.URL.Query().Get("json"); strings.ToLower(dojson) == "true" {
@@ -145,7 +151,12 @@ func rpcHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 		if req, rerr := ReadRequestMessage(r.Body); rerr != nil {
 			msg = cerrorf(rerr.Code, rerr.Message).ResponseMessage()
 		} else {
-			msg = req.ExecuteMethod()
+			ctx := &RequestContext{
+				HTTPWriter: &w,
+				HTTPReader: r,
+				Request:    req,
+			}
+			msg = ctx.Execute()
 		}
 	}
 	return
@@ -161,21 +172,6 @@ func ioHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 		msg = cerrorf(http.StatusBadRequest, "Request can't be upgraded").ResponseMessage()
 		return
 	}
-	/*
-		//START
-		defer ws.Close()
-		ws.SetReadLimit(512)
-		for {
-			var req RequestMessage
-			if err := ws.ReadJSON(&req); err != nil {
-				warn(err, "trying to ws.readjson")
-				msg = cerrorf(500, err.Error()).ResponseMessage()
-				return
-			}
-			info("%s", &req)
-		}
-		//END
-	*/
 	c := NewConnection(ws)
 	if cerr := c.listen(); cerr != nil {
 		msg = cerr.ResponseMessage()
@@ -187,4 +183,26 @@ func ioHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 	//--> LIST_SUBSCRIPTIONS
 	//<-- {tileset, tile, data, type}
 	return
+}
+
+type RequestContext struct {
+	Request    *RequestMessage
+	Connection *connection
+	HTTPWriter *http.ResponseWriter
+	HTTPReader *http.Request
+	Params     MethodParams
+}
+
+func (ctx *RequestContext) Execute() (msg *ResponseMessage) {
+	msg = methods.Execute(ctx)
+	msg.Id = ctx.Request.Id
+	return
+}
+
+func VarsInterface(vars map[string]string) map[string]interface{} {
+	ivars := make(map[string]interface{})
+	for k, v := range vars {
+		ivars[k] = v
+	}
+	return ivars
 }
