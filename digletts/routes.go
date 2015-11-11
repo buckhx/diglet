@@ -100,16 +100,17 @@ func (handle HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // Reads the tile, dynamically determines enconding and content-type
 func rawTileHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 	//TODO wrap RequestContext and use method
-	ivars := make(map[string]interface{})
-	for k, v := range mux.Vars(r) {
-		// cast xyz to float64
-		if fv, err := atof(v); err == nil {
-			ivars[k] = fv
-		} else {
-			ivars[k] = v
-		}
+	method := GetTile
+	req := &RequestMessage{
+		Params: VarsInterface(mux.Vars(r)),
+		Method: &method,
 	}
-	resp := methods.Execute(nil)
+	ctx := &RequestContext{
+		HTTPWriter: &w,
+		HTTPReader: r,
+		Request:    req,
+	}
+	resp := ctx.Execute()
 	if resp.Result == nil {
 		return
 	} else if dojson := r.URL.Query().Get("json"); strings.ToLower(dojson) == "true" {
@@ -202,7 +203,12 @@ func (ctx *RequestContext) Execute() (msg *ResponseMessage) {
 func VarsInterface(vars map[string]string) map[string]interface{} {
 	ivars := make(map[string]interface{})
 	for k, v := range vars {
-		ivars[k] = v
+		// cast nums to float64s
+		if fv, err := atof(v); err == nil {
+			ivars[k] = fv
+		} else {
+			ivars[k] = v
+		}
 	}
 	return ivars
 }
