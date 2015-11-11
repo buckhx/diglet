@@ -2,7 +2,6 @@ package digletts
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/gorilla/mux"
 )
@@ -66,7 +65,7 @@ func (h *RouteHandler) CollectMethodRoutes(methods MethodIndex) {
 						Method: &name,
 					}
 					ctx := &RequestContext{
-						HTTPWriter: &w,
+						HTTPWriter: w,
 						HTTPReader: r,
 						Request:    req,
 					}
@@ -97,42 +96,6 @@ func (handle HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Reads the tile, dynamically determines enconding and content-type
-func rawTileHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
-	//TODO wrap RequestContext and use method
-	method := GetTile
-	req := &RequestMessage{
-		Params: VarsInterface(mux.Vars(r)),
-		Method: &method,
-	}
-	ctx := &RequestContext{
-		HTTPWriter: &w,
-		HTTPReader: r,
-		Request:    req,
-	}
-	resp := ctx.Execute()
-	if resp.Result == nil {
-		return
-	} else if dojson := r.URL.Query().Get("json"); strings.ToLower(dojson) == "true" {
-		msg = resp
-		return
-	}
-	if tile, err := castTile(resp.Result); err != nil {
-		errorlog(err)
-		msg = cerrorf(http.StatusInternalServerError, "Internal Error casting tile contents").ResponseMessage()
-	} else {
-		//TODO roll sniff encoding into tile object?
-		headers := formatEncoding[tile.SniffFormat()]
-		for _, h := range headers {
-			w.Header().Set(h.key, h.value)
-		}
-		w.Header().Set("Content-Length", sprintSizeOf(tile.Data))
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Write(tile.Data)
-	}
-	return
-}
-
 // From http://www.jsonrpc.org/specification
 // Content-Type: MUST be application/json.
 // Content-Length: MUST contain the correct length according to the HTTP-specification.
@@ -153,7 +116,7 @@ func rpcHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 			msg = cerrorf(rerr.Code, rerr.Message).ResponseMessage()
 		} else {
 			ctx := &RequestContext{
-				HTTPWriter: &w,
+				HTTPWriter: w,
 				HTTPReader: r,
 				Request:    req,
 			}
@@ -189,14 +152,15 @@ func ioHandler(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage) {
 type RequestContext struct {
 	Request    *RequestMessage
 	Connection *connection
-	HTTPWriter *http.ResponseWriter
+	HTTPWriter http.ResponseWriter
 	HTTPReader *http.Request
 	Params     MethodParams
 }
 
 func (ctx *RequestContext) Execute() (msg *ResponseMessage) {
-	msg = methods.Execute(ctx)
-	msg.Id = ctx.Request.Id
+	if msg = methods.Execute(ctx); msg != nil {
+		msg.Id = ctx.Request.Id
+	}
 	return
 }
 

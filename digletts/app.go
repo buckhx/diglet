@@ -10,6 +10,7 @@ var tilesets *TilesetIndex
 
 const (
 	GetTile         string = "get_tile"
+	GetRawTile      string = "get_raw_tile"
 	GetTileset      string = "get_tileset"
 	ListTilesets    string = "list_tilesets"
 	SubscribeTile   string = "subscribe_tile"
@@ -25,23 +26,8 @@ var methods = MethodIndex{Methods: map[string]Method{
 			"y":       {Validator: assertNumber, Help: "N/S Cooredinate"},
 			"z":       {Validator: assertNumber, Help: "Zoom level Coordinate"},
 		},
-		Handler: func(ctx *RequestContext) (tile interface{}, err *CodedError) {
-			params := ctx.Params
-			x := params["x"].GetInt()
-			y := params["y"].GetInt()
-			z := params["z"].GetInt()
-			slug := params["tileset"].GetString()
-			if ts, ok := tilesets.Tilesets[slug]; !ok {
-				err = cerrorf(RpcInvalidRequest, "Cannot find tileset %s", slug)
-			} else {
-				var tserr error
-				if tile, tserr = ts.ReadSlippyTile(x, y, z); tserr != nil {
-					err = cerrorf(RpcInvalidRequest, tserr.Error())
-				}
-			}
-			return
-		},
-		Help: "Retrieve a tile, the response's data field will be binary of the contents",
+		Handler: getTileHandler,
+		Help:    "Retrieve a tile, the response's data field will be binary of the contents",
 	},
 	ListTilesets: Method{
 		Name:   ListTilesets,
@@ -124,7 +110,63 @@ var methods = MethodIndex{Methods: map[string]Method{
 		},
 		Help: "Unsubscribe from a tile",
 	},
+	GetRawTile: Method{
+		Name:  GetRawTile,
+		Route: "/{tileset}/{z}/{x}/{y}",
+		Params: MethodParams{
+			"tileset": {Validator: assertString, Help: "Tileset to subscribe to"},
+			"x":       {Validator: assertNumber, Help: "E/W Coordinate"},
+			"y":       {Validator: assertNumber, Help: "N/S Cooredinate"},
+			"z":       {Validator: assertNumber, Help: "Zoom level Coordinate"},
+		},
+		Handler: func(ctx *RequestContext) (otile interface{}, err *CodedError) {
+			itile, err := getTileHandler(ctx)
+			if err != nil {
+				return
+			}
+			r := ctx.HTTPReader
+			w := ctx.HTTPWriter
+			if tile, terr := castTile(itile); err != nil {
+				errorlog(terr)
+				terr = cerrorf(500, "Internal Error casting tile contents")
+			} else {
+				if dojson := r.URL.Query().Get("json"); toLower(dojson) == "true" {
+					otile = tile
+					return
+				}
+				//TODO roll sniff encoding into tile object?
+				headers := formatEncoding[tile.SniffFormat()]
+				for _, h := range headers {
+					w.Header().Set(h.key, h.value)
+				}
+				w.Header().Set("Content-Length", sprintSizeOf(tile.Data))
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+				w.Write(tile.Data)
+			}
+			return
+
+		},
+		Help: "Gets a tile and only writes it's raw contents. Used for hosting static tiles.",
+	},
 }}
+
+// This is pulled out so that get_tile & get_raw_tile endpoitn can use the same code
+func getTileHandler(ctx *RequestContext) (tile interface{}, err *CodedError) {
+	params := ctx.Params
+	x := params["x"].GetInt()
+	y := params["y"].GetInt()
+	z := params["z"].GetInt()
+	slug := params["tileset"].GetString()
+	if ts, ok := tilesets.Tilesets[slug]; !ok {
+		err = cerrorf(RpcInvalidRequest, "Cannot find tileset %s", slug)
+	} else {
+		var tserr error
+		if tile, tserr = ts.ReadSlippyTile(x, y, z); tserr != nil {
+			err = cerrorf(RpcInvalidRequest, tserr.Error())
+		}
+	}
+	return
+}
 
 func MBTServer(mbtPath, port string) (s *Server, err error) {
 	port = ":" + port
@@ -136,7 +178,6 @@ func MBTServer(mbtPath, port string) (s *Server, err error) {
 	routes := &RouteHandler{"/tileset", []Route{
 		Route{"/io", ioHandler},
 		Route{"/rpc", rpcHandler},
-		Route{"/{tileset}/{z}/{x}/{y}", rawTileHandler},
 	}}
 	routes.CollectMethodRoutes(methods)
 	routes.Subrouter(r)

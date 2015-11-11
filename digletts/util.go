@@ -91,6 +91,10 @@ func cleanTilesetName(path string) (slug string) {
 	return
 }
 
+func toLower(v string) string {
+	return strings.ToLower(v)
+}
+
 func assertString(v interface{}) (err error) {
 	if _, ok := v.(string); !ok {
 		err = fmt.Errorf("Cannot assert string %q", v)
