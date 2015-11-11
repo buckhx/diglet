@@ -17,7 +17,7 @@ const (
 )
 
 type RequestMessage struct {
-	Id      *uint                  `json:"id"`
+	Id      *string                `json:"id"`
 	JsonRpc string                 `json:"jsonrpc"`
 	Method  *string                `json:"method"`
 	Params  map[string]interface{} `json:"params"`
@@ -73,7 +73,7 @@ func ReadRequestMessage(content io.Reader) (msg *RequestMessage, err *CodedError
 
 type ResponseMessage struct {
 	Error   *CodedError `json:"error,omitempty"`
-	Id      *uint       `json:"id,omitempty"`
+	Id      *string     `json:"id,omitempty"`
 	JsonRpc string      `json:"jsonrpc,omitempty"`
 	Result  interface{} `json:"result,omitempty"`
 }

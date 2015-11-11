@@ -9,19 +9,22 @@
   <h1>Hello from a static page</h1>
   <div id="map" style="height:768px"></div>
 </body>
-  <script src="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet.js"></script>
+  <script src="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet-src.js"></script>
   <script src="/static/js/Leaflet.MapboxVectorTile.js"></script>
+  <script src="/static/js/Leaflet.Diglet.js"></script>
   <script>
 	var baselayer = L.tileLayer('http://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',{
 	  attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
 	});
 	var map = L.map('map', {
 	    center: [40.7127837, -74.0059413],
-	    zoom: 6
+	    zoom: 1
 	});
-	map.addLayer(baselayer);
-	var mvt = new L.TileLayer.MVTSource({url: "/tileset/counties/{z}/{x}/{y}"})
+	//map.addLayer(baselayer);
 	//var mvt = new L.tileLayer("/tileset/{z}/{x}/{y}")
-	map.addLayer(mvt)
+	var mvt = new L.TileLayer.MVTSource({url: "/tileset/counties/{z}/{x}/{y}"})
+	var diglet = new L.TileLayer.DigletSource("ws://192.168.33.10:8080/tileset/io", "world-countries")
+	//map.addLayer(mvt)
+	map.addLayer(diglet)
   </script>
 </html>
