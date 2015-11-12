@@ -10,7 +10,9 @@ import (
 type App struct {
 	Prefix  string
 	Methods []Method
-	Server  *Server
+	Debug   bool
+	Port    string
+	Router  *mux.Router
 }
 
 func (app *App) Run() error {
@@ -19,38 +21,31 @@ func (app *App) Run() error {
 	routes := &RouteHandler{Prefix: app.Prefix}
 	routes.MountRoutes(app.Methods)
 	routes.Subrouter(r)
-	app.Server.Router = r
-	return app.Server.Start()
+	app.Router = r
+	return app.start()
 }
 
-func NewApp(dir string, port string) *App {
+func NewApp(port string) *App {
 	return &App{
 		Prefix: "/",
-		Server: &Server{
-			DataDir: dir,
-			Port:    ":" + port,
-		},
+		Debug:  false,
+		Port:   ":" + port,
 	}
 }
 
-type Server struct {
-	DataDir, Port string
-	Router        *mux.Router
-}
-
-func (s *Server) Start() (err error) {
+func (app *App) start() (err error) {
 	info("Starting server...")
 
-	s.mountStatic()
-	http.Handle("/", s.Router)
+	app.mountStatic()
+	http.Handle("/", app.Router)
 
-	info("Now serving tiles from %s on port %s", s.DataDir, s.Port)
-	err = http.ListenAndServe(s.Port, nil)
+	info("Now serving on port %s", app.Port)
+	err = http.ListenAndServe(app.Port, nil)
 	check(err)
 	return
 }
 
-func (s *Server) mountStatic() {
+func (app *App) mountStatic() {
 	static := http.StripPrefix("/static/", http.FileServer(http.Dir("./static/")))
-	s.Router.PathPrefix("/static/").Handler(static)
+	app.Router.PathPrefix("/static/").Handler(static)
 }

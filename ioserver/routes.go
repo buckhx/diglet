@@ -48,6 +48,7 @@ func (h *RouteHandler) MountMethods(methods []Method) {
 }
 
 func (h *RouteHandler) MountHelp(methods map[string]Method) {
+	//TODO include route help w/ order
 	helpRoute := Route{
 		Pattern: "/help",
 		Handler: func(w http.ResponseWriter, r *http.Request) *ResponseMessage {

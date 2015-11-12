@@ -19,7 +19,8 @@ const (
 
 func MBTServer(mbtPath string, port string) *dig.App {
 	tilesets = ReadTilesets(mbtPath)
-	app := dig.NewApp(mbtPath, port)
+	info("Serving tiles from %s", mbtPath)
+	app := dig.NewApp(port)
 	app.Prefix = "/tileset"
 	app.Methods = []dig.Method{
 		{
