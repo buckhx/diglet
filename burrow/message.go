@@ -1,4 +1,4 @@
-package ioserver
+package burrow
 
 import (
 	"encoding/json"

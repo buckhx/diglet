@@ -1,4 +1,4 @@
-package ioserver
+package burrow
 
 type Param struct {
 	Key       string                  `json:"key,omitempty"`

@@ -1,4 +1,4 @@
-package digletts
+package burrow
 
 import (
 	"encoding/binary"

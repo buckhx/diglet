@@ -2,10 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package digletts
+package diglet
 
 import (
-	dig "github.com/buckhx/diglet/ioserver"
+	dig "github.com/buckhx/diglet/burrow"
 )
 
 // hub maintains the set of active connections and broadcasts messages to the

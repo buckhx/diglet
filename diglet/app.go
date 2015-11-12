@@ -1,8 +1,8 @@
 // Package digletss is a diglet tile server
-package digletts
+package diglet
 
 import (
-	dig "github.com/buckhx/diglet/ioserver"
+	dig "github.com/buckhx/diglet/burrow"
 )
 
 //var hub *IoHub

@@ -1,4 +1,4 @@
-package ioserver
+package diglet
 
 import (
 	"encoding/binary"

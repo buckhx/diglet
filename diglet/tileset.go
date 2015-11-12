@@ -1,4 +1,4 @@
-package digletts
+package diglet
 
 import (
 	"encoding/json"

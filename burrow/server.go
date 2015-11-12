@@ -1,5 +1,5 @@
 // Package digletss is a diglet tile server
-package ioserver
+package burrow
 
 import (
 	"net/http"
