@@ -1,4 +1,4 @@
-package digletts
+package ioserver
 
 import (
 	"encoding/json"
@@ -104,7 +104,16 @@ func (err *CodedError) ResponseMessage() (msg *ResponseMessage) {
 	return
 }
 
+//TODO too lazy to actually rename this right now
 func cerrorf(code int, msg string, vals ...interface{}) (err *CodedError) {
+	err = &CodedError{
+		Code:    code,
+		Message: sprintf(msg, vals...),
+	}
+	return
+}
+
+func Cerrorf(code int, msg string, vals ...interface{}) (err *CodedError) {
 	err = &CodedError{
 		Code:    code,
 		Message: sprintf(msg, vals...),
@@ -120,20 +129,4 @@ func SuccessMsg(content interface{}) (msg *ResponseMessage) {
 		Result:  content,
 	}
 	return
-}
-
-type TileXYZ struct {
-	Tileset string `json:"tileset"`
-	X       int    `json:"x"`
-	Y       int    `json:"y"`
-	Z       int    `json:"z"`
-}
-
-func (xyz TileXYZ) String() string {
-	if b, err := json.Marshal(xyz); err != nil {
-		warn(err, "Could not marshal tile_xyz")
-		return sprintf("Could not marshal tile_xyz %s", xyz)
-	} else {
-		return string(b)
-	}
 }

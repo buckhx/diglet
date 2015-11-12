@@ -4,14 +4,18 @@
 
 package digletts
 
+import (
+	dig "github.com/buckhx/diglet/ioserver"
+)
+
 // hub maintains the set of active connections and broadcasts messages to the
 // connections.
 type TilesetTopic struct {
 	name        string
-	subscribers map[*connection]bool
+	subscribers map[*dig.Connection]bool
 	events      chan TsEvent
-	subscribe   chan *connection
-	unsubscribe chan *connection
+	subscribe   chan *dig.Connection
+	unsubscribe chan *dig.Connection
 	shut        chan struct{}
 }
 
@@ -27,7 +31,7 @@ func (t *TilesetTopic) open() {
 		case e := <-t.events:
 			//if event was REMOVE, shut topic
 			for c := range t.subscribers {
-				c.events <- e
+				//c.events <- e
 				info("%s -> %s", e, c)
 			}
 		case <-t.shut:
@@ -45,10 +49,10 @@ func (t *TilesetTopic) close() {
 func newTilesetTopic(name string) (topic *TilesetTopic) {
 	topic = &TilesetTopic{
 		name:        name,
-		subscribers: make(map[*connection]bool),
+		subscribers: make(map[*dig.Connection]bool),
 		events:      make(chan TsEvent),
-		subscribe:   make(chan *connection),
-		unsubscribe: make(chan *connection),
+		subscribe:   make(chan *dig.Connection),
+		unsubscribe: make(chan *dig.Connection),
 		shut:        make(chan struct{}),
 	}
 	return
@@ -76,7 +80,7 @@ func (h *IoHub) publish(events <-chan TsEvent) {
 	}
 }
 
-func (h *IoHub) subscribe(tilesetSlug string, conn *connection) (err error) {
+func (h *IoHub) subscribe(tilesetSlug string, conn *dig.Connection) (err error) {
 	if topic, ok := h.topics[tilesetSlug]; ok {
 		topic.subscribe <- conn
 	} else {
@@ -85,7 +89,7 @@ func (h *IoHub) subscribe(tilesetSlug string, conn *connection) (err error) {
 	return
 }
 
-func (h *IoHub) unsubscribe(tilesetSlug string, conn *connection) (err error) {
+func (h *IoHub) unsubscribe(tilesetSlug string, conn *dig.Connection) (err error) {
 	if topic, ok := h.topics[tilesetSlug]; ok {
 		topic.unsubscribe <- conn
 	} else {

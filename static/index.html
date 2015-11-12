@@ -23,8 +23,8 @@
 	map.addLayer(baselayer);
 	//var mvt = new L.tileLayer("/tileset/{z}/{x}/{y}")
 	var mvt = new L.TileLayer.MVTSource({url: "/tileset/counties/{z}/{x}/{y}"})
-	//var diglet = new L.TileLayer.DigletSource("ws://192.168.33.10:8080/tileset/io", "world-countries")
-	map.addLayer(mvt)
-	//map.addLayer(diglet)
+	var diglet = new L.TileLayer.DigletSource("ws://192.168.33.10:8080/tileset/io", "world-countries")
+	//map.addLayer(mvt)
+	map.addLayer(diglet)
   </script>
 </html>

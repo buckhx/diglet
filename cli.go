@@ -34,12 +34,8 @@ func client(args []string) {
 					cli.ShowSubcommandHelp(c)
 					die("ERROR: --mbtiles flag is required")
 				}
-				s, err := digletts.MBTServer(mbt, p)
-				if err != nil {
-					panic(err)
-					die("ERROR: couldn't read mbtiles path: " + mbt)
-				}
-				s.Start()
+				diglet := digletts.MBTServer(mbt, p)
+				diglet.Run()
 			},
 			Flags: []cli.Flag{
 				cli.StringFlag{

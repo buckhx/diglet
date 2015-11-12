@@ -1,11 +1,37 @@
 // Package digletss is a diglet tile server
-package digletts
+package ioserver
 
 import (
 	"net/http"
 
 	"github.com/gorilla/mux"
 )
+
+type App struct {
+	Prefix  string
+	Methods []Method
+	Server  *Server
+}
+
+func (app *App) Run() error {
+	r := mux.NewRouter()
+	r.StrictSlash(true)
+	routes := &RouteHandler{Prefix: app.Prefix}
+	routes.MountRoutes(app.Methods)
+	routes.Subrouter(r)
+	app.Server.Router = r
+	return app.Server.Start()
+}
+
+func NewApp(dir string, port string) *App {
+	return &App{
+		Prefix: "/",
+		Server: &Server{
+			DataDir: dir,
+			Port:    ":" + port,
+		},
+	}
+}
 
 type Server struct {
 	DataDir, Port string

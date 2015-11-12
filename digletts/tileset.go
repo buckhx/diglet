@@ -1,6 +1,7 @@
 package digletts
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -105,4 +106,20 @@ func ReadTilesets(mbtilesDir string) (tsi *TilesetIndex) {
 	}
 	go watchMbtilesDir()
 	return
+}
+
+type TileXYZ struct {
+	Tileset string `json:"tileset"`
+	X       int    `json:"x"`
+	Y       int    `json:"y"`
+	Z       int    `json:"z"`
+}
+
+func (xyz TileXYZ) String() string {
+	if b, err := json.Marshal(xyz); err != nil {
+		warn(err, "Could not marshal tile_xyz")
+		return sprintf("Could not marshal tile_xyz %s", xyz)
+	} else {
+		return string(b)
+	}
 }

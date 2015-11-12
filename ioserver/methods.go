@@ -1,4 +1,4 @@
-package digletts
+package ioserver
 
 type Param struct {
 	Key       string                  `json:"key,omitempty"`
@@ -19,10 +19,6 @@ func (p *Param) GetUint() uint {
 
 func (p *Param) GetString() string {
 	return p.Value.(string)
-}
-
-func (p *Param) GetConnection() *connection {
-	return p.Value.(*connection)
 }
 
 func (p *Param) Validate() error {
@@ -62,33 +58,22 @@ func (m Method) WrapParams(params map[string]interface{}) (MethodParams, error) 
 	return mParams, nil
 }
 
-func (m Method) Execute(ctx *RequestContext) (interface{}, *CodedError) {
-	return m.Handler(ctx)
-}
-
-// Route order is not guaranteed here, might want to have a list instead w/ map view
-type MethodIndex struct {
-	Methods map[string]Method
-}
-
-func (m *MethodIndex) Execute(ctx *RequestContext) (msg *ResponseMessage) {
-	var err *CodedError
-	var content interface{}
-	if method, ok := m.Methods[ctx.Request.MethodName()]; !ok {
-		err = cerrorf(RpcMethodNotFound, "The method does not exist! %s", method)
+func (m Method) Execute(ctx *RequestContext) (msg *ResponseMessage) {
+	params, perr := m.WrapParams(ctx.Request.Params)
+	if perr != nil {
+		msg = cerrorf(RpcInvalidParams, perr.Error()).ResponseMessage()
 	} else {
-		params, perr := method.WrapParams(ctx.Request.Params)
-		if perr != nil {
-			err = cerrorf(RpcInvalidParams, perr.Error())
-		} else {
-			ctx.Params = params
-			content, err = method.Execute(ctx)
+		ctx.Params = params
+		res, err := m.Handler(ctx)
+		if res != nil {
+			msg = SuccessMsg(res)
+		}
+		if err != nil {
+			msg = err.ResponseMessage()
 		}
 	}
-	if err != nil {
-		msg = err.ResponseMessage()
-	} else if content != nil {
-		msg = SuccessMsg(content)
+	if msg != nil {
+		msg.Id = ctx.Request.Id
 	}
 	return
 }
