@@ -38,7 +38,8 @@ func (t *TilesetTopic) open() {
 		case e := <-t.events:
 			for c, s := range t.subscribers {
 				go s.notify(c)
-				info("%s -> %s", e, c)
+				info("ts notifying %s", e)
+				//info("%s -> %s", e, c)
 			}
 		case <-t.shut:
 			close(t.events)
@@ -73,6 +74,7 @@ func (h *IoHub) listen() {
 	for _, topic := range h.topics {
 		go topic.open()
 	}
+	go h.publish(h.tilesets.Events)
 }
 
 func (h *IoHub) publish(events <-chan TsEvent) {
@@ -130,8 +132,7 @@ func newTileSubscription() *tileSubscription {
 }
 
 func (s *tileSubscription) add(xyz TileXYZ) {
-	var e struct{}
-	s.tiles[xyz] = e
+	s.tiles[xyz] = struct{}{}
 }
 
 func (s *tileSubscription) remove(xyz TileXYZ) {

@@ -87,7 +87,7 @@ L.TileLayer.DigletSource = L.TileLayer.extend({
 		key = [params.z, params.x, params.y].join(":")
 		this._wsTiles[key] = tile;
 		this._wsRpc('get_tile', key, params);
-		this._wsRpc('subscribe_tile', key, params);
+		this._wsRpc('subscribe_tile', "sub:"+key, params);
 
 		this.fire('tileloadstart', {
 			tile: tile,

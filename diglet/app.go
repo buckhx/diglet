@@ -22,7 +22,8 @@ func MBTServer(mbtPath string, port string) *dig.App {
 	info("Serving tiles from %s", mbtPath)
 	hub = NewHub(tilesets)
 	go hub.listen()
-	app := dig.NewApp(port)
+	app := dig.NewApp("Diglet")
+	app.Port = port
 	app.Prefix = "/tileset"
 	app.Methods = []dig.Method{
 		{

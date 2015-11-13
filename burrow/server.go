@@ -9,6 +9,7 @@ import (
 
 type App struct {
 	Prefix  string
+	Name    string
 	Methods []Method
 	Debug   bool
 	Port    string
@@ -25,22 +26,23 @@ func (app *App) Run() error {
 	return app.start()
 }
 
-func NewApp(port string) *App {
+func NewApp(name string) *App {
 	return &App{
+		Name:   name,
 		Prefix: "/",
 		Debug:  false,
-		Port:   ":" + port,
+		Port:   "8080",
 	}
 }
 
 func (app *App) start() (err error) {
-	info("Starting server...")
+	info("%s used Burrow!", app.Name)
 
 	app.mountStatic()
 	http.Handle("/", app.Router)
 
-	info("Now serving on port %s", app.Port)
-	err = http.ListenAndServe(app.Port, nil)
+	info("Now serving on port :%s", app.Port)
+	err = http.ListenAndServe(":"+app.Port, nil)
 	check(err)
 	return
 }

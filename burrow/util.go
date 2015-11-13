@@ -4,32 +4,28 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
-	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/buckhx/mbtiles"
 )
 
 func info(format string, vals ...interface{}) {
-	log.Printf("Diglet info: "+format, vals...)
+	log.Printf("Burrow info: "+format, vals...)
 
 }
 
 func warn(err error, extra string) {
 	if err != nil {
-		log.Printf("Diglet warning: %s - %s", err, extra)
+		log.Printf("Burrow warning: %s - %s", err, extra)
 	}
 }
 
 func errorlog(err ...error) {
-	log.Printf("Diglet error: %s", err)
+	log.Printf("Burrow error: %s", err)
 }
 
 func check(err error) {
 	if err != nil {
-		log.Fatal("Fatal Diglet error: %s", err)
+		log.Fatal("Fatal Burrow error: %s", err)
 	}
 }
 
@@ -37,27 +33,6 @@ func checks(errs ...error) {
 	for _, err := range errs {
 		check(err)
 	}
-}
-
-var slugger = regexp.MustCompile("[^a-z0-9]+")
-
-func slugged(s string) string {
-	return strings.Trim(slugger.ReplaceAllString(strings.ToLower(s), "-"), "-")
-}
-
-type header struct {
-	key, value string
-}
-
-var formatEncoding = map[mbtiles.Format][]header{
-	mbtiles.PNG:     []header{header{"Content-Type", "image/png"}},
-	mbtiles.JPG:     []header{header{"Content-Type", "image/jpeg"}},
-	mbtiles.GIF:     []header{header{"Content-Type", "image/gif"}},
-	mbtiles.WEBP:    []header{header{"Content-Type", "image/webp"}},
-	mbtiles.PBF_GZ:  []header{header{"Content-Type", "application/x-protobuf"}, header{"Content-Encoding", "gzip"}},
-	mbtiles.PBF_DF:  []header{header{"Content-Type", "application/x-protobuf"}, header{"Content-Encoding", "deflate"}},
-	mbtiles.UNKNOWN: []header{header{"Content-Type", "application/octet-stream"}},
-	mbtiles.EMPTY:   []header{header{"Content-Type", "application/octet-stream"}},
 }
 
 func sprintSizeOf(v interface{}) string {
@@ -84,13 +59,6 @@ func atof(v string) (float64, error) {
 	return strconv.ParseFloat(v, 64)
 }
 
-func cleanTilesetName(path string) (slug string) {
-	f := filepath.Base(path)
-	f = strings.TrimSuffix(f, filepath.Ext(f))
-	slug = slugged(f)
-	return
-}
-
 func toLower(v string) string {
 	return strings.ToLower(v)
 }
@@ -108,15 +76,6 @@ func assertNumber(v interface{}) (err error) {
 	}
 	return
 }
-
-func castTile(t interface{}) (tile *mbtiles.Tile, err error) {
-	tile, ok := t.(*mbtiles.Tile)
-	if !ok {
-		err = fmt.Errorf("Cannot cast tile %q", t)
-	}
-	return
-}
-
 func validateParams(params map[string]interface{}, keys []string) (err error) {
 	for _, key := range keys {
 		if _, ok := params[key]; !ok {
