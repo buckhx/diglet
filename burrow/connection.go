@@ -18,7 +18,8 @@ const (
 
 // connection is an middleman between the websocket connection and the hub.
 type Connection struct {
-	ws *websocket.Conn
+	ws       *websocket.Conn
+	messages chan *ResponseMessage
 }
 
 var upgrader = websocket.Upgrader{
@@ -26,10 +27,23 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
+func (c *Connection) Close() {
+	close(c.messages)
+	c.ws.Close()
+}
+
+func (c *Connection) Write(content interface{}) {
+	c.Respond(SuccessMsg(content))
+}
+
+func (c *Connection) Respond(msg *ResponseMessage) {
+	c.messages <- msg
+}
+
 // readPump pumps messages from the websocket connection to the hub.
 func (c *Connection) listen(methods map[string]Method) *CodedError {
-	go c.ping()
-	defer c.ws.Close()
+	go c.speak()
+	defer c.Close()
 	c.ws.SetReadLimit(maxMessageSize)
 	c.ws.SetReadDeadline(time.Now().Add(pongWait))
 	c.ws.SetPongHandler(func(string) error { c.ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
@@ -80,16 +94,21 @@ func (c *Connection) write(mt int, payload []byte) error {
 }
 
 // writePump pumps messages from the hub to the websocket connection.
-func (c *Connection) ping() {
+func (c *Connection) speak() {
 	//subscribe to tileset channel...
 	//hub.subscribe <- c
 	pinger := time.NewTicker(pingPeriod)
 	defer func() {
 		pinger.Stop()
-		c.ws.Close()
+		c.Close()
 	}()
 	for {
 		select {
+		case msg := <-c.messages:
+			if err := c.respond(msg); err != nil {
+				warn(err, "speaker")
+				return
+			}
 		case <-pinger.C:
 			if err := c.write(websocket.PingMessage, []byte{}); err != nil {
 				return
@@ -100,6 +119,7 @@ func (c *Connection) ping() {
 
 func NewConnection(ws *websocket.Conn) *Connection {
 	return &Connection{
-		ws: ws,
+		ws:       ws,
+		messages: make(chan *ResponseMessage),
 	}
 }

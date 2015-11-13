@@ -1,37 +1,43 @@
-// Copyright 2013 The Gorilla WebSocket Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package diglet
 
 import (
 	dig "github.com/buckhx/diglet/burrow"
 )
 
+type subMsg struct {
+	conn *dig.Connection
+	xyz  TileXYZ
+}
+
 // hub maintains the set of active connections and broadcasts messages to the
 // connections.
 type TilesetTopic struct {
 	name        string
-	subscribers map[*dig.Connection]bool
+	subscribers map[*dig.Connection]*tileSubscription
 	events      chan TsEvent
-	subscribe   chan *dig.Connection
-	unsubscribe chan *dig.Connection
+	subscribe   chan *subMsg
+	unsubscribe chan *subMsg
 	shut        chan struct{}
 }
 
 func (t *TilesetTopic) open() {
 	for {
 		select {
-		case c := <-t.subscribe:
-			t.subscribers[c] = true
-		case c := <-t.unsubscribe:
-			if _, ok := t.subscribers[c]; ok {
-				delete(t.subscribers, c)
+		case m := <-t.subscribe:
+			if _, ok := t.subscribers[m.conn]; !ok {
+				t.subscribers[m.conn] = newTileSubscription()
+			}
+			t.subscribers[m.conn].add(m.xyz)
+		case m := <-t.unsubscribe:
+			if _, ok := t.subscribers[m.conn]; ok {
+				t.subscribers[m.conn].remove(m.xyz)
+				if t.subscribers[m.conn].isEmpty() {
+					delete(t.subscribers, m.conn)
+				}
 			}
 		case e := <-t.events:
-			//if event was REMOVE, shut topic
-			for c := range t.subscribers {
-				//c.events <- e
+			for c, s := range t.subscribers {
+				go s.notify(c)
 				info("%s -> %s", e, c)
 			}
 		case <-t.shut:
@@ -49,10 +55,10 @@ func (t *TilesetTopic) close() {
 func newTilesetTopic(name string) (topic *TilesetTopic) {
 	topic = &TilesetTopic{
 		name:        name,
-		subscribers: make(map[*dig.Connection]bool),
+		subscribers: make(map[*dig.Connection]*tileSubscription),
 		events:      make(chan TsEvent),
-		subscribe:   make(chan *dig.Connection),
-		unsubscribe: make(chan *dig.Connection),
+		subscribe:   make(chan *subMsg),
+		unsubscribe: make(chan *subMsg),
 		shut:        make(chan struct{}),
 	}
 	return
@@ -72,6 +78,8 @@ func (h *IoHub) listen() {
 func (h *IoHub) publish(events <-chan TsEvent) {
 	for event := range events {
 		info("Tileset Change - %s", event.String())
+		//TODO remove/create messages
+		//if event was REMOVE, shut topic
 		if topic, ok := h.topics[event.Name]; ok {
 			topic.events <- event
 		} else {
@@ -80,20 +88,22 @@ func (h *IoHub) publish(events <-chan TsEvent) {
 	}
 }
 
-func (h *IoHub) subscribe(tilesetSlug string, conn *dig.Connection) (err error) {
-	if topic, ok := h.topics[tilesetSlug]; ok {
-		topic.subscribe <- conn
+func (h *IoHub) bindTile(ctx *dig.RequestContext, xyz TileXYZ) (err error) {
+	msg := &subMsg{conn: ctx.Connection, xyz: xyz}
+	if topic, ok := h.topics[xyz.Tileset]; ok {
+		topic.subscribe <- msg
 	} else {
-		err = errorf("Topic does not exist for tileset %s", tilesetSlug)
+		err = errorf("Tileset does not exist %s", xyz.Tileset)
 	}
 	return
 }
 
-func (h *IoHub) unsubscribe(tilesetSlug string, conn *dig.Connection) (err error) {
-	if topic, ok := h.topics[tilesetSlug]; ok {
-		topic.unsubscribe <- conn
+func (h *IoHub) unbindTile(ctx *dig.RequestContext, xyz TileXYZ) (err error) {
+	msg := &subMsg{conn: ctx.Connection, xyz: xyz}
+	if topic, ok := h.topics[xyz.Tileset]; ok {
+		topic.unsubscribe <- msg
 	} else {
-		err = errorf("Topic does not exist for tileset %s", tilesetSlug)
+		err = errorf("Tileset does not exist %s", xyz.Tileset)
 	}
 	return
 }
@@ -107,4 +117,41 @@ func NewHub(tilesets *TilesetIndex) (h *IoHub) {
 		h.topics[slug] = newTilesetTopic(slug)
 	}
 	return
+}
+
+type tileSubscription struct {
+	tiles map[TileXYZ]struct{}
+}
+
+func newTileSubscription() *tileSubscription {
+	return &tileSubscription{
+		tiles: make(map[TileXYZ]struct{}),
+	}
+}
+
+func (s *tileSubscription) add(xyz TileXYZ) {
+	var e struct{}
+	s.tiles[xyz] = e
+}
+
+func (s *tileSubscription) remove(xyz TileXYZ) {
+	if _, ok := s.tiles[xyz]; !ok {
+		delete(s.tiles, xyz)
+	}
+}
+
+func (s *tileSubscription) isEmpty() bool {
+	return len(s.tiles) == 0
+}
+
+func (s *tileSubscription) notify(conn *dig.Connection) {
+	//TODO ops will have specific tile in the future?
+	for xyz := range s.tiles {
+		if tile, err := tilesets.read(xyz); err != nil {
+			msg := dig.Cerrorf(dig.RpcInvalidRequest, err.Error()).ResponseMessage()
+			conn.Respond(msg)
+		} else {
+			conn.Write(tile)
+		}
+	}
 }

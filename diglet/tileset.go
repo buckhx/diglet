@@ -108,6 +108,15 @@ func ReadTilesets(mbtilesDir string) (tsi *TilesetIndex) {
 	return
 }
 
+func (tsi *TilesetIndex) read(xyz TileXYZ) (tile *mbtiles.Tile, err error) {
+	if ts, ok := tsi.Tilesets[xyz.Tileset]; !ok {
+		err = errorf("Tileset does not exist %s", xyz)
+	} else {
+		tile, err = ts.ReadSlippyTile(xyz.X, xyz.Y, xyz.Z)
+	}
+	return
+}
+
 type TileXYZ struct {
 	Tileset string `json:"tileset"`
 	X       int    `json:"x"`

@@ -5,7 +5,7 @@ import (
 	dig "github.com/buckhx/diglet/burrow"
 )
 
-//var hub *IoHub
+var hub *IoHub
 var tilesets *TilesetIndex
 
 const (
@@ -20,6 +20,8 @@ const (
 func MBTServer(mbtPath string, port string) *dig.App {
 	tilesets = ReadTilesets(mbtPath)
 	info("Serving tiles from %s", mbtPath)
+	hub = NewHub(tilesets)
+	go hub.listen()
 	app := dig.NewApp(port)
 	app.Prefix = "/tileset"
 	app.Methods = []dig.Method{
@@ -73,7 +75,7 @@ func MBTServer(mbtPath string, port string) *dig.App {
 				"y":       {Validator: assertNumber, Help: "N/S Cooredinate"},
 				"z":       {Validator: assertNumber, Help: "Zoom level Coordinate"},
 			},
-			Handler: func(ctx *dig.RequestContext) (tile interface{}, err *dig.CodedError) {
+			Handler: func(ctx *dig.RequestContext) (res interface{}, err *dig.CodedError) {
 				params := ctx.Params
 				x := params["x"].GetInt()
 				y := params["y"].GetInt()
@@ -83,9 +85,13 @@ func MBTServer(mbtPath string, port string) *dig.App {
 					err = dig.Cerrorf(dig.RpcInvalidRequest, "Cannot find tileset %s", slug)
 				} else {
 					xyz := TileXYZ{Tileset: slug, X: x, Y: y, Z: z}
-					info("%s", xyz)
-					//ctx.Connection.bindTile(xyz, ctx.Request.Id)
-					//ctx.Connection.notify("Subscribed to tile %s", xyz)
+					if e := hub.bindTile(ctx, xyz); err != nil {
+						err = dig.Cerrorf(dig.RpcInvalidRequest, e.Error())
+					} else {
+						// might need to make this a notifucation instead
+						// -> no msg.Id
+						res = sprintf("Subscribed to tile %s", xyz)
+					}
 				}
 				return
 			},
@@ -99,7 +105,7 @@ func MBTServer(mbtPath string, port string) *dig.App {
 				"y":       {Validator: assertNumber, Help: "N/S Cooredinate"},
 				"z":       {Validator: assertNumber, Help: "Zoom level Coordinate"},
 			},
-			Handler: func(ctx *dig.RequestContext) (v interface{}, err *dig.CodedError) {
+			Handler: func(ctx *dig.RequestContext) (res interface{}, err *dig.CodedError) {
 				params := ctx.Params
 				x := params["x"].GetInt()
 				y := params["y"].GetInt()
@@ -110,8 +116,8 @@ func MBTServer(mbtPath string, port string) *dig.App {
 				} else {
 					xyz := TileXYZ{Tileset: slug, X: x, Y: y, Z: z}
 					info("%s", xyz)
-					//ctx.Connection.unbindTile(xyz)
-					//ctx.Connection.notify("Unsubscribed from tile %s", xyz)
+					hub.unbindTile(ctx, xyz)
+					res = sprintf("Unsubsribed from tile %s", xyz)
 				}
 				return
 			},
