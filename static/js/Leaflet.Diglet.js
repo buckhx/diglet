@@ -1,73 +1,86 @@
-L.TileLayer.DigletSource = L.TileLayer.extend({
+function noop() {}
 
-	initialize: function (url, tileset) {
-		//L.TileLayer.prototype.initialize.call(this, "", {});
-		this._tileset = tileset; //TODO assert url and tileset
-		this._wsBind(url);
-	},
+var RpcWebSocket = (function () { 
 
-	_wsBind: function(url) {
-		that = this;
-		ws = new WebSocket(url); //TODO assert ws/wss
-		ws.onopen = function(e) {
-			while (that._wsOpenqueue.length > 0) {
-			    that._wsSend(that._wsOpenqueue.pop());
-			}
-			that._wsOnOpen(e);
-		};
-		ws.onmessage = function(e) { 
-			msg = JSON.parse(e.data)
-			that._wsOnMessage(msg); 
-		}; 
-		ws.onclose = this._wsOnClose
-		ws.onerror = this._wsOnError
-		this._wsOpenqueue = [];
-		this._wsUrl = url;
-		this._ws = ws;
-		this._wsTiles = {};
-		return ws;
-	},
+	function RpcWebSocket(url, handlers) {
+		//TODO assert ws/wss
+		this.url = url;
+		this._openqueue = [];
+		this._ws = new WebSocket(url);
+		setHandlers.call(this, handlers);
+	}
 
-	_wsRpc: function(method, id, params) {
-		id = id || Math.floor(Math.random() * (4294967295 - 0)); // (0, max_uint]
+	RpcWebSocket.prototype.request = function(method, id, params) {
 		params = params || {};
-		this._wsSend({id: id, method: method, params: params, jsonrpc: "2.0"});
-	},
+		id = id || Math.floor(Math.random() * (4294967295 - 0)); // (0, max_uint]
+		this.send({id: id, method: method, params: params, jsonrpc: "2.0"});
+	}
 
-	_wsSend: function(msg) {
-		if (!this._wsIsOpen()) {
-			this._wsOpenqueue.push(msg);
+	RpcWebSocket.prototype.send = function(msg) {
+		if (!this.isOpen()) {
+			this._openqueue.push(msg);
 		} else {
 			this._ws.send(JSON.stringify(msg))
 		}
-	},
+	}
 
-	_wsOnMessage: function(e) {
-		if ('error' in e) {
-			console.log(e);
-		} else if ('id' in e) { // is RPC
-			if (e.id in this._wsTiles) {
-				tile = this._wsTiles[e.id]
-				tile.src = 'data:image/png;base64,' + e.result.data
-			};
-		} else {
-			console.log(e);
-		}
-	},
-
-	_wsOnOpen: function(e) {},
-	
-	_wsOnClose: function(e) {
-		delete this._ws;
-		delete this._wsTiles;
-	},
-	
-	_wsOnError: function(e) {
-		console.log(e);
-	},
-
-	_wsIsOpen: function() {
+	RpcWebSocket.prototype.isOpen = function() {
 		return this._ws && this._ws.readyState === 1;
+	}
+
+	function setHandlers(handlers) {
+		that = this;
+		handlers = handlers || {};
+		open = handlers.open || noop;
+		handlers.open = function(e) {
+			while (that._openqueue.length > 0) {
+				that.send(that._openqueue.pop());
+			}
+			open(e);
+		}
+		message = handlers.message || noop;
+		handlers.message = function(e) {
+			msg = JSON.parse(e.data);
+			message(msg);
+		};
+		handlers.close = handlers.close || noop;
+		handlers.error = handlers.error || function(e) {console.log(e);};
+		this._ws.onopen = handlers.open;
+		this._ws.onmessage = handlers.message;
+		this._ws.onerror = handlers.error;
+		this._ws.onclose = handlers.close;
+		return handlers
+	}
+
+	return RpcWebSocket;
+})();
+
+
+L.TileLayer.DigletSource = L.TileLayer.extend({
+
+	initialize: function (url, tileset, handlers) {
+		layer = this;
+		layer._wsTiles = {};
+		layer._wsTileset = tileset; //TODO assert url and tileset
+		layer._wsRpc = new RpcWebSocket(url, {
+			message: function(e) {
+				if ('error' in e) {
+					console.log(e);
+				} else if ('id' in e) {
+					if (e.id in layer._wsTiles) {
+						// TODO only set if not undefined
+						tile = layer._wsTiles[e.id]
+						tile.src = 'data:image/png;base64,' + e.result.data
+					};
+				} else {
+					console.log(e);
+				}
+			},
+			close:   function(e) {
+				delete layer._ws;
+				delete layer._wsTiles;
+			},
+		});
 	},
 
 	_loadTile: function (tile, coords) {
@@ -82,12 +95,12 @@ L.TileLayer.DigletSource = L.TileLayer.extend({
 			x: coords.x,
 			y: this.options.tms ? this._globalTileRange.max.y - coords.y : coords.y,
 			z: this._getZoomForUrl(),
-			tileset: this._tileset,
+			tileset: this._wsTileset,
 		}
 		key = [params.z, params.x, params.y].join(":")
 		this._wsTiles[key] = tile;
-		this._wsRpc('get_tile', key, params);
-		this._wsRpc('subscribe_tile', "sub:"+key, params);
+		this._wsRpc.request('get_tile', key, params);
+		this._wsRpc.request('subscribe_tile', "sub:"+key, params);
 
 		this.fire('tileloadstart', {
 			tile: tile,
