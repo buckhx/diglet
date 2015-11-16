@@ -9,6 +9,7 @@
   <h1>Hello from a static page</h1>
   <div id="map" style="height:768px"></div>
 </body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.20/require.js"></script>
   <script src="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet-src.js"></script>
   <script src="/static/js/Leaflet.MapboxVectorTile.js"></script>
   <script src="/static/js/Leaflet.Diglet.js"></script>
@@ -17,13 +18,16 @@
 	  attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
 	});
 	var map = L.map('map', {
-	    center: [40.7127837, -74.0059413],
-	    zoom: 3
+	    center: [40.66, -73.97],
+	    zoom: 14
 	});
 	map.addLayer(baselayer);
 	//var mvt = new L.tileLayer("/tileset/{z}/{x}/{y}")
-	var mvt = new L.TileLayer.MVTSource({url: "/tileset/counties/{z}/{x}/{y}"})
-	var diglet = new L.TileLayer.DigletSource("ws://192.168.33.10:8080/tileset/io", "world-countries")
+	//var mvt = new L.TileLayer.MVTSource({url: "/tileset/counties/{z}/{x}/{y}"})
+	//var mvt = new L.TileLayer.MVTSource({url: "/tileset/311-calls/{z}/{x}/{y}"})
+	//var diglet = new L.TileLayer.DigletSource("ws://192.168.33.10:8080/tileset/io", "world-countries")
+	//var diglet = new L.TileLayer.DigletSource("ws://192.168.33.10:8080/tileset/io", "311-calls")
+	var diglet = new L.TileLayer.DigletMVTSource("ws://192.168.33.10:8080/tileset/io", "311-calls")
 	//map.addLayer(mvt)
 	map.addLayer(diglet)
   </script>

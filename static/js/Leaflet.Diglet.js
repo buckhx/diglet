@@ -109,3 +109,61 @@ L.TileLayer.DigletSource = L.TileLayer.extend({
 		return tile;
 	},
 });
+
+var VectorTile = require('vector-tile').VectorTile;
+var Protobuf = require('pbf');
+
+L.TileLayer.DigletMVTSource = L.TileLayer.MVTSource.extend({ 
+
+	initialize: function (url, tileset, handlers, options) {
+		options = options || {};
+		options.url = "{x}/{y}/{z}";
+		L.TileLayer.MVTSource.prototype.initialize.call(this, options);
+		layer = this;
+		layer._wsTiles = {};
+		layer._wsTileset = tileset;
+		layer._wsRpc = new RpcWebSocket(url, {
+			message: function(e) {
+				if ('error' in e) {
+					console.log(e);
+				} else if ('id' in e) {
+					if (e.id in layer._wsTiles) {
+						self = layer;
+						var tile = e.result;
+						var ctx = self._wsTiles[e.id];
+						var arrayBuffer = new Uint8Array(tile.data);
+						var buf = new Protobuf(arrayBuffer);
+						var vt = new VectorTile(buf);
+						if (self.map && self.map.getZoom() != ctx.zoom) {
+							console.log("Fetched tile for zoom level " + ctx.zoom + ". Map is at zoom level " + self._map.getZoom());
+						        return;
+						}
+						self.checkVectorTileLayers(parseVT(vt), ctx);
+						tileLoaded(self, ctx);
+						self.reduceTilesToProcessCount();
+					}
+				} else {
+					console.log(e);
+				}
+			},
+			close:   function(e) {
+				delete layer._ws;
+				delete layer._wsTiles;
+			},
+		});
+	},
+
+	_draw: function(ctx) { 
+		params = {
+			r: this.options.detectRetina && L.Browser.retina && this.options.maxZoom > 0 ? '@2x' : '',
+			x: ctx.tile.x,
+			y: this.options.tms ? this._globalTileRange.max.y - ctx.tile.y : ctx.tile.y,
+			z: this._getZoomForUrl(),
+			tileset: this._wsTileset,
+		}
+		this._wsTiles[ctx.id] = ctx;
+		this._wsRpc.request('get_tile', ctx.id, params);
+		this._wsRpc.request('subscribe_tile', "sub:"+ctx.id, params);
+	},
+
+});
