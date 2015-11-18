@@ -9,9 +9,11 @@
   <h1>Hello from a static page</h1>
   <div id="map" style="height:768px"></div>
 </body>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.20/require.js"></script>
+  <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.20/require.js"></script> -->
   <script src="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet-src.js"></script>
   <script src="/static/js/Leaflet.MapboxVectorTile.js"></script>
+  <script src="/static/js/vector-tile.js"></script>
+  <script src="/static/js/pbf.js"></script>
   <script src="/static/js/Leaflet.Diglet.js"></script>
   <script>
 	var baselayer = L.tileLayer('http://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',{
@@ -27,7 +29,7 @@
 	//var mvt = new L.TileLayer.MVTSource({url: "/tileset/311-calls/{z}/{x}/{y}"})
 	//var diglet = new L.TileLayer.DigletSource("ws://192.168.33.10:8080/tileset/io", "world-countries")
 	//var diglet = new L.TileLayer.DigletSource("ws://192.168.33.10:8080/tileset/io", "311-calls")
-	var diglet = new L.TileLayer.DigletMVTSource("ws://192.168.33.10:8080/tileset/io", "311-calls")
+	var diglet = new L.TileLayer.DigletMVTSource("ws://192.168.33.10:8080/tileset/io", "311-calls", {debug: true})
 	//map.addLayer(mvt)
 	map.addLayer(diglet)
   </script>

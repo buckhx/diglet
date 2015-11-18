@@ -110,8 +110,7 @@ L.TileLayer.DigletSource = L.TileLayer.extend({
 	},
 });
 
-var VectorTile = require('vector-tile').VectorTile;
-var Protobuf = require('pbf');
+var Protobuf = Pbf;
 
 L.TileLayer.DigletMVTSource = L.TileLayer.MVTSource.extend({ 
 
@@ -133,7 +132,7 @@ L.TileLayer.DigletMVTSource = L.TileLayer.MVTSource.extend({
 						var ctx = self._wsTiles[e.id];
 						var arrayBuffer = new Uint8Array(tile.data);
 						var buf = new Protobuf(arrayBuffer);
-						var vt = new VectorTile(buf);
+						var vt = new VectorTileObj(buf);
 						if (self.map && self.map.getZoom() != ctx.zoom) {
 							console.log("Fetched tile for zoom level " + ctx.zoom + ". Map is at zoom level " + self._map.getZoom());
 						        return;
@@ -167,3 +166,27 @@ L.TileLayer.DigletMVTSource = L.TileLayer.MVTSource.extend({
 	},
 
 });
+
+
+function tileLoaded(pbfSource, ctx) {
+  pbfSource.loadedTiles[ctx.id] = ctx;
+}
+
+function parseVT(vt){
+  for (var key in vt.layers) {
+    var lyr = vt.layers[key];
+    parseVTFeatures(lyr);
+  }
+  return vt;
+}
+
+function parseVTFeatures(vtl){
+  vtl.parsedFeatures = [];
+  var features = vtl._features;
+  for (var i = 0, len = features.length; i < len; i++) {
+    var vtf = vtl.feature(i);
+    vtf.coordinates = vtf.loadGeometry();
+    vtl.parsedFeatures.push(vtf);
+  }
+  return vtl;
+}
