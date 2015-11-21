@@ -3,14 +3,16 @@
 <head>
   <meta charset="utf-8">
   <title>A static page</title>
-  <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet.css" />
+  <!-- <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet.css" /> -->
+  <link rel="stylesheet" href="/static/css/leaflet.css" />
 </head>
 <body>
   <h1>Hello from a static page</h1>
   <div id="map" style="height:768px"></div>
 </body>
   <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.20/require.js"></script> -->
-  <script src="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet-src.js"></script>
+  <!-- <script src="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet-src.js"></script> -->
+  <script src="/static/js/leaflet.js"></script>
   <script src="/static/js/Leaflet.MapboxVectorTile.js"></script>
   <script src="/static/js/vector-tile.js"></script>
   <script src="/static/js/pbf.js"></script>
@@ -23,14 +25,14 @@
 	    center: [40.66, -73.97],
 	    zoom: 14
 	});
+	//var baselayer = new L.tileLayer("/tileset/world-countries/{z}/{x}/{y}");
 	map.addLayer(baselayer);
-	//var mvt = new L.tileLayer("/tileset/{z}/{x}/{y}")
 	//var mvt = new L.TileLayer.MVTSource({url: "/tileset/counties/{z}/{x}/{y}"})
 	//var mvt = new L.TileLayer.MVTSource({url: "/tileset/311-calls/{z}/{x}/{y}"})
+	//map.addLayer(mvt)
 	//var diglet = new L.TileLayer.DigletSource("ws://192.168.33.10:8080/tileset/io", "world-countries")
 	//var diglet = new L.TileLayer.DigletSource("ws://192.168.33.10:8080/tileset/io", "311-calls")
-	var diglet = new L.TileLayer.DigletMVTSource("ws://192.168.33.10:8080/tileset/io", "311-calls", {debug: true})
-	//map.addLayer(mvt)
+	var diglet = new L.TileLayer.DigletMVTSource("ws://192.168.33.10:8080/tileset/io", "311-calls", {debug: true, url: "/tileset/311-calls/{z}/{x}/{y}"})
 	map.addLayer(diglet)
   </script>
 </html>

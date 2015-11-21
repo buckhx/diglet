@@ -121,6 +121,17 @@ func Cerrorf(code int, msg string, vals ...interface{}) (err *CodedError) {
 	return
 }
 
+//TODO make a request.Respond(msg interface{}) that populates id for you
+func RespondMsg(id string, content interface{}) (msg *ResponseMessage) {
+	msg = &ResponseMessage{
+		Error:   nil,
+		Id:      &id,
+		JsonRpc: RpcVersion,
+		Result:  content,
+	}
+	return
+}
+
 func SuccessMsg(content interface{}) (msg *ResponseMessage) {
 	msg = &ResponseMessage{
 		Error:   nil,

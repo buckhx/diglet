@@ -2961,11 +2961,11 @@ module.exports = L.TileLayer.MVTSource = L.TileLayer.Canvas.extend({
     var type = feature.type;
     switch (type) {
       case 1: //'Point'
-        style.color = 'rgba(49,79,79,1)';
-        style.radius = 5;
+        style.color = 'rgba(56,238,255,1)';
+        style.radius = 2;
         style.selected = {
           color: 'rgba(255,255,0,0.5)',
-          radius: 6
+          radius: 3
         };
         break;
       case 2: //'LineString'

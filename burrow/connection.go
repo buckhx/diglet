@@ -28,6 +28,7 @@ var upgrader = websocket.Upgrader{
 }
 
 func (c *Connection) Close() {
+	panic(c)
 	close(c.messages)
 	c.ws.Close()
 }
@@ -100,7 +101,7 @@ func (c *Connection) speak() {
 	pinger := time.NewTicker(pingPeriod)
 	defer func() {
 		pinger.Stop()
-		c.Close()
+		//c.Close()
 	}()
 	for {
 		select {

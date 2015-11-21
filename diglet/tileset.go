@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/buckhx/mbtiles"
 	fsnotify "gopkg.in/fsnotify.v1"
@@ -74,6 +76,30 @@ func ReadTilesets(mbtilesDir string) (tsi *TilesetIndex) {
 		}
 	}
 	watchMbtilesDir := func() {
+		opBuf := newOpBuffer()
+		go func() {
+			for _ = range opBuf.ticker.C {
+				for _, op := range opBuf.flush() {
+					info("fsnotify opbuffer flushed %s %d", op, time.Now().UnixNano())
+					switch op.op {
+					case fsnotify.Write:
+						tsi.Events <- TsEvent{Op: Upsert, Name: op.tileset}
+					case fsnotify.Create:
+						if ts := readTileset(op.tileset); ts != nil {
+							tsi.Tilesets[op.tileset] = ts
+						}
+						tsi.Events <- TsEvent{Op: Upsert, Name: op.tileset}
+					case fsnotify.Remove, fsnotify.Rename:
+						if _, ok := tsi.Tilesets[op.tileset]; ok {
+							delete(tsi.Tilesets, op.tileset)
+						}
+						tsi.Events <- TsEvent{Op: Remove, Name: op.tileset}
+					default:
+						continue
+					}
+				}
+			}
+		}()
 		for {
 			select {
 			case event := <-tsi.watcher.Events:
@@ -81,24 +107,9 @@ func ReadTilesets(mbtilesDir string) (tsi *TilesetIndex) {
 				if !strings.HasSuffix(event.Name, ".mbtiles") {
 					continue
 				}
-				info("fsnotify triggered %s", event.String())
+				//info("fsnotify triggered %s", event.String())
 				name := cleanTilesetName(event.Name)
-				switch event.Op {
-				case fsnotify.Write:
-					tsi.Events <- TsEvent{Op: Upsert, Name: name}
-				case fsnotify.Create:
-					if ts := readTileset(event.Name); ts != nil {
-						tsi.Tilesets[name] = ts
-					}
-					tsi.Events <- TsEvent{Op: Upsert, Name: name}
-				case fsnotify.Remove, fsnotify.Rename:
-					if _, ok := tsi.Tilesets[name]; ok {
-						delete(tsi.Tilesets, name)
-					}
-					tsi.Events <- TsEvent{Op: Remove, Name: name}
-				default:
-					continue
-				}
+				opBuf.add(event.Op, name)
 			case err := <-tsi.watcher.Errors:
 				warn(err, "fsnotify")
 			}
@@ -112,7 +123,22 @@ func (tsi *TilesetIndex) read(xyz TileXYZ) (tile *mbtiles.Tile, err error) {
 	if ts, ok := tsi.Tilesets[xyz.Tileset]; !ok {
 		err = errorf("Tileset does not exist %s", xyz)
 	} else {
-		tile, err = ts.ReadSlippyTile(xyz.X, xyz.Y, xyz.Z)
+		//tile, err = ts.ReadSlippyTile(xyz.X, xyz.Y, xyz.Z)
+		// Again this is another hack to get try and wait until the DB is
+		// done writing
+		retries := 0
+		retry := time.NewTicker(100 * time.Millisecond)
+		for {
+			select {
+			case <-retry.C:
+				tile, err = ts.ReadSlippyTile(xyz.X, xyz.Y, xyz.Z)
+				if err == nil || retries == 10 {
+					return
+				}
+				warn(err, "ts read retry "+string(retries))
+				retries += 1
+			}
+		}
 	}
 	return
 }
@@ -131,4 +157,41 @@ func (xyz TileXYZ) String() string {
 	} else {
 		return string(b)
 	}
+}
+
+type opBufOp struct {
+	op      fsnotify.Op
+	tileset string
+}
+
+// fsnotify fires many events when a file is replaced
+// this buffers those operations so that only one is fired
+type opBuffer struct {
+	sync.RWMutex
+	ops    map[opBufOp]struct{}
+	ticker *time.Ticker
+}
+
+func newOpBuffer() *opBuffer {
+	return &opBuffer{
+		ops:    make(map[opBufOp]struct{}),
+		ticker: time.NewTicker(time.Millisecond * 200),
+	}
+}
+
+func (b *opBuffer) add(op fsnotify.Op, tileset string) {
+	b.Lock()
+	b.ops[opBufOp{op: op, tileset: tileset}] = struct{}{}
+	b.Unlock()
+}
+
+func (b *opBuffer) flush() []opBufOp {
+	b.Lock()
+	keys := make([]opBufOp, 0, len(b.ops))
+	for k := range b.ops {
+		keys = append(keys, k)
+	}
+	b.ops = make(map[opBufOp]struct{})
+	b.Unlock()
+	return keys
 }

@@ -36,9 +36,10 @@ func (t *TilesetTopic) open() {
 				}
 			}
 		case e := <-t.events:
+			func(e TsEvent) {}(e)
 			for c, s := range t.subscribers {
 				go s.notify(c)
-				info("ts notifying %s", e)
+				//info("ts notifying %s", e)
 				//info("%s -> %s", e, c)
 			}
 		case <-t.shut:
@@ -79,7 +80,7 @@ func (h *IoHub) listen() {
 
 func (h *IoHub) publish(events <-chan TsEvent) {
 	for event := range events {
-		info("Tileset Change - %s", event.String())
+		//info("Tileset Change - %s", event.String())
 		//TODO remove/create messages
 		//if event was REMOVE, shut topic
 		if topic, ok := h.topics[event.Name]; ok {
@@ -148,11 +149,15 @@ func (s *tileSubscription) isEmpty() bool {
 func (s *tileSubscription) notify(conn *dig.Connection) {
 	//TODO ops will have specific tile in the future?
 	for xyz := range s.tiles {
+		var msg *dig.ResponseMessage
 		if tile, err := tilesets.read(xyz); err != nil {
-			msg := dig.Cerrorf(dig.RpcInvalidRequest, err.Error()).ResponseMessage()
-			conn.Respond(msg)
+			check(err)
+			msg = dig.Cerrorf(dig.RpcInvalidRequest, err.Error()).ResponseMessage()
 		} else {
-			conn.Write(tile)
+			tile.Y = (1<<uint(tile.Z) - 1) - tile.Y
+			id := sprintf("%d:%d:%d", tile.Z, tile.X, tile.Y)
+			msg = dig.RespondMsg(id, tile)
 		}
+		conn.Respond(msg)
 	}
 }

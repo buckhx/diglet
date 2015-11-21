@@ -114,9 +114,8 @@ var Protobuf = Pbf;
 
 L.TileLayer.DigletMVTSource = L.TileLayer.MVTSource.extend({ 
 
-	initialize: function (url, tileset, handlers, options) {
+	initialize: function (url, tileset, options) {
 		options = options || {};
-		options.url = "{x}/{y}/{z}";
 		L.TileLayer.MVTSource.prototype.initialize.call(this, options);
 		layer = this;
 		layer._wsTiles = {};
@@ -127,19 +126,14 @@ L.TileLayer.DigletMVTSource = L.TileLayer.MVTSource.extend({
 					console.log(e);
 				} else if ('id' in e) {
 					if (e.id in layer._wsTiles) {
-						self = layer;
-						var tile = e.result;
-						var ctx = self._wsTiles[e.id];
-						var arrayBuffer = new Uint8Array(tile.data);
-						var buf = new Protobuf(arrayBuffer);
-						var vt = new VectorTileObj(buf);
-						if (self.map && self.map.getZoom() != ctx.zoom) {
-							console.log("Fetched tile for zoom level " + ctx.zoom + ". Map is at zoom level " + self._map.getZoom());
-						        return;
-						}
-						self.checkVectorTileLayers(parseVT(vt), ctx);
-						tileLoaded(self, ctx);
-						self.reduceTilesToProcessCount();
+						//console.log(layer._wsTiles);
+						ctx = layer._wsTiles[e.id]
+						// We're not using the tile.data here
+						// It gets loaded from _draw with an xhr
+						var canvas = ctx.canvas;
+						var context = canvas.getContext('2d');
+						context.clearRect(0, 0, canvas.width, canvas.height);
+						layer.drawTile(canvas, ctx.tile, ctx.zoom);
 					}
 				} else {
 					console.log(e);
@@ -152,41 +146,36 @@ L.TileLayer.DigletMVTSource = L.TileLayer.MVTSource.extend({
 		});
 	},
 
-	_draw: function(ctx) { 
+	_loadTile: function (tile, coords) {
+		tile._layer  = this;
+		tile.onload  = this._tileOnLoad;
+		tile.onerror = this._tileOnError;
+
+		this._adjustTilePoint(coords);
+
 		params = {
 			r: this.options.detectRetina && L.Browser.retina && this.options.maxZoom > 0 ? '@2x' : '',
-			x: ctx.tile.x,
-			y: this.options.tms ? this._globalTileRange.max.y - ctx.tile.y : ctx.tile.y,
+			x: coords.x,
+			y: this.options.tms ? this._globalTileRange.max.y - coords.y : coords.y,
 			z: this._getZoomForUrl(),
 			tileset: this._wsTileset,
 		}
+		var ctx = {
+			id: [params.z, params.x, params.y].join(":"),
+			canvas: tile,
+			tile: coords,
+			zoom: params.z,
+			tileSize: this.options.tileSize
+		};
 		this._wsTiles[ctx.id] = ctx;
 		this._wsRpc.request('get_tile', ctx.id, params);
 		this._wsRpc.request('subscribe_tile', "sub:"+ctx.id, params);
+
+		this.fire('tileloadstart', {
+			tile: tile,
+			url: tile.src
+		});
+		return tile;
 	},
 
 });
-
-
-function tileLoaded(pbfSource, ctx) {
-  pbfSource.loadedTiles[ctx.id] = ctx;
-}
-
-function parseVT(vt){
-  for (var key in vt.layers) {
-    var lyr = vt.layers[key];
-    parseVTFeatures(lyr);
-  }
-  return vt;
-}
-
-function parseVTFeatures(vtl){
-  vtl.parsedFeatures = [];
-  var features = vtl._features;
-  for (var i = 0, len = features.length; i < len; i++) {
-    var vtf = vtl.feature(i);
-    vtf.coordinates = vtf.loadGeometry();
-    vtl.parsedFeatures.push(vtf);
-  }
-  return vtl;
-}
