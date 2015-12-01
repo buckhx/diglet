@@ -3201,6 +3201,10 @@ module.exports = L.TileLayer.MVTSource = L.TileLayer.Canvas.extend({
 
   prepareMVTLayers: function(lyr ,key, ctx, parsed) {
     var self = this;
+    // TODO REMOve
+    // this is a hack to force all 311 to be the same layer
+    key = '311-calls'
+    //hack
 
     if (!self.layers[key]) {
       //Create MVTLayer or MVTPointLayer for user

@@ -115,9 +115,9 @@ var Protobuf = Pbf;
 L.TileLayer.DigletMVTSource = L.TileLayer.MVTSource.extend({ 
 
 	initialize: function (url, tileset, options) {
-		options = options || {};
-		L.TileLayer.MVTSource.prototype.initialize.call(this, options);
 		layer = this;
+		options = options || {};
+		L.TileLayer.MVTSource.prototype.initialize.call(layer, options);
 		layer._wsTiles = {};
 		layer._wsTileset = tileset;
 		layer._wsRpc = new RpcWebSocket(url, {
@@ -130,10 +130,8 @@ L.TileLayer.DigletMVTSource = L.TileLayer.MVTSource.extend({
 						ctx = layer._wsTiles[e.id]
 						// We're not using the tile.data here
 						// It gets loaded from _draw with an xhr
-						var canvas = ctx.canvas;
-						var context = canvas.getContext('2d');
-						context.clearRect(0, 0, canvas.width, canvas.height);
-						layer.drawTile(canvas, ctx.tile, ctx.zoom);
+						//layer.clearTile(ctx.id)
+						layer.drawTile(ctx.canvas, ctx.tile, ctx.zoom);
 					}
 				} else {
 					console.log(e);

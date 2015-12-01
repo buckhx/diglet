@@ -28,7 +28,7 @@ var upgrader = websocket.Upgrader{
 }
 
 func (c *Connection) Close() {
-	panic(c)
+	panic("ws close")
 	close(c.messages)
 	c.ws.Close()
 }
@@ -44,7 +44,7 @@ func (c *Connection) Respond(msg *ResponseMessage) {
 // readPump pumps messages from the websocket connection to the hub.
 func (c *Connection) listen(methods map[string]Method) *CodedError {
 	go c.speak()
-	defer c.Close()
+	//defer c.Close()
 	c.ws.SetReadLimit(maxMessageSize)
 	c.ws.SetReadDeadline(time.Now().Add(pongWait))
 	c.ws.SetPongHandler(func(string) error { c.ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
@@ -53,6 +53,7 @@ func (c *Connection) listen(methods map[string]Method) *CodedError {
 		if err := c.ws.ReadJSON(&req); err != nil {
 			cerr := cerrorf(RpcInvalidRequest, err.Error())
 			c.respond(cerr.ResponseMessage())
+			sprintf("%s", cerr)
 			return cerr
 		} else if cerr := req.Validate(); cerr != nil {
 			c.respond(cerr.ResponseMessage())

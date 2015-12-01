@@ -80,7 +80,7 @@ func ReadTilesets(mbtilesDir string) (tsi *TilesetIndex) {
 		go func() {
 			for _ = range opBuf.ticker.C {
 				for _, op := range opBuf.flush() {
-					info("fsnotify opbuffer flushed %s %d", op, time.Now().UnixNano())
+					info("fsnotify opbuffer flushed %s %d", op.String(), time.Now().UnixNano())
 					switch op.op {
 					case fsnotify.Write:
 						tsi.Events <- TsEvent{Op: Upsert, Name: op.tileset}
@@ -159,9 +159,32 @@ func (xyz TileXYZ) String() string {
 	}
 }
 
+func fsnotifyOpString(op fsnotify.Op) string {
+	s := "fsnotify."
+	switch op {
+	case fsnotify.Create:
+		s += "Create"
+	case fsnotify.Write:
+		s += "Write"
+	case fsnotify.Remove:
+		s += "Remove"
+	case fsnotify.Rename:
+		s += "Rename"
+	case fsnotify.Chmod:
+		s += "Chmod"
+	default:
+		return "Unknown"
+	}
+	return s
+}
+
 type opBufOp struct {
 	op      fsnotify.Op
 	tileset string
+}
+
+func (op *opBufOp) String() string {
+	return sprintf("{%s - %s}", op.tileset, fsnotifyOpString(op.op))
 }
 
 // fsnotify fires many events when a file is replaced
