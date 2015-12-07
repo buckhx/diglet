@@ -13,7 +13,7 @@ const (
 	writeWait      = 10 * time.Second
 	pongWait       = 60 * time.Second
 	pingPeriod     = (pongWait * 9) / 10
-	maxMessageSize = 512
+	maxMessageSize = 4096
 )
 
 // connection is an middleman between the websocket connection and the hub.
@@ -23,8 +23,8 @@ type Connection struct {
 }
 
 var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
+	ReadBufferSize:  4096,
+	WriteBufferSize: 4096,
 }
 
 func (c *Connection) Close() {
@@ -53,9 +53,10 @@ func (c *Connection) listen(methods map[string]Method) *CodedError {
 		if err := c.ws.ReadJSON(&req); err != nil {
 			cerr := cerrorf(RpcInvalidRequest, err.Error())
 			c.respond(cerr.ResponseMessage())
-			sprintf("%s", cerr)
+			sprintf("readjson error %s", cerr)
 			return cerr
 		} else if cerr := req.Validate(); cerr != nil {
+			sprintf("validate error %s", cerr)
 			c.respond(cerr.ResponseMessage())
 		} else {
 			ctx := &RequestContext{
@@ -84,6 +85,7 @@ func (c *Connection) respond(msg *ResponseMessage) error {
 	if payload, err := msg.Marshal(); err != nil {
 		return err
 	} else {
+		//info("ws.write: %s", payload)
 		c.write(websocket.TextMessage, payload)
 	}
 	return nil
@@ -113,6 +115,7 @@ func (c *Connection) speak() {
 			}
 		case <-pinger.C:
 			if err := c.write(websocket.PingMessage, []byte{}); err != nil {
+				warn(err, "pinger")
 				return
 			}
 		}

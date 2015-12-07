@@ -116,9 +116,8 @@ func MBTServer(mbtPath string, port string) *dig.App {
 					err = dig.Cerrorf(dig.RpcInvalidRequest, "Cannot find tileset %s", slug)
 				} else {
 					xyz := TileXYZ{Tileset: slug, X: x, Y: y, Z: z}
-					info("%s", xyz)
 					hub.unbindTile(ctx, xyz)
-					res = sprintf("Unsubsribed from tile %s", xyz)
+					res = sprintf("Unsubscribed from tile %s", xyz)
 				}
 				return
 			},
@@ -158,7 +157,6 @@ func MBTServer(mbtPath string, port string) *dig.App {
 					w.Write(tile.Data)
 				}
 				return
-
 			},
 			Help: "Gets a tile and only writes it's raw contents. Used for hosting static tiles.",
 		}}

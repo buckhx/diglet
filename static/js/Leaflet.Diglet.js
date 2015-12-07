@@ -13,7 +13,8 @@ var RpcWebSocket = (function () {
 	RpcWebSocket.prototype.request = function(method, id, params) {
 		params = params || {};
 		id = id || Math.floor(Math.random() * (4294967295 - 0)); // (0, max_uint]
-		this.send({id: id, method: method, params: params, jsonrpc: "2.0"});
+		req = {id: id, method: method, params: params, jsonrpc: "2.0"};
+		this.send(req);
 	}
 
 	RpcWebSocket.prototype.send = function(msg) {
@@ -128,9 +129,9 @@ L.TileLayer.DigletMVTSource = L.TileLayer.MVTSource.extend({
 					if (e.id in layer._wsTiles) {
 						//console.log(layer._wsTiles);
 						ctx = layer._wsTiles[e.id]
+						ctx.canvas.setAttribute("id", e.id)
 						// We're not using the tile.data here
 						// It gets loaded from _draw with an xhr
-						//layer.clearTile(ctx.id)
 						layer.drawTile(ctx.canvas, ctx.tile, ctx.zoom);
 					}
 				} else {
@@ -141,6 +142,16 @@ L.TileLayer.DigletMVTSource = L.TileLayer.MVTSource.extend({
 				delete layer._ws;
 				delete layer._wsTiles;
 			},
+		});
+		layer.on('tileunload', function(e) {
+			var id = e.tile.id;
+			params = {
+				z: Number(id.split(":")[0]),
+				x: Number(id.split(":")[1]),
+				y: Number(id.split(":")[2]),
+				tileset: layer._wsTileset,
+			}
+			layer._wsRpc.request('unsubscribe_tile', "unsub:"+id, params);
 		});
 	},
 
@@ -166,7 +177,10 @@ L.TileLayer.DigletMVTSource = L.TileLayer.MVTSource.extend({
 			tileSize: this.options.tileSize
 		};
 		this._wsTiles[ctx.id] = ctx;
-		this._wsRpc.request('get_tile', ctx.id, params);
+		ctx.canvas.setAttribute("id", ctx.id)
+		//this._wsRpc.request('get_tile', ctx.id, params);
+		// Draw what's currently available
+		layer.drawTile(ctx.canvas, ctx.tile, ctx.zoom);
 		this._wsRpc.request('subscribe_tile', "sub:"+ctx.id, params);
 
 		this.fire('tileloadstart', {
@@ -176,4 +190,11 @@ L.TileLayer.DigletMVTSource = L.TileLayer.MVTSource.extend({
 		return tile;
 	},
 
+	/*
+	_onTileRemove: function (e) {
+		console.log(e);
+		e.tile.onload = null;
+		//this._wsRpc.request('subscribe_tile', "sub:"+ctx.id, params);
+	},
+	*/
 });

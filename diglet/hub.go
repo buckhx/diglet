@@ -31,7 +31,7 @@ func (t *TilesetTopic) open() {
 		case m := <-t.unsubscribe:
 			if _, ok := t.subscribers[m.conn]; ok {
 				t.subscribers[m.conn].remove(m.xyz)
-				if t.subscribers[m.conn].isEmpty() {
+				if !t.subscribers[m.conn].isEmpty() {
 					delete(t.subscribers, m.conn)
 				}
 			}
@@ -154,6 +154,7 @@ func (s *tileSubscription) notify(conn *dig.Connection) {
 			check(err)
 			msg = dig.Cerrorf(dig.RpcInvalidRequest, err.Error()).ResponseMessage()
 		} else {
+			tile.Data = nil
 			tile.Y = (1<<uint(tile.Z) - 1) - tile.Y
 			id := sprintf("%d:%d:%d", tile.Z, tile.X, tile.Y)
 			msg = dig.RespondMsg(id, tile)

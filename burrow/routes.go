@@ -81,7 +81,7 @@ func (h *RouteHandler) MountHelp(methods map[string]Method) {
 type HTTPHandler func(w http.ResponseWriter, r *http.Request) (msg *ResponseMessage)
 
 func (handle HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	info("Request - %v", r)
+	// info("Request - %v", r)
 	response := handle(w, r)
 	if response != nil {
 		content, err := response.Marshal()
@@ -164,6 +164,7 @@ func (h *RouteHandler) MountIo(ms map[string]Method) {
 			//--> UNSUBSCRIBE on tile unload -> {tileset, tileXYZ}
 			//--> LIST_SUBSCRIPTIONS
 			//<-- {tileset, tile, data, type}
+			msg = nil // Can't return a body...
 			return
 		},
 	}
