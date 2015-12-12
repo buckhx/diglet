@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="/static/css/leaflet.css" />
 </head>
 <body>
-  <h1>Hello from a static page</h1>
+  <h1>A wild diglet was encountered!</h1>
   <div id="map" style="height:768px"></div>
 </body>
   <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.20/require.js"></script> -->
@@ -27,12 +27,38 @@
 	});
 	//var baselayer = new L.tileLayer("/tileset/world-countries/{z}/{x}/{y}");
 	map.addLayer(baselayer);
+
+	
 	//var mvt = new L.TileLayer.MVTSource({url: "/tileset/counties/{z}/{x}/{y}"})
 	//var mvt = new L.TileLayer.MVTSource({url: "/tileset/311-calls/{z}/{x}/{y}"})
 	//map.addLayer(mvt)
 	//var diglet = new L.TileLayer.DigletSource("ws://192.168.33.10:8080/tileset/io", "world-countries")
 	//var diglet = new L.TileLayer.DigletSource("ws://192.168.33.10:8080/tileset/io", "311-calls")
-	var diglet = new L.TileLayer.DigletMVTSource("ws://192.168.33.10:8080/tileset/io", "311-calls", {debug: true, url: "/tileset/311-calls/{z}/{x}/{y}"})
+	var featureCount = 0;
+	opts = {
+		url: "/tileset/311-calls/{z}/{x}/{y}",
+		filter: function(feature, context) {
+			featureCount++;
+			// TODO need a decrement
+		},
+		getIDForLayerFeature: function(feature) {
+			return feature.properties.unique_key;
+		},
+		onClick: function(e) {
+			feature = e.feature;
+			if (feature) {
+				if (feature.selected) {
+					// add to table
+				} else {
+					// remove from table
+				}
+				console.log(feature);
+			}
+			console.log(featureCount);
+		},
+	}
+	var diglet = new L.TileLayer.DigletMVTSource("ws://192.168.33.10:8080/tileset/io", "311-calls", opts)
 	map.addLayer(diglet)
+	document.getElementById('map').style.cursor = 'crosshair';
   </script>
 </html>
