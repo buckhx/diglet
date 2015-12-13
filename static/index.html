@@ -8,7 +8,8 @@
 </head>
 <body>
   <h1>A wild diglet was encountered!</h1>
-  <div id="map" style="height:768px"></div>
+  <div id="map" style="height:75vh"></div>
+  <h3 id="featureProperties"></h3>
 </body>
   <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.20/require.js"></script> -->
   <!-- <script src="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet-src.js"></script> -->
@@ -23,7 +24,8 @@
 	});
 	var map = L.map('map', {
 	    center: [40.66, -73.97],
-	    zoom: 14
+	    zoom: 14,
+	    maxZoom: 14,
 	});
 	//var baselayer = new L.tileLayer("/tileset/world-countries/{z}/{x}/{y}");
 	map.addLayer(baselayer);
@@ -34,9 +36,14 @@
 	//map.addLayer(mvt)
 	//var diglet = new L.TileLayer.DigletSource("ws://192.168.33.10:8080/tileset/io", "world-countries")
 	//var diglet = new L.TileLayer.DigletSource("ws://192.168.33.10:8080/tileset/io", "311-calls")
+	var toZoom = map.getZoom();
+	map.on("zoomanim", function(e) {
+		toZoom = e.target._animateToZoom;
+	})
 	var featureCount = 0;
 	opts = {
 		url: "/tileset/311-calls/{z}/{x}/{y}",
+		mutexToggle: true,
 		filter: function(feature, context) {
 			featureCount++;
 			// TODO need a decrement
@@ -48,7 +55,12 @@
 			feature = e.feature;
 			if (feature) {
 				if (feature.selected) {
-					// add to table
+					var props = [feature.properties.complaint_type, 
+						     feature.properties.descriptor,
+						     feature.properties.agency, 
+						     feature.properties.unique_key,
+						     feature.properties.created_date];
+					document.getElementById("featureProperties").innerHTML = props.join(' | ');
 				} else {
 					// remove from table
 				}
@@ -56,6 +68,28 @@
 			}
 			console.log(featureCount);
 		},
+		style: function (feature) {
+			var style = {};
+			var type = feature.type;
+			switch (type) {
+				case 1: //'Point'
+					style.color = 'rgba(56, 238, 255, 0.7)';
+					style.radius = Math.floor(toZoom/map.getMaxZoom()) + 1;
+					style.selected = {
+						color: 'rgba(255, 255, 0, 0.9)',
+						radius: 7
+					};
+					break;
+				case 2: //'LineString'
+			      		break;
+				case 3: //'Polygon'
+					break;
+				default:
+					break;
+			      	
+			}
+			return style;
+		}
 	}
 	var diglet = new L.TileLayer.DigletMVTSource("ws://192.168.33.10:8080/tileset/io", "311-calls", opts)
 	map.addLayer(diglet)
