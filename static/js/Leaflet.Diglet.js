@@ -152,6 +152,7 @@ L.TileLayer.DigletMVTSource = L.TileLayer.MVTSource.extend({
 				tileset: layer._wsTileset,
 			}
 			layer._wsRpc.request('unsubscribe_tile', "unsub:"+id, params);
+			delete layer._wsTiles[e.tile.id]
 		});
 	},
 

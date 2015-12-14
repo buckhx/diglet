@@ -2,10 +2,18 @@
 
 [![Build Status](https://travis-ci.org/buckhx/diglet.svg?branch=master)](https://travis-ci.org/buckhx/diglet)
 
-A tile server in a single binary.
+A real-time tile server in a single binary
 
-There are some unique features in the pipeline for dynamically serving tiles, but
-for now diglet is just a small server for serving mbtiles in vector or raster form.
+Here are some neat things that diglet does
+
+* Backend changes are pushed to the front end in real time
+  * Currently changes are registered from the kernel (inotify/kqueue/ReadDirectoryChangesW)
+* Sniffs the tile format 
+  * (pbf, json, gz, jpg, png, etc...)
+* Source specific hooks in the works
+  * (on PostGIS insert -> build mbtiles)
+* HTTP/JSON-RPC/WS endpoints
+* All packaged up in an itty-bitty binary
 
 # Usage
  
@@ -14,7 +22,7 @@ for now diglet is just a small server for serving mbtiles in vector or raster fo
 --mbtiles: Path to local directory containing mbtiles files. NOTE only serves files
 with .mbtiles extension
 
---port default is 8080
+--port: default is 8080
 
 ## Releases
 
