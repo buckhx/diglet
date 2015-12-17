@@ -24,6 +24,31 @@ with .mbtiles extension
 
 --port: default is 8080
 
+# Methods
+
+The following methods are available via the HTTP API. The other methods in the [app definition](diglet/app.go) are for use with WS
+endpoints and mainly deal with tile subscriptions, which will remain undocumented until an official client is released
+for them. The parameter {tileset-slug} refers to the mbtiles file on disk witout the extenstion and the name .
+
+###ListTilesets
+
+    GET /tileset/
+
+List the .mbtiles on disk from --mbtiles and their attributes. The keys are the tileset-slug of the tilesets.
+
+###GetTileset
+
+    GET /tileset/{tileset-slug}
+
+Get information about the specific tileset. This information is populated from the mbtiles metadata table.
+
+###GetRawTile
+
+    GET /tileset/{tileset-slug}/{z}/{x}/{y}
+
+Get the tile at the given coordinates and return the contents as the response body. 
+Passing json=true as a will return the tile as a json object with it's coordinates 
+
 ## Releases
 
 Diglet uses a go library for reading mbtiles that depends on some C code, this makes
