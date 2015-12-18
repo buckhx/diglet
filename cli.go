@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/buckhx/diglet/diglet"
+	"github.com/buckhx/diglet/util"
 	"github.com/codegangsta/cli"
 )
 
@@ -23,7 +24,7 @@ func client(args []string) {
 	app := cli.NewApp()
 	app.Name = "diglet"
 	app.Usage = "Your friend in the tile business"
-	app.Version = Version
+	app.Version = util.Version
 	app.Commands = []cli.Command{
 		{
 			Name:        "start",
