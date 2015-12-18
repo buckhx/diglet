@@ -8,6 +8,8 @@ import (
 	"github.com/codegangsta/cli"
 )
 
+//go:generate go run scripts/include.go
+
 func main() {
 	client(os.Args)
 }
@@ -21,7 +23,7 @@ func client(args []string) {
 	app := cli.NewApp()
 	app.Name = "diglet"
 	app.Usage = "Your friend in the tile business"
-	app.Version = "dev"
+	app.Version = Version
 	app.Commands = []cli.Command{
 		{
 			Name:        "start",
