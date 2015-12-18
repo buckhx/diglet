@@ -2,10 +2,18 @@
 
 [![Build Status](https://travis-ci.org/buckhx/diglet.svg?branch=master)](https://travis-ci.org/buckhx/diglet)
 
-A tile server in a single binary.
+A real-time tile server in a single binary
 
-There are some unique features in the pipeline for dynamically serving tiles, but
-for now diglet is just a small server for serving mbtiles in vector or raster form.
+Here are some neat things that diglet does
+
+* Backend changes are pushed to the front end in real time
+  * Currently changes are registered from the kernel (inotify/kqueue/ReadDirectoryChangesW)
+* Sniffs the tile format 
+  * (pbf, json, gz, jpg, png, etc...)
+* Source specific hooks in the works
+  * (on PostGIS insert -> build mbtiles)
+* HTTP/JSON-RPC/WS endpoints
+* All packaged up in an itty-bitty binary
 
 # Usage
  
@@ -14,7 +22,32 @@ for now diglet is just a small server for serving mbtiles in vector or raster fo
 --mbtiles: Path to local directory containing mbtiles files. NOTE only serves files
 with .mbtiles extension
 
---port default is 8080
+--port: default is 8080
+
+# Methods
+
+The following methods are available via the HTTP API. The other methods in the [app definition](diglet/app.go) are for use with WS
+endpoints and mainly deal with tile subscriptions, which will remain undocumented until an official client is released
+for them. The parameter {tileset-slug} refers to the mbtiles file on disk witout the extenstion and the name .
+
+###ListTilesets
+
+    GET /tileset/
+
+List the .mbtiles on disk from --mbtiles and their attributes. The keys are the tileset-slug of the tilesets.
+
+###GetTileset
+
+    GET /tileset/{tileset-slug}
+
+Get information about the specific tileset. This information is populated from the mbtiles metadata table.
+
+###GetRawTile
+
+    GET /tileset/{tileset-slug}/{z}/{x}/{y}
+
+Get the tile at the given coordinates and return the contents as the response body. 
+Passing json=true as a will return the tile as a json object with it's coordinates 
 
 ## Releases
 

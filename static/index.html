@@ -2,26 +2,97 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>A static page</title>
-  <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet.css" />
+  <title>Diglet - 311 Calls</title>
+  <!-- <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet.css" /> -->
+  <link rel="stylesheet" href="/static/css/leaflet.css" />
 </head>
 <body>
-  <h1>Hello from a static page</h1>
-  <div id="map" style="height:768px"></div>
+  <h1>A wild diglet was encountered!</h1>
+  <div id="map" style="height:75vh"></div>
+  <h3 id="featureProperties"></h3>
 </body>
-  <script src="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet.js"></script>
+  <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.20/require.js"></script> -->
+  <!-- <script src="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet-src.js"></script> -->
+  <script src="/static/js/leaflet.js"></script>
   <script src="/static/js/Leaflet.MapboxVectorTile.js"></script>
+  <script src="/static/js/vector-tile.js"></script>
+  <script src="/static/js/pbf.js"></script>
+  <script src="/static/js/Leaflet.Diglet.js"></script>
   <script>
 	var baselayer = L.tileLayer('http://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',{
 	  attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
 	});
 	var map = L.map('map', {
-	    center: [40.7127837, -74.0059413],
-	    zoom: 6
+	    center: [40.66, -73.97],
+	    zoom: 14,
+	    maxZoom: 14,
 	});
+	//var baselayer = new L.tileLayer("/tileset/world-countries/{z}/{x}/{y}");
 	map.addLayer(baselayer);
-	var mvt = new L.TileLayer.MVTSource({url: "/tileset/counties/{z}/{x}/{y}"})
-	//var mvt = new L.tileLayer("/tileset/{z}/{x}/{y}")
-	map.addLayer(mvt)
+
+	
+	//var mvt = new L.TileLayer.MVTSource({url: "/tileset/counties/{z}/{x}/{y}"})
+	//var mvt = new L.TileLayer.MVTSource({url: "/tileset/311-calls/{z}/{x}/{y}"})
+	//map.addLayer(mvt)
+	//var diglet = new L.TileLayer.DigletSource("ws://192.168.33.10:8080/tileset/io", "world-countries")
+	//var diglet = new L.TileLayer.DigletSource("ws://192.168.33.10:8080/tileset/io", "311-calls")
+	var toZoom = map.getZoom();
+	map.on("zoomanim", function(e) {
+		toZoom = e.target._animateToZoom;
+	})
+	var featureCount = 0;
+	opts = {
+		url: "/tileset/311-calls/{z}/{x}/{y}",
+		mutexToggle: true,
+		filter: function(feature, context) {
+			featureCount++;
+			// TODO need a decrement
+		},
+		getIDForLayerFeature: function(feature) {
+			return feature.properties.unique_key;
+		},
+		onClick: function(e) {
+			feature = e.feature;
+			if (feature) {
+				if (feature.selected) {
+					var props = [feature.properties.complaint_type, 
+						     feature.properties.descriptor,
+						     feature.properties.agency, 
+						     feature.properties.unique_key,
+						     feature.properties.created_date];
+					document.getElementById("featureProperties").innerHTML = props.join(' | ');
+				} else {
+					// remove from table
+				}
+				console.log(feature);
+			}
+			console.log(featureCount);
+		},
+		style: function (feature) {
+			var style = {};
+			var type = feature.type;
+			switch (type) {
+				case 1: //'Point'
+					style.color = 'rgba(56, 238, 255, 0.7)';
+					style.radius = Math.floor(toZoom/map.getMaxZoom()) + 1;
+					style.selected = {
+						color: 'rgba(255, 255, 0, 0.9)',
+						radius: 7
+					};
+					break;
+				case 2: //'LineString'
+			      		break;
+				case 3: //'Polygon'
+					break;
+				default:
+					break;
+			      	
+			}
+			return style;
+		}
+	}
+	var diglet = new L.TileLayer.DigletMVTSource("ws://192.168.33.10:8080/tileset/io", "311-calls", opts)
+	map.addLayer(diglet)
+	document.getElementById('map').style.cursor = 'crosshair';
   </script>
 </html>

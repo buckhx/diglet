@@ -1,4 +1,4 @@
-package digletts
+package burrow
 
 import (
 	"encoding/json"
@@ -17,26 +17,36 @@ const (
 )
 
 type RequestMessage struct {
-	Id      *uint                  `json:"id"`
+	Id      *string                `json:"id"`
 	JsonRpc string                 `json:"jsonrpc"`
 	Method  *string                `json:"method"`
 	Params  map[string]interface{} `json:"params"`
 }
 
 func (req *RequestMessage) Validate() (err *CodedError) {
-	if req.JsonRpc != RpcVersion {
+	switch {
+	case req.JsonRpc != RpcVersion:
 		err = cerrorf(RpcInvalidRequest, "jsonrpc != "+RpcVersion)
-	}
-	if req.Method == nil {
+	case req.Method == nil:
 		err = cerrorf(RpcInvalidRequest, "Request is missing field 'method'")
+	case req.Params == nil:
+		// still want to inject params even if they weren't passed
+		req.Params = make(map[string]interface{})
 	}
 	return
 }
 
-func (req *RequestMessage) ExecuteMethod() (msg *ResponseMessage) {
-	msg = methods.Execute(*req.Method, req.Params)
-	msg.Id = req.Id
-	return
+func (req *RequestMessage) String() string {
+	if b, err := json.Marshal(req); err != nil {
+		warn(err, "Could not marshal tile_xyz")
+		return sprintf("Could not marshal tile_xyz %s", req)
+	} else {
+		return string(b)
+	}
+}
+
+func (req *RequestMessage) MethodName() string {
+	return *req.Method
 }
 
 func LoadRequestMessage(data []byte) (msg *RequestMessage, err *CodedError) {
@@ -59,10 +69,10 @@ func ReadRequestMessage(content io.Reader) (msg *RequestMessage, err *CodedError
 }
 
 type ResponseMessage struct {
-	Error   *CodedError `json:"error"`
-	Id      *uint       `json:"id"`
-	JsonRpc string      `json:"jsonrpc"`
-	Result  interface{} `json:"result"`
+	Error   *CodedError `json:"error,omitempty"`
+	Id      *string     `json:"id,omitempty"`
+	JsonRpc string      `json:"jsonrpc,omitempty"`
+	Result  interface{} `json:"result,omitempty"`
 }
 
 func (msg *ResponseMessage) Marshal() ([]byte, error) {
@@ -71,7 +81,7 @@ func (msg *ResponseMessage) Marshal() ([]byte, error) {
 
 type CodedError struct {
 	Code    int         `json:"code"`
-	Data    interface{} `json:"data"`
+	Data    interface{} `json:"data,omitempty"`
 	Message string      `json:"message"`
 }
 
@@ -94,10 +104,30 @@ func (err *CodedError) ResponseMessage() (msg *ResponseMessage) {
 	return
 }
 
+//TODO too lazy to actually rename this right now
 func cerrorf(code int, msg string, vals ...interface{}) (err *CodedError) {
 	err = &CodedError{
 		Code:    code,
 		Message: sprintf(msg, vals...),
+	}
+	return
+}
+
+func Cerrorf(code int, msg string, vals ...interface{}) (err *CodedError) {
+	err = &CodedError{
+		Code:    code,
+		Message: sprintf(msg, vals...),
+	}
+	return
+}
+
+//TODO make a request.Respond(msg interface{}) that populates id for you
+func RespondMsg(id string, content interface{}) (msg *ResponseMessage) {
+	msg = &ResponseMessage{
+		Error:   nil,
+		Id:      &id,
+		JsonRpc: RpcVersion,
+		Result:  content,
 	}
 	return
 }

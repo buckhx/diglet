@@ -2961,11 +2961,11 @@ module.exports = L.TileLayer.MVTSource = L.TileLayer.Canvas.extend({
     var type = feature.type;
     switch (type) {
       case 1: //'Point'
-        style.color = 'rgba(49,79,79,1)';
-        style.radius = 5;
+        style.color = 'rgba(56,238,255,1)';
+        style.radius = 2;
         style.selected = {
           color: 'rgba(255,255,0,0.5)',
-          radius: 6
+          radius: 3
         };
         break;
       case 2: //'LineString'
@@ -3201,6 +3201,10 @@ module.exports = L.TileLayer.MVTSource = L.TileLayer.Canvas.extend({
 
   prepareMVTLayers: function(lyr ,key, ctx, parsed) {
     var self = this;
+    // TODO REMOve
+    // this is a hack to force all 311 to be the same layer
+    key = '311-calls'
+    //hack
 
     if (!self.layers[key]) {
       //Create MVTLayer or MVTPointLayer for user

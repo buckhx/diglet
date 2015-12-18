@@ -1,4 +1,4 @@
-package digletts
+package diglet
 
 import (
 	"encoding/binary"
@@ -89,6 +89,10 @@ func cleanTilesetName(path string) (slug string) {
 	f = strings.TrimSuffix(f, filepath.Ext(f))
 	slug = slugged(f)
 	return
+}
+
+func toLower(v string) string {
+	return strings.ToLower(v)
 }
 
 func assertString(v interface{}) (err error) {
