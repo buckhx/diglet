@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/buckhx/diglet"
-	"github.com/buckhx/util"
+	"github.com/buckhx/diglet/diglet"
+	"github.com/buckhx/diglet/util"
 
 	"github.com/codegangsta/cli"
 )
