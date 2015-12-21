@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	pathlib "path"
 	"regexp"
 	"strings"
@@ -27,8 +26,6 @@ func main() {
 		rsc := writeResource(name, string(contents.Bytes()))
 		logf("Created resource %s", rsc)
 	}
-	rsc := writeResource("Version", getVersion())
-	logf("Created resource %s", rsc)
 }
 
 func writeResource(name, contents string) (path string) {
@@ -49,17 +46,6 @@ func writeResource(name, contents string) (path string) {
 		rsc.Write([]byte(sprintf("%s\n", line)))
 	}
 	return
-}
-
-func getVersion() string {
-	cmd := exec.Command("git", "describe", "--always")
-	var ver bytes.Buffer
-	cmd.Stdout = &ver
-	err := cmd.Run()
-	if err != nil {
-		panic(err)
-	}
-	return strings.TrimSpace(ver.String())
 }
 
 func logf(format string, vals ...interface{}) {

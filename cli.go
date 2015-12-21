@@ -25,7 +25,7 @@ func client(args []string) {
 	app := cli.NewApp()
 	app.Name = "diglet"
 	app.Usage = "Your friend in the tile business"
-	app.Version = resources.Version
+	app.Version = resources.Version()
 	app.Commands = []cli.Command{
 		{
 			Name:        "start",
