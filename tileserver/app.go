@@ -1,5 +1,5 @@
 // Package digletss is a diglet tile server
-package diglet
+package tileserver
 
 import (
 	dig "github.com/buckhx/diglet/burrow"

@@ -1,4 +1,4 @@
-package diglet
+package tileserver
 
 import (
 	"encoding/binary"

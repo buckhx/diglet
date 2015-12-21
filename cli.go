@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/buckhx/diglet/diglet"
-	"github.com/buckhx/diglet/util"
+	"github.com/buckhx/diglet/resources"
+	"github.com/buckhx/diglet/tileserver"
 
 	"github.com/codegangsta/cli"
 )
@@ -25,7 +25,7 @@ func client(args []string) {
 	app := cli.NewApp()
 	app.Name = "diglet"
 	app.Usage = "Your friend in the tile business"
-	app.Version = util.Version
+	app.Version = resources.Version
 	app.Commands = []cli.Command{
 		{
 			Name:        "start",
@@ -38,7 +38,7 @@ func client(args []string) {
 					cli.ShowSubcommandHelp(c)
 					die("ERROR: --mbtiles flag is required")
 				}
-				server := diglet.MBTServer(mbt, p)
+				server := tileserver.MBTServer(mbt, p)
 				server.Run()
 			},
 			Flags: []cli.Flag{

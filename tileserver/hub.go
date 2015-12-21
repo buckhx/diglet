@@ -1,4 +1,4 @@
-package diglet
+package tileserver
 
 import (
 	dig "github.com/buckhx/diglet/burrow"
