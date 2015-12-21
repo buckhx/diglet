@@ -11,12 +11,12 @@ env:
     #- GOOS=windows GOARCH=386 CC=386-w64-mingw32-gcc CGO_LDFLAGS="-lssp" EXT=.exe
     #- GOOS=windows GOARCH=amd64 CC=x86_64-w64-mingw32-gcc CGO_LDFLAGS="-lssp" EXT=.exe
 install:
-  - cd $GOROOT/src && ./make.bash  && cd $GOPATH/src/github.com/buckhx/diglet
+  - if [ "$TRAVIS_BRANCH" == "master" ]; then cd $GOROOT/src && ./make.bash  && cd $GOPATH/src/github.com/buckhx/diglet; fi
   - go get ./...
 script:
   - go generate
   - go test -v ./...
-  - go build -o "diglet_${GOOS}_${GOARCH}${EXT}"
+  - if [ "$TRAVIS_BRANCH" == "master" ]; then go build -o "diglet_${GOOS}_${GOARCH}${EXT}"; fi
   - ls
 deploy:
   provider: releases
