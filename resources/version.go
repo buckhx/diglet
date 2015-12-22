@@ -1,5 +1,5 @@
-// Resources is a package for containing string resources about how to run diglet.
-// Files generated from scripts/include.go will end up here
+// package diglet/resources contains string resources about how to run diglet.
+// Files generated from scripts/include.go will end up here as well as deployment utils like version.
 package resources
 
 import (

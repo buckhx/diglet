@@ -1,3 +1,4 @@
+// Diglet is a set of geospatial tools focused around rendering large feature sets efficiently.
 package main
 
 import (

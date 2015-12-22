@@ -80,3 +80,13 @@ We'll include a script and or directions for building on your own.
 ##### Preciously exclusive tiles
 ##### Tiles that brings out the luxury in you
 
+## Licenses
+
+Here are dependencies and their licenese
+
+* buckhx/diglet: MIT
+* buckhx/mbtiles: MIT
+* codegangsta/cli: MIT
+* gorilla: BSD 3-Clause
+* mattn/go-sqlite3: MIT
+* go-std-lib: BSD 3-Clause

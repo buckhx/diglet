@@ -1,4 +1,5 @@
-// Package digletss is a diglet tile server
+// Package diglet/tileserver is an HTTP Tile Server that also support JSON-RPC & WebSocket requests. Tile subscriptions
+// are also available to support real-time map applications with large feature sets.
 package tileserver
 
 import (
