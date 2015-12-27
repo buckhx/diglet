@@ -20,7 +20,7 @@ func TestPixelToCoords(t *testing.T) {
 	}
 }
 
-func TestToTile(t *testing.T) {
+func TestPixelToTile(t *testing.T) {
 	coordTests := []struct {
 		pixel Pixel
 		tile  Tile

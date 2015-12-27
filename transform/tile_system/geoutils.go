@@ -50,3 +50,11 @@ func floatEquals(a, b float64) bool {
 	}
 	return false
 }
+
+func check(errs ...error) {
+	for _, err := range errs {
+		if err != nil {
+			panic(err)
+		}
+	}
+}
