@@ -4,7 +4,7 @@ import (
 	"math"
 )
 
-// Pixel in a WGS84 Mercator map projection
+// Pixel in a WGS84 Mercator map projection with a NW origin (0,0) of the projection
 type Pixel struct {
 	X, Y, Z uint
 }
@@ -26,6 +26,7 @@ func (p Pixel) ToCoords() Coords {
 	return ClippedCoords(lat, lon)
 }
 
+// Gets the tile that contains this pixel as well as the pixel within that tile.
 func (p Pixel) ToTile() (tile Tile, tilePixel TilePixel) {
 	tile = Tile{
 		X: p.X / TileSize,

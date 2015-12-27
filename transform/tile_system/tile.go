@@ -1,3 +1,5 @@
+// package tile_system is a collection of conversion utilities to go between geo/pixel/tile/quadkey space
+// This package uses WGS84 coordinates and a mercator projection
 package tile_system
 
 import (
