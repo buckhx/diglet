@@ -56,12 +56,3 @@ func TestMapScale(t *testing.T) {
 		t.Errorf("mapScale(%v, %v, %v) -> %v not %v", lat, zoom, dpi, scale, out)
 	}
 }
-
-// method for approx float equality
-func floatEquals(a, b float64) bool {
-	var EPSILON float64 = 0.00000001
-	if (a-b) < EPSILON && (b-a) < EPSILON {
-		return true
-	}
-	return false
-}

@@ -41,3 +41,12 @@ func mapScale(lat float64, zoom, dpi uint) float64 {
 	d := float64(dpi)
 	return grndRes(lat, zoom) * d / 0.0254
 }
+
+// method for approx float equality
+func floatEquals(a, b float64) bool {
+	var EPSILON float64 = 0.00000001
+	if (a-b) < EPSILON && (b-a) < EPSILON {
+		return true
+	}
+	return false
+}
