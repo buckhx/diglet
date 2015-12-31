@@ -15,5 +15,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("%+v\n", tile)
+	//fmt.Printf("%+v\n", tile.Layers[0].Features[0].Geometry)
+	feature := tile.Layers[0].Features[0]
+	fmt.Printf("%+v\n", feature.Geometry)
+	fmt.Printf("%+v\n", tile.Layers[0].GetKeys())
+	fmt.Printf("%+v\n", tile.Layers[0].GetValues())
 }
