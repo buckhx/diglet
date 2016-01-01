@@ -71,42 +71,42 @@ func testGeometries(t *testing.T, tests []geomTest) {
 	}
 }
 
-type lineTest struct {
+type shapeTest struct {
 	geometry []uint
-	lines    []*Line
+	shapes   []*Shape
 }
 
 func TestToPoints(t *testing.T) {
-	tests := []lineTest{
-		lineTest{[]uint{9, 50, 34}, []*Line{
-			NewLine(Point{25, 17}),
+	tests := []shapeTest{
+		shapeTest{[]uint{9, 50, 34}, []*Shape{
+			NewShape(Point{25, 17}),
 		}},
-		lineTest{[]uint{17, 10, 14, 3, 9}, []*Line{
-			NewLine(Point{5, 7}),
-			NewLine(Point{3, 2}),
+		shapeTest{[]uint{17, 10, 14, 3, 9}, []*Shape{
+			NewShape(Point{5, 7}),
+			NewShape(Point{3, 2}),
 		}},
-		lineTest{[]uint{9, 4, 4, 18, 0, 16, 16, 0}, []*Line{
-			NewLine(Point{2, 2}, Point{2, 10}, Point{10, 10}),
+		shapeTest{[]uint{9, 4, 4, 18, 0, 16, 16, 0}, []*Shape{
+			NewShape(Point{2, 2}, Point{2, 10}, Point{10, 10}),
 		}},
-		lineTest{[]uint{9, 4, 4, 18, 0, 16, 16, 0, 9, 17, 17, 10, 4, 8}, []*Line{
-			NewLine(Point{2, 2}, Point{2, 10}, Point{10, 10}),
-			NewLine(Point{1, 1}, Point{3, 5}),
+		shapeTest{[]uint{9, 4, 4, 18, 0, 16, 16, 0, 9, 17, 17, 10, 4, 8}, []*Shape{
+			NewShape(Point{2, 2}, Point{2, 10}, Point{10, 10}),
+			NewShape(Point{1, 1}, Point{3, 5}),
 		}},
-		lineTest{[]uint{9, 6, 12, 18, 10, 12, 24, 44, 15}, []*Line{
-			NewLine(Point{3, 6}, Point{8, 12}, Point{20, 34}, Point{3, 6}),
+		shapeTest{[]uint{9, 6, 12, 18, 10, 12, 24, 44, 15}, []*Shape{
+			NewShape(Point{3, 6}, Point{8, 12}, Point{20, 34}, Point{3, 6}),
 		}},
 	}
 	for _, test := range tests {
 		geom := &Geometry{test.geometry}
-		lines := geom.ToLines()
-		if len(lines) != len(test.lines) {
+		shapes := geom.ToShapes()
+		if len(shapes) != len(test.shapes) {
 			t.Errorf("Geometry point translation error %+v:\n\t%s ->\n\t%s",
-				test.geometry, test.lines, lines)
+				test.geometry, test.shapes, shapes)
 		}
-		for i, line := range test.lines {
-			if !line.Equals(lines[i]) {
+		for i, shape := range test.shapes {
+			if !shape.Equals(shapes[i]) {
 				t.Errorf("Geometry point translation error %+v:\n\t%s ->\n\t%s",
-					test.geometry, test.lines, lines)
+					test.geometry, test.shapes, shapes)
 			}
 		}
 	}

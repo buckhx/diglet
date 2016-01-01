@@ -1,6 +1,7 @@
 package tile_system
 
 import (
+	"fmt"
 	"math"
 )
 
@@ -27,6 +28,10 @@ func (c Coords) ToPixel(zoom uint) Pixel {
 		Z: zoom,
 	}
 
+}
+
+func (c Coords) String() string {
+	return fmt.Sprintf("(%v, %v)", c.Lat, c.Lon)
 }
 
 // Coords that have been clipped to Max/Min Lat/Lon

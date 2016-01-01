@@ -19,7 +19,7 @@ type Geometry struct {
 	geometry []uint
 }
 
-func (g *Geometry) ToLines() (lines []*Line) {
+func (g *Geometry) ToShapes() (shapes []*Shape) {
 	cur := Point{X: 0, Y: 0}
 	for _, cmd := range g.ToCommands() {
 		switch cmd.cid {
@@ -27,18 +27,18 @@ func (g *Geometry) ToLines() (lines []*Line) {
 			x := cmd.params[0]
 			y := cmd.params[1]
 			cur = cur.Add(x, y)
-			line := NewLine(cur)
-			lines = append(lines, line)
+			shape := NewShape(cur)
+			shapes = append(shapes, shape)
 			break
 		case LineTo:
 			x := cmd.params[0]
 			y := cmd.params[1]
 			cur = cur.Add(x, y)
-			tail := lines[len(lines)-1]
+			tail := shapes[len(shapes)-1]
 			tail.Append(cur)
 			break
 		case ClosePath:
-			tail := lines[len(lines)-1]
+			tail := shapes[len(shapes)-1]
 			start := tail.points[0]
 			tail.Append(start)
 			break
@@ -164,19 +164,23 @@ func (p Point) Add(x, y int) Point {
 	return Point{X: p.X + x, Y: p.Y + y}
 }
 
-type Line struct {
+type Shape struct {
 	points []Point
 }
 
-func NewLine(points ...Point) *Line {
-	return &Line{points}
+func NewShape(points ...Point) *Shape {
+	return &Shape{points}
 }
 
-func (l *Line) Append(point Point) {
+func (l *Shape) Append(point Point) {
 	l.points = append(l.points, point)
 }
 
-func (l *Line) Equals(that *Line) bool {
+func (l *Shape) GetPoints() []Point {
+	return l.points
+}
+
+func (l *Shape) Equals(that *Shape) bool {
 	equal := len(l.points) == len(that.points)
 	for i, point := range l.points {
 		equal = equal && point == that.points[i]

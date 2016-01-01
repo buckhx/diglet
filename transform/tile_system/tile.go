@@ -27,9 +27,11 @@ func (t Tile) ToPixel() Pixel {
 	}
 }
 
-func (t Tile) ToPixelWithOffset(offset Pixel) Pixel {
-	panic("Not Implemented")
-	return Pixel{}
+func (t Tile) ToPixelWithOffset(offset Pixel) (pixel Pixel) {
+	pixel = t.ToPixel()
+	pixel.X += offset.X
+	pixel.Y += offset.Y
+	return
 }
 
 func (t Tile) QuadKey() string {

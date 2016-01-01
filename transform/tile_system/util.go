@@ -11,7 +11,7 @@ const (
 	MinLon       float64 = -180
 	MaxLon       float64 = 180
 	EarthRadiusM float64 = 6378137
-	TileSize     uint    = 256
+	TileSize     uint    = 4096
 )
 
 // if val is outside of min-max range, clip it to min or max
