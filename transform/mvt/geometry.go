@@ -2,6 +2,12 @@ package mvt
 
 import "fmt"
 
+const (
+	MoveTo    = 0x1
+	LineTo    = 0x2
+	ClosePath = 0x7
+)
+
 type state int
 
 const (
@@ -9,14 +15,39 @@ const (
 	waitPint
 )
 
-const (
-	MoveTo    = 1
-	LineTo    = 2
-	ClosePath = 7
-)
-
 type Geometry struct {
 	geometry []uint
+}
+
+func (g *Geometry) ToLines() (lines []*Line) {
+	cur := Point{X: 0, Y: 0}
+	for _, cmd := range g.ToCommands() {
+		switch cmd.cid {
+		case MoveTo:
+			x := cmd.params[0]
+			y := cmd.params[1]
+			cur = cur.Add(x, y)
+			line := NewLine(cur)
+			lines = append(lines, line)
+			break
+		case LineTo:
+			x := cmd.params[0]
+			y := cmd.params[1]
+			cur = cur.Add(x, y)
+			tail := lines[len(lines)-1]
+			tail.Append(cur)
+			break
+		case ClosePath:
+			tail := lines[len(lines)-1]
+			start := tail.points[0]
+			tail.Append(start)
+			break
+		default:
+			err := fmt.Errorf("Invalid CommandInteger %d", cmd.cid)
+			panic(err)
+		}
+	}
+	return
 }
 
 func (g *Geometry) ToCommands() (commands []*command) {
@@ -123,4 +154,32 @@ func readCmdInt(cmd uint) (cid, cnt uint) {
 
 func readPrmInt(pint uint) int {
 	return int((pint >> 1) ^ (-(pint & 1)))
+}
+
+type Point struct {
+	X, Y int
+}
+
+func (p Point) Add(x, y int) Point {
+	return Point{X: p.X + x, Y: p.Y + y}
+}
+
+type Line struct {
+	points []Point
+}
+
+func NewLine(points ...Point) *Line {
+	return &Line{points}
+}
+
+func (l *Line) Append(point Point) {
+	l.points = append(l.points, point)
+}
+
+func (l *Line) Equals(that *Line) bool {
+	equal := len(l.points) == len(that.points)
+	for i, point := range l.points {
+		equal = equal && point == that.points[i]
+	}
+	return equal
 }
