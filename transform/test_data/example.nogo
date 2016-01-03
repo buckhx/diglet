@@ -8,9 +8,23 @@ import (
 	"io/ioutil"
 )
 
-func main() {
+func convertGeoJson() {
+	path := "./test_data/denver_features.geojson"
+	features := readGeoJson(path)
+	for _, feature := range features.Features {
+		/*
+			geom, err := feature.GetGeometry()
+			if err != nil {
+				panic(err)
+			}
+		*/
+		fmt.Printf("Feature %v\n\t%v\n\t%v\n", feature.Id, feature.Properties, feature.Geometry)
+	}
+}
+
+func printMVTFeatures() {
 	tile := tile_system.Tile{Z: 12, X: 2124, Y: 1373}
-	data, err := ioutil.ReadFile("12_2124_1373.pbf.gz")
+	data, err := ioutil.ReadFile("./test_data/12_2124_1373.pbf.gz")
 	if err != nil {
 		panic(err)
 	}
@@ -38,4 +52,8 @@ func main() {
 	//fmt.Printf("%+v\n", feature.Geometry)
 	//fmt.Printf("%+v\n", tile.Layers[0].GetKeys())
 	//fmt.Printf("%+v\n", tile.Layers[0].GetValues())
+}
+
+func main() {
+	convertGeoJson()
 }
