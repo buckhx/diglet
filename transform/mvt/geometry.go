@@ -172,17 +172,32 @@ func NewShape(points ...Point) *Shape {
 	return &Shape{points}
 }
 
-func (l *Shape) Append(point Point) {
-	l.points = append(l.points, point)
+func (s *Shape) Append(point Point) {
+	s.points = append(s.points, point)
 }
 
-func (l *Shape) GetPoints() []Point {
-	return l.points
+func (s *Shape) GetPoints() []Point {
+	return s.points
 }
 
-func (l *Shape) Equals(that *Shape) bool {
-	equal := len(l.points) == len(that.points)
-	for i, point := range l.points {
+func (s *Shape) GetType() (gtype string) {
+	if len(s.points) <= 0 {
+		gtype = "UNKNOWN"
+	} else if len(s.points) == 1 {
+		gtype = "POINT"
+	} else if s.points[0] == s.points[len(s.points)-1] {
+		gtype = "POLYGON"
+	} else if len(s.points) > 1 {
+		gtype = "LINESTRING"
+	} else {
+		gtype = "UNKNOWN"
+	}
+	return
+}
+
+func (s *Shape) Equals(that *Shape) bool {
+	equal := len(s.points) == len(that.points)
+	for i, point := range s.points {
 		equal = equal && point == that.points[i]
 	}
 	return equal

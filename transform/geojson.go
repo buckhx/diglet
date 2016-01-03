@@ -13,9 +13,9 @@ import (
 )
 
 // Split features up by their tile coordinates. This is intended to be done at the deepest desired zoom level
-func splitFeatures(features *geojson.FeatureCollection, zoom uint) (tiles map[tile_system.Tile][]*geojson.Feature) {
+func splitFeatures(features <-chan *geojson.Feature, zoom uint) (tiles map[tile_system.Tile][]*geojson.Feature) {
 	tiles = make(map[tile_system.Tile][]*geojson.Feature)
-	for _, feature := range features.Features {
+	for feature := range features {
 		if feature.Type != "Feature" {
 			continue
 		}
@@ -37,8 +37,8 @@ func splitFeatures(features *geojson.FeatureCollection, zoom uint) (tiles map[ti
 // Flatten all the points of a feature into single list. This can hel in identifying which tiles are going to be
 // created
 func featurePoints(feature *geojson.Feature) (points []geojson.Coordinate) {
-	// TODO: This sucks...
-	igeom, err := feature.GetGeometry() //["coordinates"]
+	// TODO: This sucks... I just want to switch on Coordinates.(type)
+	igeom, err := feature.GetGeometry()
 	check(err)
 	switch geom := igeom.(type) {
 	case *geojson.Point:
@@ -74,25 +74,8 @@ func featurePoints(feature *geojson.Feature) (points []geojson.Coordinate) {
 			}
 		}
 	default:
-		//multi-polygon
-		fmt.Println(feature)
-		fmt.Println(geom)
 		panic("Invalid Coordinate Type in Feature") // + feature.String())
 	}
-	/*
-		switch coords := geom.Coordinates.(type) {
-		case geojson.Coordinate:
-			points = append(points, coords)
-		case geojson.Coordinates:
-			points = coords
-		case geojson.Multiline:
-			for _, line := range coords.Coordinates {
-				points = append(points, line)
-			}
-		default:
-			panic("Invalid Coordinate Type: " + coords)
-		}
-	*/
 	return
 }
 
@@ -105,4 +88,15 @@ func readGeoJson(path string) (features *geojson.FeatureCollection) {
 		check(err)
 	}
 	return features
+}
+
+func publishFeatureCollection(collection *geojson.FeatureCollection) (features chan *geojson.Feature) {
+	features = make(chan *geojson.Feature, 10)
+	go func() {
+		defer close(features)
+		for _, feature := range collection.Features {
+			features <- feature
+		}
+	}()
+	return
 }

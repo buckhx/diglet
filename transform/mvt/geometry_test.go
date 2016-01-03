@@ -111,3 +111,5 @@ func TestToPoints(t *testing.T) {
 		}
 	}
 }
+
+//TODO shape.GetType test

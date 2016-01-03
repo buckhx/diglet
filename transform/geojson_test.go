@@ -8,8 +8,8 @@ import (
 
 func TestSplitFeatures(t *testing.T) {
 	var zoom uint = 13
-	//want := {Z: 13 X: 1706 Y: 3108}
-	features := readGeoJson("test_data/denver_features.geojson")
+	collection := readGeoJson("test_data/denver_features.geojson")
+	features := publishFeatureCollection(collection)
 	want := mapset.NewSetFromSlice([]interface{}{
 		tile_system.Tile{X: 1707, Y: 3110, Z: 13},
 		tile_system.Tile{X: 1706, Y: 3108, Z: 13},
@@ -22,5 +22,19 @@ func TestSplitFeatures(t *testing.T) {
 	}
 	if !want.Equal(got) {
 		t.Errorf("Did not get tiles %v -> %v", want, got)
+	}
+}
+
+func TestWriteTiles(t *testing.T) {
+	var zoom uint = 13
+	collection := readGeoJson("test_data/denver_features.geojson")
+	tiles := splitFeatures(publishFeatureCollection(collection), zoom)
+	for tile, features := range tiles {
+		vtile := mvt.Tile{X, Y, Z}
+		for _, feature := range features {
+			properties :=
+
+				vtile.AddFeature()
+		}
 	}
 }
