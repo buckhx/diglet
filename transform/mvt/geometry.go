@@ -6,6 +6,10 @@ const (
 	MoveTo    = 0x1
 	LineTo    = 0x2
 	ClosePath = 0x7
+	ShapeUNK  = "UNKNOWN"
+	ShapePNT  = "POINT"
+	ShapeLIN  = "LINESTRING"
+	ShapePLY  = "POLYGON"
 )
 
 type state int
@@ -128,6 +132,13 @@ func (c *command) appendParam(param int) {
 	c.params = append(c.params, param)
 }
 
+func (c *command) paramIntegers() (pints []uint32) {
+	for _, param := range c.params {
+		pints = append(pints, writePrmInt(param))
+	}
+	return
+}
+
 func (c *command) Equals(that *command) bool {
 	equal := c.cid == that.cid
 	equal = equal && len(c.params) == len(that.params)
@@ -156,6 +167,37 @@ func readPrmInt(pint uint) int {
 	return int((pint >> 1) ^ (-(pint & 1)))
 }
 
+func writeCmdInt(cid, cnt uint) uint32 {
+	return uint32((cid & 0x7) | (cnt << 3))
+}
+
+func writePrmInt(param int) uint32 {
+	return uint32((param << 1) ^ (param >> 31))
+}
+
+func flushCommands(chunk []*command) (geom []uint32, err error) {
+	if len(chunk) < 1 {
+		err = fmt.Errorf("Flushing Zero-Length command chunk")
+
+	} else {
+		cid := chunk[0].cid
+		cnt := uint(len(chunk))
+		cint := writeCmdInt(cid, cnt)
+		geom = append(geom, cint)
+		for _, cmd := range chunk {
+			if cmd.cid != cid {
+				err = fmt.Errorf("Non contiguous CommandInteger in command chunk: %v", chunk)
+				return
+			}
+			for _, param := range cmd.params {
+				pint := writePrmInt(param)
+				geom = append(geom, pint)
+			}
+		}
+	}
+	return
+}
+
 type Point struct {
 	X, Y int
 }
@@ -176,21 +218,82 @@ func (s *Shape) Append(point Point) {
 	s.points = append(s.points, point)
 }
 
+func (s *Shape) Head() Point {
+	return s.points[0]
+}
+
+func (s *Shape) Tail() Point {
+	return s.points[len(s.points)-1]
+}
+
 func (s *Shape) GetPoints() []Point {
 	return s.points
 }
 
-func (s *Shape) GetType() (gtype string) {
+func (s *Shape) ToGeometrySlice() (geometry []uint32, err error) {
+	chunks := make(chan []*command, 1000)
+	go func() {
+		defer close(chunks)
+		head := 0
+		commands := s.ToCommands()
+		for cur := range commands {
+			if commands[head].cid != commands[cur].cid {
+				chunks <- commands[head : cur-1]
+				head = cur
+			}
+		}
+		chunks <- commands[head : len(commands)-1]
+	}()
+	for chunk := range chunks {
+		geom, err := flushCommands(chunk)
+		if err != nil {
+			return nil, err
+		}
+		geometry = append(geometry, geom...)
+	}
+	return
+}
+
+func (s *Shape) ToCommands() (cmds []*command) {
+	switch s.SniffType() {
+	case ShapePNT:
+		move := newCmd(MoveTo, s.Head().X, s.Head().Y)
+		cmds = []*command{move}
+	case ShapeLIN:
+		move := newCmd(MoveTo, s.Head().X, s.Head().Y)
+		cmds = []*command{move}
+		for _, p := range s.points[1:] {
+			line := newCmd(LineTo, p.X, p.Y)
+			cmds = append(cmds, line)
+		}
+	case ShapePLY:
+		move := newCmd(MoveTo, s.Head().X, s.Head().Y)
+		cmds = []*command{move}
+		for _, p := range s.points[1 : len(s.points)-2] {
+			line := newCmd(LineTo, p.X, p.Y)
+			cmds = append(cmds, line)
+		}
+		closep := newCmd(ClosePath)
+		cmds = append(cmds, closep)
+	default:
+		fmt.Println("WARN: Zero Length Geometry in ToCommands")
+		cmds = []*command{}
+	}
+	return
+}
+
+// Guess the shape by inspecting the points
+func (s *Shape) SniffType() (gtype string) {
 	if len(s.points) <= 0 {
-		gtype = "UNKNOWN"
+		gtype = ShapeUNK
 	} else if len(s.points) == 1 {
-		gtype = "POINT"
-	} else if s.points[0] == s.points[len(s.points)-1] {
-		gtype = "POLYGON"
+		gtype = ShapePNT
+	} else if s.Head() == s.Tail() {
+		gtype = ShapePLY
 	} else if len(s.points) > 1 {
-		gtype = "LINESTRING"
+		gtype = ShapeLIN
 	} else {
-		gtype = "UNKNOWN"
+		gtype = ShapeUNK
 	}
 	return
 }

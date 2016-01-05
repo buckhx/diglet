@@ -1,6 +1,7 @@
 package transform
 
 import (
+	"github.com/buckhx/diglet/transform/mvt"
 	"github.com/buckhx/diglet/transform/tile_system"
 	"github.com/deckarep/golang-set"
 	"testing"
@@ -30,11 +31,17 @@ func TestWriteTiles(t *testing.T) {
 	collection := readGeoJson("test_data/denver_features.geojson")
 	tiles := splitFeatures(publishFeatureCollection(collection), zoom)
 	for tile, features := range tiles {
-		vtile := mvt.Tile{X, Y, Z}
+		aTile := mvt.NewTileAdapter(tile.X, tile.Y, tile.Z)
+		layer := "denver"
+		aTile.AddLayer(layer, 256)
 		for _, feature := range features {
-			properties :=
-
-				vtile.AddFeature()
+			aFeature := mvt.NewFeatureAdapter(feature.Id.(uint), feature.Type)
+			shapes := featureShapes(feature, zoom)
+			aFeature.AddShapes(shapes)
+			aTile.AddFeature(layer, aFeature)
+			//properties := featureValues(feature)
 		}
+		vtile := aTile.GetTile()
+		t.Errorf("%s", vtile.String())
 	}
 }
