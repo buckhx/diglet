@@ -22,7 +22,11 @@ Here are some neat things that diglet does
 --mbtiles: Path to local directory containing mbtiles files. NOTE only serves files
 with .mbtiles extension
 
---port: default is 8080
+--port: Default is 8080
+
+--cert, --tls-certificate: Path to .pem TLS Certificate. Both cert & key required to serve HTTPS
+
+--key, --tls-private-key: Path to .pem Private Key
 
 # Methods
 
