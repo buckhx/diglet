@@ -82,9 +82,6 @@ type HTTPHandler func(w http.ResponseWriter, r *http.Request) (msg *ResponseMess
 
 func (handle HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// info("Request - %v", r)
-	if r.TLS == nil {
-		info("NO TLS")
-	}
 	response := handle(w, r)
 	if response != nil {
 		content, err := response.Marshal()

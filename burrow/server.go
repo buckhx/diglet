@@ -67,25 +67,6 @@ func (app *App) serveTLS() (err error) {
 	key := *app.TLSPrivateKey
 	info("Now serving encrypted TLS traffic on port :%s", app.Port)
 	return http.ListenAndServeTLS(port, cert, key, nil)
-	/*
-		// This would be if we wanted to redirect http traffic to https
-		errs := make(chan error)
-		go func() {
-			errs <- http.ListenAndServeTLS(":1443", cert, key, nil)
-		}()
-		go func() {
-			redir := func(w http.ResponseWriter, r *http.Request) {
-				// Don't think this works
-				r.URL.Scheme = "https://"
-				http.Redirect(w, r, r.URL.String(), http.StatusMovedPermanently)
-			}
-			errs <- http.ListenAndServe(":8080", http.HandlerFunc(redir))
-		}()
-		select {
-		case err = <-errs:
-			return
-		}
-	*/
 }
 
 func (app *App) mountStatic() {
