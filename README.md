@@ -28,6 +28,9 @@ with .mbtiles extension
 
 --key, --tls-private-key: Path to .pem Private Key
 
+If --cert and --key are both set, content will be served over TLS (HTTPS) and unecrypted HTTP will return nothing or a
+TLS error response
+
 # Methods
 
 The following methods are available via the HTTP API. The other methods in the [app definition](diglet/app.go) are for use with WS
