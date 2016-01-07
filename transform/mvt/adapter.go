@@ -1,6 +1,7 @@
 package mvt
 
 import (
+	"fmt"
 	vt "github.com/buckhx/diglet/transform/mvt/vector_tile"
 	"strings"
 )
@@ -52,21 +53,21 @@ type FeatureAdapter struct {
 	feature *vt.Tile_Feature
 }
 
-func NewFeatureAdapter(id uint, geometry_type string) *FeatureAdapter {
+func NewFeatureAdapter(id *uint64, geometry_type string) *FeatureAdapter {
 	var gtype vt.Tile_GeomType
 	switch strings.ToLower(geometry_type) {
 	case "point", "multipoint":
 		gtype = vt.Tile_POINT
 	case "linestring", "multilinestring":
 		gtype = vt.Tile_LINESTRING
-	case "polygon", "multiPolygon":
+	case "polygon", "multipolygon":
 		gtype = vt.Tile_POLYGON
 	default:
+		fmt.Println(gtype)
 		gtype = vt.Tile_UNKNOWN
 	}
-	var fid uint64 = uint64(id)
 	feature := &vt.Tile_Feature{
-		Id:       &fid,
+		Id:       id,
 		Tags:     []uint32{},
 		Type:     &gtype,
 		Geometry: []uint32{},

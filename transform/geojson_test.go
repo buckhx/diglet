@@ -35,7 +35,16 @@ func TestWriteTiles(t *testing.T) {
 		layer := "denver"
 		aTile.AddLayer(layer, 256)
 		for _, feature := range features {
-			aFeature := mvt.NewFeatureAdapter(feature.Id.(uint), feature.Type)
+			var fid *uint64
+			if feature.Id != nil {
+				val := uint64(feature.Id.(float64))
+				fid = &val
+			} else {
+				fid = nil
+			}
+			geom, err := feature.GetGeometry()
+			check(err)
+			aFeature := mvt.NewFeatureAdapter(fid, geom.GetType())
 			shapes := featureShapes(feature, zoom)
 			aFeature.AddShapes(shapes)
 			aTile.AddFeature(layer, aFeature)
