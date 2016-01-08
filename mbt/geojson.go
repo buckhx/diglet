@@ -1,16 +1,16 @@
-package transform
+package mbt
 
 import (
 	"encoding/json"
 	//"fmt"
-	"github.com/buckhx/diglet/transform/mvt"
-	"github.com/buckhx/diglet/transform/tile_system"
+	"github.com/buckhx/diglet/mbt/mvt"
+	"github.com/buckhx/diglet/mbt/tile_system"
 	"github.com/deckarep/golang-set"
 	"github.com/kpawlik/geojson"
 	"io/ioutil"
 
-	//"github.com/buckhx/diglet/transform/mvt"
-	//"github.com/buckhx/diglet/transform/mvt/vector_tile"
+	//"github.com/buckhx/diglet/mbt/mvt"
+	//"github.com/buckhx/diglet/mbt/mvt/vector_tile"
 )
 
 // Split features up by their tile coordinates. This is intended to be done at the deepest desired zoom level

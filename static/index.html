@@ -92,7 +92,9 @@
 		}
 	}
 	var diglet = new L.TileLayer.DigletMVTSource("ws://192.168.33.10:8080/tileset/io", "311-calls", opts)
-	map.addLayer(diglet)
+	var denver = new L.TileLayer.MVTSource({url: "/tileset/test/{z}/{x}/{y}"})
+	//map.addLayer(diglet)
+	map.addLayer(denver)
 	document.getElementById('map').style.cursor = 'crosshair';
   </script>
 </html>

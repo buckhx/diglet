@@ -1,4 +1,4 @@
-package tileserver
+package wms
 
 import (
 	"encoding/binary"

@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/buckhx/diglet/mbt"
 	"github.com/buckhx/diglet/resources"
-	"github.com/buckhx/diglet/tileserver"
+	"github.com/buckhx/diglet/wms"
 
 	"github.com/codegangsta/cli"
 )
@@ -34,12 +35,12 @@ func client(args []string) {
 			Description: "Starts the diglet server",
 			Action: func(c *cli.Context) {
 				p := c.String("port")
-				mbt := c.String("mbtiles")
-				if mbt == "" {
+				mbtiles := c.String("mbtiles")
+				if mbtiles == "" {
 					cli.ShowSubcommandHelp(c)
 					die("ERROR: --mbtiles flag is required")
 				}
-				server := tileserver.MBTServer(mbt, p)
+				server := wms.MBTServer(mbtiles, p)
 				server.Run()
 			},
 			Flags: []cli.Flag{
@@ -49,9 +50,29 @@ func client(args []string) {
 					Usage: "Port to bind",
 				},
 				cli.StringFlag{
-					Name:  "mbtiles",
+					Name:  "mbtiles, mbt",
 					Value: "",
 					Usage: "REQUIRED: Path to mbtiles to serve",
+				},
+			},
+		},
+		{
+			Name: "mbt",
+			Action: func(c *cli.Context) {
+				in := c.String("input")
+				out := c.String("output")
+				if in == "" || out == "" {
+					die("ERROR: --in & --out required")
+				}
+				mbt.GeoJsonToMbtiles(in, out)
+				fmt.Println("Success!")
+			},
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name: "in, input",
+				},
+				cli.StringFlag{
+					Name: "out, output, mbtiles",
 				},
 			},
 		},

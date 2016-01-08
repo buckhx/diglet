@@ -30,9 +30,10 @@ func EncodeGzipped(tile *Tile) ([]byte, error) {
 	buf := bytes.NewBuffer(nil)
 	gzWriter := gzip.NewWriter(buf)
 	defer gzWriter.Close()
-
-	_, err = gzWriter.Write(data)
-	if err != nil {
+	if _, err := gzWriter.Write(data); err != nil {
+		return nil, err
+	}
+	if err := gzWriter.Flush(); err != nil {
 		return nil, err
 	}
 

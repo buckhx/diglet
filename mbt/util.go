@@ -1,4 +1,4 @@
-package transform
+package mbt
 
 func check(errs ...error) {
 	for _, err := range errs {

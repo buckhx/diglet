@@ -3,7 +3,7 @@ package mvt
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/buckhx/diglet/transform/mvt/vector_tile"
+	"github.com/buckhx/diglet/mbt/mvt/vector_tile"
 	"io/ioutil"
 	"testing"
 )
