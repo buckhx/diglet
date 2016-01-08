@@ -33,14 +33,23 @@ func client(args []string) {
 			Usage:       "diglet start --mbtiles path/to/tiles",
 			Description: "Starts the diglet server",
 			Action: func(c *cli.Context) {
-				p := c.String("port")
+				port := c.String("port")
 				mbt := c.String("mbtiles")
 				if mbt == "" {
 					cli.ShowSubcommandHelp(c)
 					die("ERROR: --mbtiles flag is required")
 				}
-				server := tileserver.MBTServer(mbt, p)
-				server.Run()
+				cert := c.String("cert")
+				key := c.String("key")
+				server := diglet.MBTServer(mbt, port)
+				if (cert != "") && (key != "") {
+					server.RunTLS(&cert, &key)
+				} else if cert != "" || key != "" {
+					cli.ShowSubcommandHelp(c)
+					die("ERROR: Both cert & key are required to serve over TLS/SSL")
+				} else {
+					server.Run()
+				}
 			},
 			Flags: []cli.Flag{
 				cli.StringFlag{
@@ -50,8 +59,15 @@ func client(args []string) {
 				},
 				cli.StringFlag{
 					Name:  "mbtiles",
-					Value: "",
 					Usage: "REQUIRED: Path to mbtiles to serve",
+				},
+				cli.StringFlag{
+					Name:  "cert, tls-certificate",
+					Usage: "Path to .pem TLS Certificate. Both cert & key required to serve HTTPS",
+				},
+				cli.StringFlag{
+					Name:  "key, tls-private-key",
+					Usage: "Path to .pem TLS Private Key. Both cert & key required to serve HTTPS",
 				},
 			},
 		},
