@@ -238,11 +238,11 @@ func (s *Shape) ToGeometrySlice() (geometry []uint32, err error) {
 		commands := s.ToCommands()
 		for cur := range commands {
 			if commands[head].cid != commands[cur].cid {
-				chunks <- commands[head : cur-1]
+				chunks <- commands[head:cur]
 				head = cur
 			}
 		}
-		chunks <- commands[head : len(commands)-1]
+		chunks <- commands[head:len(commands)]
 	}()
 	for chunk := range chunks {
 		geom, err := flushCommands(chunk)

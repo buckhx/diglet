@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/buckhx/diglet/mbt"
 	"github.com/buckhx/diglet/resources"
-	"github.com/buckhx/diglet/tileserver"
+	"github.com/buckhx/diglet/wms"
 
 	"github.com/codegangsta/cli"
 )
@@ -41,7 +42,7 @@ func client(args []string) {
 				}
 				cert := c.String("cert")
 				key := c.String("key")
-				server := diglet.MBTServer(mbt, port)
+				server := wms.MBTServer(mbt, port)
 				if (cert != "") && (key != "") {
 					server.RunTLS(&cert, &key)
 				} else if cert != "" || key != "" {
@@ -68,6 +69,26 @@ func client(args []string) {
 				cli.StringFlag{
 					Name:  "key, tls-private-key",
 					Usage: "Path to .pem TLS Private Key. Both cert & key required to serve HTTPS",
+				},
+			},
+		},
+		{
+			Name: "mbt",
+			Action: func(c *cli.Context) {
+				in := c.String("input")
+				out := c.String("output")
+				if in == "" || out == "" {
+					die("ERROR: --in & --out required")
+				}
+				mbt.GeoJsonToMbtiles(in, out)
+				fmt.Println("Success!")
+			},
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name: "in, input",
+				},
+				cli.StringFlag{
+					Name: "out, output, mbtiles",
 				},
 			},
 		},

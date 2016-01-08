@@ -1,8 +1,7 @@
 package mvt
 
 import (
-	"fmt"
-	vt "github.com/buckhx/diglet/transform/mvt/vector_tile"
+	vt "github.com/buckhx/diglet/mbt/mvt/vector_tile"
 	"strings"
 )
 
@@ -26,6 +25,14 @@ func NewTileAdapter(x, y, z uint) *TileAdapter {
 
 func (t *TileAdapter) GetTile() *vt.Tile {
 	return t.tile
+}
+
+func (t *TileAdapter) GetTileBytes() ([]byte, error) {
+	return vt.Encode(t.GetTile())
+}
+
+func (t *TileAdapter) GetTileGz() ([]byte, error) {
+	return vt.EncodeGzipped(t.GetTile())
 }
 
 func (t *TileAdapter) AddLayer(name string, extent uint) {
@@ -63,7 +70,6 @@ func NewFeatureAdapter(id *uint64, geometry_type string) *FeatureAdapter {
 	case "polygon", "multipolygon":
 		gtype = vt.Tile_POLYGON
 	default:
-		fmt.Println(gtype)
 		gtype = vt.Tile_UNKNOWN
 	}
 	feature := &vt.Tile_Feature{

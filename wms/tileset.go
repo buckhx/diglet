@@ -1,4 +1,4 @@
-package tileserver
+package wms
 
 import (
 	"encoding/json"
@@ -131,7 +131,7 @@ func (tsi *TilesetIndex) read(xyz TileXYZ) (tile *mbtiles.Tile, err error) {
 		for {
 			select {
 			case <-retry.C:
-				tile, err = ts.ReadSlippyTile(xyz.X, xyz.Y, xyz.Z)
+				tile, err = ts.ReadOSMTile(xyz.X, xyz.Y, xyz.Z)
 				if err == nil || retries == 10 {
 					return
 				}

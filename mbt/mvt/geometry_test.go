@@ -1,6 +1,9 @@
 package mvt
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 // These tests all come from the vector-tile-spec 2.0
 // https://github.com/mapbox/vector-tile-spec/tree/master/2.0#435-example-geometry-encodings
@@ -108,6 +111,30 @@ func TestToPoints(t *testing.T) {
 				t.Errorf("Geometry point translation error %+v:\n\t%s ->\n\t%s",
 					test.geometry, test.shapes, shapes)
 			}
+		}
+	}
+}
+
+func TestGeometryRoundTrip(t *testing.T) {
+	geometries := [][]uint32{
+		[]uint32{9, 50, 34},
+		[]uint32{17, 10, 14, 3, 9},
+		[]uint32{9, 4, 4, 18, 0, 16, 16, 0},
+		[]uint32{9, 4, 4, 18, 0, 16, 16, 0, 9, 17, 17, 10, 4, 8},
+		[]uint32{9, 6, 12, 18, 10, 12, 24, 44, 15},
+	}
+	for _, vtgeom := range geometries {
+		geometry := GeometryFromVectorTile(vtgeom)
+		shpgeom := []uint32{}
+		for _, shape := range geometry.ToShapes() {
+			slice, err := shape.ToGeometrySlice()
+			if err != nil {
+				t.Error(err)
+			}
+			shpgeom = append(shpgeom, slice...)
+		}
+		if !reflect.DeepEqual(shpgeom, vtgeom) {
+			t.Errorf("Geometry did not round trip %v -> %v", vtgeom, shpgeom)
 		}
 	}
 }

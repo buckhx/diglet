@@ -19,6 +19,10 @@ func (t Tile) IntY() int {
 	return int(t.Y)
 }
 
+func (t Tile) IntZ() int {
+	return int(t.Z)
+}
+
 func (t Tile) ToPixel() Pixel {
 	return Pixel{
 		X: t.X * TileSize,
