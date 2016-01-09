@@ -2,10 +2,6 @@ package mbt
 
 import (
 	"encoding/json"
-	//"fmt"
-	"github.com/buckhx/diglet/mbt/mvt"
-	"github.com/buckhx/diglet/mbt/tile_system"
-	"github.com/deckarep/golang-set"
 	"github.com/kpawlik/geojson"
 	"io/ioutil"
 
@@ -13,120 +9,58 @@ import (
 	//"github.com/buckhx/diglet/mbt/mvt/vector_tile"
 )
 
-// Split features up by their tile coordinates. This is intended to be done at the deepest desired zoom level
-func splitFeatures(features <-chan *geojson.Feature, zoom uint) (tiles map[tile_system.Tile][]*geojson.Feature) {
-	tiles = make(map[tile_system.Tile][]*geojson.Feature)
-	for feature := range features {
-		if feature.Type != "Feature" {
-			continue
-		}
-		feature_tiles := mapset.NewSet()
-		for _, point := range featurePoints(feature) {
-			lat := float64(point[1])
-			lon := float64(point[0])
-			tile, _ := tile_system.CoordinateToTile(lat, lon, zoom)
-			feature_tiles.Add(tile)
-		}
-		for t := range feature_tiles.Iter() {
-			tile := t.(tile_system.Tile)
-			tiles[tile] = append(tiles[tile], feature)
-		}
-	}
-	return
-}
-
 // Flatten all the points of a feature into single list. This can hel in identifying which tiles are going to be
 // created
-func featurePoints(feature *geojson.Feature) (points []geojson.Coordinate) {
+func gjFeatureAdapter(gjFeature *geojson.Feature) (feature *Feature) {
 	// TODO: This sucks... I just want to switch on Coordinates.(type)
-	igeom, err := feature.GetGeometry()
+	feature = MakeFeature(1)
+	if gjFeature.Id != nil {
+		fid := gjFeature.Id.(float64)
+		feature.SetF64Id(fid)
+	}
+	igeom, err := gjFeature.GetGeometry()
+	feature.Type = igeom.GetType()
 	check(err)
 	switch geom := igeom.(type) {
 	case *geojson.Point:
-		coords := geom.Coordinates
-		points = append(points, coords)
+		shape := coordinatesAdapter(geojson.Coordinates{geom.Coordinates})
+		feature.AddShape(shape)
 	case *geojson.LineString:
-		coords := geom.Coordinates
-		points = coords
+		shape := coordinatesAdapter(geom.Coordinates)
+		feature.AddShape(shape)
 	case *geojson.MultiPoint:
-		coords := geom.Coordinates
-		points = coords
+		shape := coordinatesAdapter(geom.Coordinates)
+		feature.AddShape(shape)
 	case *geojson.MultiLineString:
-		coords := geom.Coordinates
-		for _, line := range coords {
-			for _, point := range line {
-				points = append(points, point)
-			}
+		for _, line := range geom.Coordinates {
+			shape := coordinatesAdapter(line)
+			feature.AddShape(shape)
 		}
 	case *geojson.Polygon:
-		coords := geom.Coordinates
-		for _, line := range coords {
-			for _, point := range line {
-				points = append(points, point)
-			}
+		for _, line := range geom.Coordinates {
+			shape := coordinatesAdapter(line)
+			feature.AddShape(shape)
 		}
 	case *geojson.MultiPolygon:
-		lines := geom.Coordinates
-		for _, coords := range lines {
-			for _, line := range coords {
-				for _, point := range line {
-					points = append(points, point)
-				}
+		for _, multiline := range geom.Coordinates {
+			for _, line := range multiline {
+				shape := coordinatesAdapter(line)
+				feature.AddShape(shape)
 			}
 		}
 	default:
-		panic("Invalid Coordinate Type in Feature") // + feature.String())
+		panic("Invalid Coordinate Type in GeoJson Feature") // + feature.String())
 	}
 	return
 }
 
-func coordinatesShape(coordindates []geojson.Coordinate, zoom uint) (shape *mvt.Shape) {
-	shape = mvt.NewShape()
-	for _, coord := range coordindates {
-		lat := float64(coord[1])
-		lon := float64(coord[0])
-		_, tpixel := tile_system.CoordinateToTile(lat, lon, zoom)
-		point := mvt.Point{X: int(tpixel.X), Y: int(tpixel.Y)}
-		shape.Append(point)
-	}
-	return
-}
-
-func featureShapes(feature *geojson.Feature, zoom uint) (shapes []*mvt.Shape) {
-	igeom, err := feature.GetGeometry()
-	check(err)
-	switch geom := igeom.(type) {
-	case *geojson.Point:
-		shape := coordinatesShape([]geojson.Coordinate{geom.Coordinates}, zoom)
-		shapes = append(shapes, shape)
-	case *geojson.LineString:
-		shape := coordinatesShape(geom.Coordinates, zoom)
-		shapes = append(shapes, shape)
-	case *geojson.MultiPoint:
-		for _, point := range geom.Coordinates {
-			shape := coordinatesShape([]geojson.Coordinate{point}, zoom)
-			shapes = append(shapes, shape)
-		}
-	case *geojson.MultiLineString:
-		for _, line := range geom.Coordinates {
-			shape := coordinatesShape(line, zoom)
-			shapes = append(shapes, shape)
-		}
-	case *geojson.Polygon:
-		for _, line := range geom.Coordinates {
-			shape := coordinatesShape(line, zoom)
-			shapes = append(shapes, shape)
-		}
-	case *geojson.MultiPolygon:
-		lines := geom.Coordinates
-		for _, coords := range lines {
-			for _, line := range coords {
-				shape := coordinatesShape(line, zoom)
-				shapes = append(shapes, shape)
-			}
-		}
-	default:
-		panic("Invalid Coordinate Type in Feature") // + feature.String())
+func coordinatesAdapter(line geojson.Coordinates) (shape *Shape) {
+	shape = MakeShape(len(line))
+	for _, point := range line {
+		lat := float64(point[1])
+		lon := float64(point[0])
+		coord := Coordinate{Lat: lat, Lon: lon}
+		shape.Append(coord)
 	}
 	return
 }
@@ -142,12 +76,12 @@ func readGeoJson(path string) (features *geojson.FeatureCollection) {
 	return features
 }
 
-func publishFeatureCollection(collection *geojson.FeatureCollection) (features chan *geojson.Feature) {
-	features = make(chan *geojson.Feature, 10)
+func publishFeatureCollection(collection *geojson.FeatureCollection) (features chan *Feature) {
+	features = make(chan *Feature, 10)
 	go func() {
 		defer close(features)
 		for _, feature := range collection.Features {
-			features <- feature
+			features <- gjFeatureAdapter(feature)
 		}
 	}()
 	return

@@ -214,6 +214,10 @@ func NewShape(points ...Point) *Shape {
 	return &Shape{points}
 }
 
+func MakeShape(length int) *Shape {
+	return &Shape{points: make([]Point, length)}
+}
+
 func (s *Shape) Append(point Point) {
 	s.points = append(s.points, point)
 }
