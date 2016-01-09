@@ -31,7 +31,7 @@ func (s *Shape) AddCoordinate(c Coordinate) {
 
 func (s *Shape) ToMvtShape(zoom uint) (shp *mvt.Shape) {
 	shp = mvt.MakeShape(len(s.Coordinates))
-	for _, c := range s.Coordinates {
+	for i, c := range s.Coordinates {
 		pixel := ts.ClippedCoords(c.Lat, c.Lon).ToPixel(zoom)
 		tile, _ := pixel.ToTile()
 		origin := tile.ToPixel()
@@ -39,7 +39,7 @@ func (s *Shape) ToMvtShape(zoom uint) (shp *mvt.Shape) {
 		y := int(pixel.Y - origin.Y)
 		point := mvt.Point{X: x, Y: y}
 		//TODO: clipping
-		shp.Append(point)
+		shp.Insert(i, point)
 	}
 	return
 }
@@ -49,6 +49,10 @@ type Feature struct {
 	Geometry []*Shape
 	Type     string
 	//Properties     *Metadata
+}
+
+func NewFeature(geometryType string, geometry ...*Shape) *Feature {
+	return &Feature{Geometry: geometry, Type: geometryType}
 }
 
 func MakeFeature(length int) *Feature {
@@ -66,9 +70,9 @@ func (f *Feature) SetF64Id(id float64) {
 
 func (f *Feature) ToMvtShapes(zoom uint) (shps []*mvt.Shape) {
 	shps = make([]*mvt.Shape, len(f.Geometry))
-	for _, shape := range f.Geometry {
+	for i, shape := range f.Geometry {
 		shp := shape.ToMvtShape(zoom)
-		shps = append(shps, shp)
+		shps[i] = shp
 	}
 	return shps
 }

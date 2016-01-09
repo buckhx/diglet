@@ -13,14 +13,14 @@ import (
 // created
 func gjFeatureAdapter(gjFeature *geojson.Feature) (feature *Feature) {
 	// TODO: This sucks... I just want to switch on Coordinates.(type)
-	feature = MakeFeature(1)
+	igeom, err := gjFeature.GetGeometry()
+	check(err)
+	feature = NewFeature(igeom.GetType())
 	if gjFeature.Id != nil {
 		fid := gjFeature.Id.(float64)
 		feature.SetF64Id(fid)
 	}
-	igeom, err := gjFeature.GetGeometry()
 	feature.Type = igeom.GetType()
-	check(err)
 	switch geom := igeom.(type) {
 	case *geojson.Point:
 		shape := coordinatesAdapter(geojson.Coordinates{geom.Coordinates})
@@ -56,11 +56,11 @@ func gjFeatureAdapter(gjFeature *geojson.Feature) (feature *Feature) {
 
 func coordinatesAdapter(line geojson.Coordinates) (shape *Shape) {
 	shape = MakeShape(len(line))
-	for _, point := range line {
+	for i, point := range line {
 		lat := float64(point[1])
 		lon := float64(point[0])
 		coord := Coordinate{Lat: lat, Lon: lon}
-		shape.Append(coord)
+		shape.Coordinates[i] = coord
 	}
 	return
 }

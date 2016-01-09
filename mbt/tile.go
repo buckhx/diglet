@@ -1,6 +1,7 @@
 package mbt
 
 import (
+	//"fmt"
 	ts "github.com/buckhx/diglet/mbt/tile_system"
 	"github.com/deckarep/golang-set"
 )
@@ -11,7 +12,9 @@ func splitFeatures(features <-chan *Feature, zoom uint) (tiles map[ts.Tile][]*Fe
 	tiles = make(map[ts.Tile][]*Feature)
 	for feature := range features {
 		feature_tiles := mapset.NewSet()
+		//fmt.Println("%+v", feature)
 		for _, shape := range feature.Geometry {
+			//fmt.Println("%+v", shape)
 			for _, c := range shape.Coordinates {
 				tile, _ := ts.CoordinateToTile(c.Lat, c.Lon, zoom)
 				feature_tiles.Add(tile)

@@ -178,7 +178,6 @@ func writePrmInt(param int) uint32 {
 func flushCommands(chunk []*command) (geom []uint32, err error) {
 	if len(chunk) < 1 {
 		err = fmt.Errorf("Flushing Zero-Length command chunk")
-
 	} else {
 		cid := chunk[0].cid
 		cnt := uint(len(chunk))
@@ -218,6 +217,15 @@ func MakeShape(length int) *Shape {
 	return &Shape{points: make([]Point, length)}
 }
 
+func (s *Shape) Insert(i int, p Point) (err error) {
+	if i >= len(s.points) || i < 0 {
+		return fmt.Errorf("Insert index out of range %v @ %d", s.points, i)
+	} else {
+		s.points[i] = p
+	}
+	return
+}
+
 func (s *Shape) Append(point Point) {
 	s.points = append(s.points, point)
 }
@@ -248,6 +256,7 @@ func (s *Shape) ToGeometrySlice() (geometry []uint32, err error) {
 		}
 		chunks <- commands[head:len(commands)]
 	}()
+	//cur := Point{X: 0, Y: 0}
 	for chunk := range chunks {
 		geom, err := flushCommands(chunk)
 		if err != nil {
