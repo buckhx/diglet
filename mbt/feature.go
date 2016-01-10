@@ -29,6 +29,7 @@ func (s *Shape) AddCoordinate(c Coordinate) {
 	s.Coordinates = append(s.Coordinates, c)
 }
 
+// Unexported b/c the PointXY are still absolute, MVT needs relative
 func (s *Shape) ToMvtShape(zoom uint) (shp *mvt.Shape) {
 	shp = mvt.MakeShape(len(s.Coordinates))
 	for i, c := range s.Coordinates {
@@ -68,6 +69,21 @@ func (f *Feature) SetF64Id(id float64) {
 	f.Id = &fid
 }
 
+func (f *Feature) Center() (avg Coordinate) {
+	div := 0.0
+	avg = Coordinate{Lat: 0, Lon: 0}
+	for _, shape := range f.Geometry {
+		for _, c := range shape.Coordinates {
+			avg.Lat += c.Lat
+			avg.Lon += c.Lon
+			div += 1
+		}
+	}
+	avg.Lat /= div
+	avg.Lon /= div
+	return
+}
+
 func (f *Feature) ToMvtShapes(zoom uint) (shps []*mvt.Shape) {
 	shps = make([]*mvt.Shape, len(f.Geometry))
 	for i, shape := range f.Geometry {
@@ -79,7 +95,7 @@ func (f *Feature) ToMvtShapes(zoom uint) (shps []*mvt.Shape) {
 
 func (f *Feature) ToMvtAdapter(zoom uint) (adapter *mvt.FeatureAdapter) {
 	adapter = mvt.NewFeatureAdapter(f.Id, f.Type)
-	adapter.AddShapes(f.ToMvtShapes(zoom))
+	adapter.AddShape(f.ToMvtShapes(zoom)...)
 	return
 	//properties := featureValues(feature)
 }

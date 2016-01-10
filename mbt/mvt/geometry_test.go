@@ -1,7 +1,8 @@
 package mvt
 
 import (
-	"reflect"
+	//vt "github.com/buckhx/diglet/mbt/mvt/vector_tile"
+	//"reflect"
 	"testing"
 )
 
@@ -9,10 +10,10 @@ import (
 // https://github.com/mapbox/vector-tile-spec/tree/master/2.0#435-example-geometry-encodings
 func TestReadPoints(t *testing.T) {
 	tests := []geomTest{
-		geomTest{[]uint{9, 50, 34}, []*command{
+		geomTest{[]uint32{9, 50, 34}, []*command{
 			newCmd(MoveTo, 25, 17),
 		}},
-		geomTest{[]uint{17, 10, 14, 3, 9}, []*command{
+		geomTest{[]uint32{17, 10, 14, 3, 9}, []*command{
 			newCmd(MoveTo, 5, 7),
 			newCmd(MoveTo, -2, -5),
 		}},
@@ -22,12 +23,12 @@ func TestReadPoints(t *testing.T) {
 
 func TestReadLine(t *testing.T) {
 	tests := []geomTest{
-		geomTest{[]uint{9, 4, 4, 18, 0, 16, 16, 0}, []*command{
+		geomTest{[]uint32{9, 4, 4, 18, 0, 16, 16, 0}, []*command{
 			newCmd(MoveTo, 2, 2),
 			newCmd(LineTo, 0, 8),
 			newCmd(LineTo, 8, 0),
 		}},
-		geomTest{[]uint{9, 4, 4, 18, 0, 16, 16, 0, 9, 17, 17, 10, 4, 8}, []*command{
+		geomTest{[]uint32{9, 4, 4, 18, 0, 16, 16, 0, 9, 17, 17, 10, 4, 8}, []*command{
 			newCmd(MoveTo, 2, 2),
 			newCmd(LineTo, 0, 8),
 			newCmd(LineTo, 8, 0),
@@ -40,7 +41,7 @@ func TestReadLine(t *testing.T) {
 
 func TestReadPolygons(t *testing.T) {
 	tests := []geomTest{
-		geomTest{[]uint{9, 6, 12, 18, 10, 12, 24, 44, 15}, []*command{
+		geomTest{[]uint32{9, 6, 12, 18, 10, 12, 24, 44, 15}, []*command{
 			newCmd(MoveTo, 3, 6),
 			newCmd(LineTo, 5, 6),
 			newCmd(LineTo, 12, 22),
@@ -53,55 +54,62 @@ func TestReadPolygons(t *testing.T) {
 }
 
 type geomTest struct {
-	geometry []uint
+	geometry []uint32
 	commands []*command
 }
 
 func testGeometries(t *testing.T, tests []geomTest) {
 	for _, test := range tests {
-		geometry := &Geometry{test.geometry}
-		commands := geometry.ToCommands()
-		if len(commands) != len(test.commands) {
-			t.Errorf("Geometry parsing error %+v:\n\t%s ->\n\t%s",
-				test.geometry, test.commands, commands)
-		}
-		for i, cmd := range test.commands {
-			if !cmd.Equals(commands[i]) {
-				t.Errorf("Geometry parsing error %+v at %d:\n\t%s ->\n\t%s",
-					test.geometry, i, test.commands, commands)
+		//geometry := GeometryFromVt(vt.Tile_UNKNOWN, test.geometry)
+		blocks := vtCommands(test.geometry)
+		i := 0
+		for _, commands := range blocks {
+			for _, cmd := range commands {
+				if !cmd.Equal(test.commands[i]) {
+					msg := "Geometry parsing error %+v at %d:\n\t%s ->\n\t%s"
+					t.Errorf(msg, test.geometry, i, test.commands, blocks)
+					//t.Errorf(msg, test.geometry, i, test.commands[i], cmd)
+				}
+				i++
 			}
+		}
+		if i != len(test.commands) {
+			msg := "GeometryLen parsing error %+v at %d:\n\t%s ->\n\t%s"
+			t.Errorf(msg, test.geometry, i, test.commands, blocks)
 		}
 	}
 }
 
 type shapeTest struct {
-	geometry []uint
+	geometry []uint32
 	shapes   []*Shape
 }
 
-func TestToPoints(t *testing.T) {
+func TestToShapes(t *testing.T) {
 	tests := []shapeTest{
-		shapeTest{[]uint{9, 50, 34}, []*Shape{
-			NewShape(Point{25, 17}),
+		shapeTest{[]uint32{9, 50, 34}, []*Shape{
+			NewPointShape(Point{25, 17}),
 		}},
-		shapeTest{[]uint{17, 10, 14, 3, 9}, []*Shape{
-			NewShape(Point{5, 7}),
-			NewShape(Point{3, 2}),
+		shapeTest{[]uint32{17, 10, 14, 3, 9}, []*Shape{
+			NewPointShape(Point{5, 7}),
+			NewPointShape(Point{3, 2}),
 		}},
-		shapeTest{[]uint{9, 4, 4, 18, 0, 16, 16, 0}, []*Shape{
-			NewShape(Point{2, 2}, Point{2, 10}, Point{10, 10}),
+		shapeTest{[]uint32{9, 4, 4, 18, 0, 16, 16, 0}, []*Shape{
+			NewLine(Point{2, 2}, Point{2, 10}, Point{10, 10}),
 		}},
-		shapeTest{[]uint{9, 4, 4, 18, 0, 16, 16, 0, 9, 17, 17, 10, 4, 8}, []*Shape{
-			NewShape(Point{2, 2}, Point{2, 10}, Point{10, 10}),
-			NewShape(Point{1, 1}, Point{3, 5}),
+		shapeTest{[]uint32{9, 4, 4, 18, 0, 16, 16, 0, 9, 17, 17, 10, 4, 8}, []*Shape{
+			NewLine(Point{2, 2}, Point{2, 10}, Point{10, 10}),
+			NewLine(Point{1, 1}, Point{3, 5}),
 		}},
-		shapeTest{[]uint{9, 6, 12, 18, 10, 12, 24, 44, 15}, []*Shape{
-			NewShape(Point{3, 6}, Point{8, 12}, Point{20, 34}, Point{3, 6}),
+		shapeTest{[]uint32{9, 6, 12, 18, 10, 12, 24, 44, 15}, []*Shape{
+			NewPolygon(Point{3, 6}, Point{8, 12}, Point{20, 34}),
 		}},
 	}
 	for _, test := range tests {
-		geom := &Geometry{test.geometry}
-		shapes := geom.ToShapes()
+		shapes, _, err := vtShapes(test.geometry)
+		if err != nil {
+			t.Error(err)
+		}
 		if len(shapes) != len(test.shapes) {
 			t.Errorf("Geometry point translation error %+v:\n\t%s ->\n\t%s",
 				test.geometry, test.shapes, shapes)
@@ -115,28 +123,31 @@ func TestToPoints(t *testing.T) {
 	}
 }
 
+/*
 func TestGeometryRoundTrip(t *testing.T) {
-	geometries := [][]uint32{
-		[]uint32{9, 50, 34},
-		[]uint32{17, 10, 14, 3, 9},
-		[]uint32{9, 4, 4, 18, 0, 16, 16, 0},
-		[]uint32{9, 4, 4, 18, 0, 16, 16, 0, 9, 17, 17, 10, 4, 8},
-		[]uint32{9, 6, 12, 18, 10, 12, 24, 44, 15},
+	geomTests := []struct {
+		geom  []uint32
+		gtype vt.Tile_GeomType
+	}{
+		{[]uint32{9, 50, 34}, vt.Tile_POINT},
+		{[]uint32{17, 10, 14, 3, 9}, vt.Tile_POINT},
+		{[]uint32{9, 4, 4, 18, 0, 16, 16, 0}, vt.Tile_LINESTRING},
+		{[]uint32{9, 4, 4, 18, 0, 16, 16, 0, 9, 17, 17, 10, 4, 8}, vt.Tile_LINESTRING},
+		{[]uint32{9, 6, 12, 18, 10, 12, 24, 44, 15}, vt.Tile_POLYGON},
 	}
-	for _, vtgeom := range geometries {
-		geometry := GeometryFromVectorTile(vtgeom)
+	for _, test := range geomTests {
+		geometry := GeometryFromVt(test.gtype, test.geom)
 		shpgeom := []uint32{}
-		for _, shape := range geometry.ToShapes() {
+		for _, shape := range geometry.shapes {
 			slice, err := shape.ToGeometrySlice()
 			if err != nil {
 				t.Error(err)
 			}
 			shpgeom = append(shpgeom, slice...)
 		}
-		if !reflect.DeepEqual(shpgeom, vtgeom) {
-			t.Errorf("Geometry did not round trip %v -> %v", vtgeom, shpgeom)
+		if !reflect.DeepEqual(shpgeom, test.geom) {
+			t.Errorf("Geometry did not round trip %v -> %v", test.geom, shpgeom)
 		}
 	}
 }
-
-//TODO shape.GetType test
+*/

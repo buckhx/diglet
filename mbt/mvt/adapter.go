@@ -50,42 +50,63 @@ func (t *TileAdapter) AddLayer(name string, extent uint) {
 	t.tile.Layers = append(t.tile.Layers, layer)
 }
 
-func (t *TileAdapter) AddFeature(layer string, feature *FeatureAdapter) {
+func (t *TileAdapter) AddFeature(layer string, adapter *FeatureAdapter) error {
+	feature := &vt.Tile_Feature{
+		Id:       adapter.id,
+		Tags:     []uint32{},
+		Type:     &adapter.gtype,
+		Geometry: []uint32{},
+	}
+	geometry := adapter.RelativeGeometry()
+	feature.Geometry = geometry.ToVtGeometry()
 	l := t.layers[layer]
-	l.Features = append(l.Features, feature.feature)
+	l.Features = append(l.Features, feature)
+	return nil
 	//TODO add properties too, right now they'll be blank
 }
 
 type FeatureAdapter struct {
-	feature *vt.Tile_Feature
+	//feature *vt.Tile_Feature
+	gtype  vt.Tile_GeomType
+	shapes []*Shape
+	id     *uint64
 }
 
-func NewFeatureAdapter(id *uint64, geometry_type string) *FeatureAdapter {
-	var gtype vt.Tile_GeomType
+func NewFeatureAdapter(id *uint64, geometry_type string) (adapter *FeatureAdapter) {
+	adapter = &FeatureAdapter{id: id, shapes: []*Shape{}}
 	switch strings.ToLower(geometry_type) {
 	case "point", "multipoint":
-		gtype = vt.Tile_POINT
+		adapter.gtype = vt.Tile_POINT
 	case "linestring", "multilinestring":
-		gtype = vt.Tile_LINESTRING
+		adapter.gtype = vt.Tile_LINESTRING
 	case "polygon", "multipolygon":
-		gtype = vt.Tile_POLYGON
+		adapter.gtype = vt.Tile_POLYGON
 	default:
-		gtype = vt.Tile_UNKNOWN
+		adapter.gtype = vt.Tile_UNKNOWN
 	}
-	feature := &vt.Tile_Feature{
-		Id:       id,
-		Tags:     []uint32{},
-		Type:     &gtype,
-		Geometry: []uint32{},
-	}
-	return &FeatureAdapter{feature: feature}
+	return
 }
 
-func (f *FeatureAdapter) AddShapes(shapes []*Shape) {
-	// Could save some space by flatenning MoveTo commands on contiguous ShapePNT
-	// Adapt the code from shape.ToGeometry, but get a list of all []*Shape commands first
-	for _, shape := range shapes {
-		geom, _ := shape.ToGeometrySlice()
-		f.feature.Geometry = append(f.feature.Geometry, geom...)
+func (f *FeatureAdapter) AddShape(shapes ...*Shape) {
+	f.shapes = append(f.shapes, shapes...)
+}
+
+// MVT needs relative point instead of absolute
+func (f *FeatureAdapter) RelativeGeometry() (geom *Geometry) {
+	//TODO if RelCur -> skip translation
+	geom = NewGeometry(f.gtype, f.shapes...)
+	cur := Point{X: 0, Y: 0}
+	for _, shape := range f.shapes {
+		if f.gtype == vt.Tile_POLYGON {
+			shape.points = shape.points[:len(shape.points)-1]
+		}
+		shape.geomType = f.gtype
+		for i, point := range shape.points {
+			diff := point.Subtract(cur)
+			shape.points[i] = diff
+			cur = point
+		}
+		shape.curType = RelCur
 	}
+	return
 }

@@ -1,16 +1,85 @@
 package mvt
 
-import "fmt"
+import (
+	vt "github.com/buckhx/diglet/mbt/mvt/vector_tile"
+	"github.com/buckhx/diglet/util"
+)
 
 const (
 	MoveTo    = 0x1
 	LineTo    = 0x2
 	ClosePath = 0x7
-	ShapeUNK  = "UNKNOWN"
-	ShapePNT  = "POINT"
-	ShapeLIN  = "LINESTRING"
-	ShapePLY  = "POLYGON"
 )
+
+type Geometry struct {
+	vt_type vt.Tile_GeomType
+	shapes  []*Shape
+	//vt_geom []uint
+}
+
+func NewGeometry(vt_type vt.Tile_GeomType, shapes ...*Shape) *Geometry {
+	return &Geometry{
+		vt_type: vt_type,
+		shapes:  shapes,
+	}
+}
+
+func GeometryFromVt(vt_type vt.Tile_GeomType, vtgeom []uint32) *Geometry {
+	shapes, gtype, err := vtShapes(vtgeom)
+	util.Check(err)
+	if vt_type != gtype {
+		util.Info("Assigned GeomType did not match sniffed %v -> %v", vt_type, gtype)
+	}
+	return NewGeometry(vt_type, shapes...)
+}
+
+func (g *Geometry) ToVtGeometry() []uint32 {
+	return nil
+}
+
+func vtShapes(geom []uint32) (shapes []*Shape, gtype vt.Tile_GeomType, err error) {
+	cur := Point{X: 0, Y: 0}
+	blocks := vtCommands(geom)
+	shapes = make([]*Shape, len(blocks))
+	for i, commands := range blocks {
+		length := len(commands)
+		if commands[len(commands)-1].cid == ClosePath {
+			length--
+		}
+		shape := MakeShape(length)
+		shapes[i] = shape
+		for c, cmd := range commands {
+			switch cmd.cid {
+			case MoveTo:
+				x := cmd.params[0]
+				y := cmd.params[1]
+				cur = cur.Increment(x, y)
+				shape.points[c] = cur
+				gtype = vt.Tile_POINT
+				//shape := NewPointShape(cur)
+				//shapes[i] = shape
+				//i++
+			case LineTo:
+				x := cmd.params[0]
+				y := cmd.params[1]
+				cur = cur.Increment(x, y)
+				shape.points[c] = cur
+				gtype = vt.Tile_LINESTRING
+				//shape := shapes[i-1]
+				//shape.Append(cur)
+			case ClosePath:
+				gtype = vt.Tile_POLYGON
+				//shape := shapes[len(shapes)-1]
+				//start := shape.points[0]
+				//shape.Append(start)
+			default:
+				err = util.Errorf("Invalid CommandInteger %d", cmd.cid)
+				break
+			}
+		}
+	}
+	return
+}
 
 type state int
 
@@ -19,92 +88,48 @@ const (
 	waitPint
 )
 
-type Geometry struct {
-	geometry []uint
-}
-
-func (g *Geometry) ToShapes() (shapes []*Shape) {
-	cur := Point{X: 0, Y: 0}
-	for _, cmd := range g.ToCommands() {
-		switch cmd.cid {
-		case MoveTo:
-			x := cmd.params[0]
-			y := cmd.params[1]
-			cur = cur.Add(x, y)
-			shape := NewShape(cur)
-			shapes = append(shapes, shape)
-			break
-		case LineTo:
-			x := cmd.params[0]
-			y := cmd.params[1]
-			cur = cur.Add(x, y)
-			tail := shapes[len(shapes)-1]
-			tail.Append(cur)
-			break
-		case ClosePath:
-			tail := shapes[len(shapes)-1]
-			start := tail.points[0]
-			tail.Append(start)
-			break
-		default:
-			err := fmt.Errorf("Invalid CommandInteger %d", cmd.cid)
-			panic(err)
-		}
-	}
-	return
-}
-
-func (g *Geometry) ToCommands() (commands []*command) {
-	var counter uint
-	var cmd *command
-	state := waitCint
-	for _, gint := range g.geometry {
-		switch state {
-		case waitCint:
-			cid, cnt := readCmdInt(gint)
-			counter = cnt
-			cmd = newCmd(cid)
-			state = waitPint
-			break
-		case waitPint:
+// Blocks of commands. Each block contains the commands for a shape
+func vtCommands(vtgeom []uint32) (blocks [][]*command) {
+	b := 0
+	c := 0
+	prmwait := false
+	var cmdwait uint = 0
+	for _, gint := range vtgeom {
+		if prmwait {
 			param := readPrmInt(gint)
-			if cmd.needsParams() > 0 {
-				cmd.appendParam(param)
-			} else {
-				panic("waiting on param, but cmd doesn't need it")
-			}
-			break
-		default:
-			panic("Invalid state")
+			blocks[b][c].appendParam(param)
+			prmwait = blocks[b][c].needsParams() > 0
+			continue
 		}
-		if cmd.needsParams() <= 0 {
-			commands = append(commands, cmd)
-			if counter > 0 {
-				cmd = newCmd(cmd.cid)
-				counter--
-			} else {
-				state = waitCint
+		if cmdwait > 0 {
+			cmdwait--
+			cid := blocks[b][c].cid
+			if cid == MoveTo {
+				blocks = append(blocks, []*command{})
+				b = len(blocks) - 1
+				c = -1
 			}
-			if counter <= 0 {
-				state = waitCint
+			blocks[b] = append(blocks[b], newCmd(cid))
+			c++
+			prmwait = blocks[b][c].needsParams() > 0
+			if prmwait {
+				param := readPrmInt(gint)
+				blocks[b][c].appendParam(param)
 			}
+		} else {
+			cid, cnt := readCmdInt(gint)
+			cmdwait = cnt - 1
+			if cid == MoveTo {
+				blocks = append(blocks, []*command{})
+				b = len(blocks) - 1
+				c = -1
+			}
+			blocks[b] = append(blocks[b], newCmd(cid))
+			c++
 		}
+		prmwait = blocks[b][c].needsParams() > 0
 	}
 	return
-}
-
-func FromCommands(commands []*command) *Geometry {
-	return nil
-}
-
-// Take a geometry slice from a pb-vector tile and convert it to []uint.
-// This makes a copy which could be avoided if mvt.Geometry uses uint32 insted of uint
-func GeometryFromVectorTile(vtgeom []uint32) *Geometry {
-	geom := make([]uint, len(vtgeom))
-	for i := range vtgeom {
-		geom[i] = uint(vtgeom[i])
-	}
-	return &Geometry{geometry: geom}
 }
 
 type command struct {
@@ -114,6 +139,18 @@ type command struct {
 
 func newCmd(cid uint, params ...int) *command {
 	return &command{cid: cid, params: params}
+}
+
+func moveTo(x, y int) *command {
+	return newCmd(MoveTo, x, y)
+}
+
+func lineTo(x, y int) *command {
+	return newCmd(LineTo, x, y)
+}
+
+func closePath() *command {
+	return newCmd(ClosePath)
 }
 
 func (c *command) needsParams() (count uint) {
@@ -139,7 +176,7 @@ func (c *command) paramIntegers() (pints []uint32) {
 	return
 }
 
-func (c *command) Equals(that *command) bool {
+func (c *command) Equal(that *command) bool {
 	equal := c.cid == that.cid
 	equal = equal && len(c.params) == len(that.params)
 	for i, param := range c.params {
@@ -154,17 +191,19 @@ func (c *command) String() string {
 		LineTo:    "LineTo",
 		ClosePath: "ClosePath",
 	}
-	return fmt.Sprintf("%s(%+v)", commands[c.cid], c.params)
+	return util.Sprintf("%s(%+v)", commands[c.cid], c.params)
 }
 
-func readCmdInt(cmd uint) (cid, cnt uint) {
-	cid = cmd & 0x7
-	cnt = cmd >> 3
+func readCmdInt(cmd uint32) (cid, cnt uint) {
+	c := uint(cmd)
+	cid = c & 0x7
+	cnt = c >> 3
 	return
 }
 
-func readPrmInt(pint uint) int {
-	return int((pint >> 1) ^ (-(pint & 1)))
+func readPrmInt(pint uint32) int {
+	p := uint(pint)
+	return int((p >> 1) ^ (-(p & 1)))
 }
 
 func writeCmdInt(cid, cnt uint) uint32 {
@@ -177,7 +216,7 @@ func writePrmInt(param int) uint32 {
 
 func flushCommands(chunk []*command) (geom []uint32, err error) {
 	if len(chunk) < 1 {
-		err = fmt.Errorf("Flushing Zero-Length command chunk")
+		err = util.Errorf("Flushing Zero-Length command chunk")
 	} else {
 		cid := chunk[0].cid
 		cnt := uint(len(chunk))
@@ -185,7 +224,8 @@ func flushCommands(chunk []*command) (geom []uint32, err error) {
 		geom = append(geom, cint)
 		for _, cmd := range chunk {
 			if cmd.cid != cid {
-				err = fmt.Errorf("Non contiguous CommandInteger in command chunk: %v", chunk)
+				msg := "Non contiguous CommandInteger in command chunk: %v"
+				err = util.Errorf(msg, chunk)
 				return
 			}
 			for _, param := range cmd.params {
@@ -195,126 +235,4 @@ func flushCommands(chunk []*command) (geom []uint32, err error) {
 		}
 	}
 	return
-}
-
-type Point struct {
-	X, Y int
-}
-
-func (p Point) Add(x, y int) Point {
-	return Point{X: p.X + x, Y: p.Y + y}
-}
-
-type Shape struct {
-	points []Point
-}
-
-func NewShape(points ...Point) *Shape {
-	return &Shape{points}
-}
-
-func MakeShape(length int) *Shape {
-	return &Shape{points: make([]Point, length)}
-}
-
-func (s *Shape) Insert(i int, p Point) (err error) {
-	if i >= len(s.points) || i < 0 {
-		return fmt.Errorf("Insert index out of range %v @ %d", s.points, i)
-	} else {
-		s.points[i] = p
-	}
-	return
-}
-
-func (s *Shape) Append(point Point) {
-	s.points = append(s.points, point)
-}
-
-func (s *Shape) Head() Point {
-	return s.points[0]
-}
-
-func (s *Shape) Tail() Point {
-	return s.points[len(s.points)-1]
-}
-
-func (s *Shape) GetPoints() []Point {
-	return s.points
-}
-
-func (s *Shape) ToGeometrySlice() (geometry []uint32, err error) {
-	chunks := make(chan []*command, 1000)
-	go func() {
-		defer close(chunks)
-		head := 0
-		commands := s.ToCommands()
-		for cur := range commands {
-			if commands[head].cid != commands[cur].cid {
-				chunks <- commands[head:cur]
-				head = cur
-			}
-		}
-		chunks <- commands[head:len(commands)]
-	}()
-	//cur := Point{X: 0, Y: 0}
-	for chunk := range chunks {
-		geom, err := flushCommands(chunk)
-		if err != nil {
-			return nil, err
-		}
-		geometry = append(geometry, geom...)
-	}
-	return
-}
-
-func (s *Shape) ToCommands() (cmds []*command) {
-	switch s.SniffType() {
-	case ShapePNT:
-		move := newCmd(MoveTo, s.Head().X, s.Head().Y)
-		cmds = []*command{move}
-	case ShapeLIN:
-		move := newCmd(MoveTo, s.Head().X, s.Head().Y)
-		cmds = []*command{move}
-		for _, p := range s.points[1:] {
-			line := newCmd(LineTo, p.X, p.Y)
-			cmds = append(cmds, line)
-		}
-	case ShapePLY:
-		move := newCmd(MoveTo, s.Head().X, s.Head().Y)
-		cmds = []*command{move}
-		for _, p := range s.points[1 : len(s.points)-2] {
-			line := newCmd(LineTo, p.X, p.Y)
-			cmds = append(cmds, line)
-		}
-		closep := newCmd(ClosePath)
-		cmds = append(cmds, closep)
-	default:
-		fmt.Println("WARN: Zero Length Geometry in ToCommands")
-		cmds = []*command{}
-	}
-	return
-}
-
-// Guess the shape by inspecting the points
-func (s *Shape) SniffType() (gtype string) {
-	if len(s.points) <= 0 {
-		gtype = ShapeUNK
-	} else if len(s.points) == 1 {
-		gtype = ShapePNT
-	} else if s.Head() == s.Tail() {
-		gtype = ShapePLY
-	} else if len(s.points) > 1 {
-		gtype = ShapeLIN
-	} else {
-		gtype = ShapeUNK
-	}
-	return
-}
-
-func (s *Shape) Equals(that *Shape) bool {
-	equal := len(s.points) == len(that.points)
-	for i, point := range s.points {
-		equal = equal && point == that.points[i]
-	}
-	return equal
 }
