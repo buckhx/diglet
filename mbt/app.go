@@ -1,7 +1,6 @@
 package mbt
 
 import (
-	"fmt"
 	"github.com/buckhx/diglet/mbt/mvt"
 	"github.com/buckhx/mbtiles"
 )
@@ -26,17 +25,19 @@ func GeoJsonToMbtiles(gjpath, mbtpath string) {
 		layer := "denver"
 		aTile.AddLayer(layer, 256)
 		for _, feature := range features {
-			aTile.AddFeature(layer, feature.ToMvtAdapter(zoom))
+			aTile.AddFeature(layer, feature.ToMvtAdapter(tile))
 		}
-		for _, layer := range aTile.GetTile().GetLayers() {
-			for _, feature := range layer.GetFeatures() {
-				fmt.Printf("%v\n", feature)
-				geom := mvt.GeometryFromVectorTile(feature.Geometry)
-				for _, cmd := range geom.ToCommands() {
-					fmt.Printf("\t%v\n", cmd)
+		/*
+			for _, layer := range aTile.GetTile().GetLayers() {
+				for _, feature := range layer.GetFeatures() {
+					fmt.Printf("%v\n", feature)
+					geom := mvt.GeometryFromVt(*feature.Type, feature.Geometry)
+					for _, cmd := range geom.ToCommands() {
+						fmt.Printf("\t%v\n", cmd)
+					}
 				}
 			}
-		}
+		*/
 		gz, err := aTile.GetTileGz()
 		if err != nil {
 			panic(err)

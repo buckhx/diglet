@@ -20,6 +20,7 @@ func gjFeatureAdapter(gjFeature *geojson.Feature) (feature *Feature) {
 		fid := gjFeature.Id.(float64)
 		feature.SetF64Id(fid)
 	}
+	//TODO if id == nil assign a fake one
 	feature.Type = igeom.GetType()
 	switch geom := igeom.(type) {
 	case *geojson.Point:
@@ -37,14 +38,38 @@ func gjFeatureAdapter(gjFeature *geojson.Feature) (feature *Feature) {
 			feature.AddShape(shape)
 		}
 	case *geojson.Polygon:
+		// mvt need exterior ring to be clockwise
+		// and interior rings to counter-clockwise
+		exterior := true
 		for _, line := range geom.Coordinates {
 			shape := coordinatesAdapter(line)
+			if exterior {
+				if !shape.IsClockwise() {
+					shape.Reverse()
+				}
+				exterior = false
+			} else {
+				if shape.IsClockwise() {
+					shape.Reverse()
+				}
+			}
 			feature.AddShape(shape)
 		}
 	case *geojson.MultiPolygon:
 		for _, multiline := range geom.Coordinates {
+			exterior := true
 			for _, line := range multiline {
 				shape := coordinatesAdapter(line)
+				if exterior {
+					if !shape.IsClockwise() {
+						shape.Reverse()
+					}
+					exterior = false
+				} else {
+					if shape.IsClockwise() {
+						shape.Reverse()
+					}
+				}
 				feature.AddShape(shape)
 			}
 		}

@@ -13,6 +13,7 @@ func TestSplitFeatures(t *testing.T) {
 	want := mapset.NewSetFromSlice([]interface{}{
 		tile_system.Tile{X: 1707, Y: 3110, Z: 13},
 		tile_system.Tile{X: 1706, Y: 3108, Z: 13},
+		tile_system.Tile{X: 1706, Y: 3109, Z: 13},
 		//tile_system.Tile{X: 1706, Y: 3109, Z: 13},
 	})
 	got := mapset.NewSet()

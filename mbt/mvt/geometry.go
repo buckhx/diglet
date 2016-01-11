@@ -33,8 +33,36 @@ func GeometryFromVt(vt_type vt.Tile_GeomType, vtgeom []uint32) *Geometry {
 	return NewGeometry(vt_type, shapes...)
 }
 
-func (g *Geometry) ToVtGeometry() []uint32 {
-	return nil
+func (g *Geometry) ToVtGeometry() (vtgeom []uint32) {
+	cmds := make(chan *command, 100)
+	go func() {
+		defer close(cmds)
+		for _, shape := range g.shapes {
+			for _, cmd := range shape.ToCommands() {
+				cmds <- cmd
+			}
+		}
+	}()
+	chunks := make(chan []*command, 100)
+	go func() {
+		defer close(chunks)
+		chunk := []*command{}
+		for cur := range cmds {
+			if len(chunk) == 0 || chunk[0].cid == cur.cid {
+				chunk = append(chunk, cur)
+			} else {
+				chunks <- chunk
+				chunk = []*command{cur}
+			}
+		}
+		chunks <- chunk
+	}()
+	for chunk := range chunks {
+		geom, err := flushCommands(chunk)
+		util.Check(err)
+		vtgeom = append(vtgeom, geom...)
+	}
+	return
 }
 
 func vtShapes(geom []uint32) (shapes []*Shape, gtype vt.Tile_GeomType, err error) {
@@ -80,13 +108,6 @@ func vtShapes(geom []uint32) (shapes []*Shape, gtype vt.Tile_GeomType, err error
 	}
 	return
 }
-
-type state int
-
-const (
-	waitCint state = iota
-	waitPint
-)
 
 // Blocks of commands. Each block contains the commands for a shape
 func vtCommands(vtgeom []uint32) (blocks [][]*command) {

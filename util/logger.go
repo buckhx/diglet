@@ -9,6 +9,10 @@ func Info(format string, vals ...interface{}) {
 	log.Printf("INFO: "+format, vals...)
 }
 
+func Debug(format string, vals ...interface{}) {
+	log.Printf("DEBUG: "+format, vals...)
+}
+
 func Warn(err error, extra string) {
 	if err != nil {
 		log.Printf("WARN: %s - %s", err, extra)

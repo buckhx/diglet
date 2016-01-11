@@ -91,30 +91,6 @@ func (s *Shape) GetCursorType() CursorType {
 	return s.curType
 }
 
-func (s *Shape) ToGeometrySlice() (geometry []uint32, err error) {
-	chunks := make(chan []*command, 1000)
-	go func() {
-		defer close(chunks)
-		head := 0
-		commands := s.ToCommands()
-		for cur := range commands {
-			if commands[head].cid != commands[cur].cid {
-				chunks <- commands[head:cur]
-				head = cur
-			}
-		}
-		chunks <- commands[head:len(commands)]
-	}()
-	for chunk := range chunks {
-		geom, err := flushCommands(chunk)
-		if err != nil {
-			return nil, err
-		}
-		geometry = append(geometry, geom...)
-	}
-	return
-}
-
 func (s *Shape) ToCommands() (cmds []*command) {
 	switch s.geomType {
 	case vt.Tile_POINT:

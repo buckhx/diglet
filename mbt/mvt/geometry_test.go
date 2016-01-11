@@ -123,6 +123,27 @@ func TestToShapes(t *testing.T) {
 	}
 }
 
+func TestDerp(t *testing.T) {
+	mpoly := []*command{
+		moveTo(0, 0),
+		lineTo(10, 0),
+		lineTo(0, 10),
+		lineTo(-10, 0),
+		closePath(),
+		moveTo(11, 1),
+		lineTo(9, 0),
+		lineTo(0, 9),
+		lineTo(9, 0),
+		closePath(),
+		moveTo(2, -7),
+		lineTo(0, 4),
+		lineTo(4, 0),
+		lineTo(0, 4),
+		closePath(),
+	}
+
+}
+
 /*
 func TestGeometryRoundTrip(t *testing.T) {
 	geomTests := []struct {

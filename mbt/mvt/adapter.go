@@ -2,6 +2,7 @@ package mvt
 
 import (
 	vt "github.com/buckhx/diglet/mbt/mvt/vector_tile"
+	"github.com/buckhx/diglet/util"
 	"strings"
 )
 
@@ -96,15 +97,18 @@ func (f *FeatureAdapter) RelativeGeometry() (geom *Geometry) {
 	//TODO if RelCur -> skip translation
 	geom = NewGeometry(f.gtype, f.shapes...)
 	cur := Point{X: 0, Y: 0}
-	for _, shape := range f.shapes {
+	util.Debug("Feature Geometry")
+	for i, shape := range f.shapes {
 		if f.gtype == vt.Tile_POLYGON {
 			shape.points = shape.points[:len(shape.points)-1]
 		}
 		shape.geomType = f.gtype
+		util.Debug("\tShape %d", i)
 		for i, point := range shape.points {
 			diff := point.Subtract(cur)
 			shape.points[i] = diff
 			cur = point
+			util.Debug("\t\t%v", cur)
 		}
 		shape.curType = RelCur
 	}

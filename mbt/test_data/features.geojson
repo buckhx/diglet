@@ -175,6 +175,7 @@
 		            "fillOpacity": 0.8
 		        }
 		    },
+		    "id": 300,
 		    "geometry": {
 		        "type": "MultiPolygon",
 		        "coordinates": [
