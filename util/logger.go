@@ -5,12 +5,16 @@ import (
 	"log"
 )
 
+var DEBUG = false
+
 func Info(format string, vals ...interface{}) {
 	log.Printf("INFO: "+format, vals...)
 }
 
 func Debug(format string, vals ...interface{}) {
-	log.Printf("DEBUG: "+format, vals...)
+	if DEBUG {
+		log.Printf("DEBUG: "+format, vals...)
+	}
 }
 
 func Warn(err error, extra string) {

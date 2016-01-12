@@ -97,7 +97,11 @@ func (f *FeatureAdapter) RelativeGeometry() (geom *Geometry) {
 	//TODO if RelCur -> skip translation
 	geom = NewGeometry(f.gtype, f.shapes...)
 	cur := Point{X: 0, Y: 0}
-	util.Debug("Feature Geometry")
+	if f.id != nil {
+		util.Debug("Feature Geometry id: %d", *f.id)
+	} else {
+		util.Debug("Feature Geometry <nil>")
+	}
 	for i, shape := range f.shapes {
 		if f.gtype == vt.Tile_POLYGON {
 			shape.points = shape.points[:len(shape.points)-1]

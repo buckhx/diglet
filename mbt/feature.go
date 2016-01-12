@@ -71,7 +71,7 @@ type Feature struct {
 	Id       *uint64
 	Geometry []*Shape
 	Type     string
-	//Properties     *Metadata
+	//Properties *Metadata
 }
 
 func NewFeature(geometryType string, geometry ...*Shape) *Feature {

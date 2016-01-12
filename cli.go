@@ -10,11 +10,13 @@ import (
 	"github.com/buckhx/diglet/wms"
 
 	"github.com/codegangsta/cli"
+	//"github.com/davecheney/profile"
 )
 
 //go:generate go run scripts/include.go
 
 func main() {
+	//defer profile.Start(profile.CPUProfile).Stop()
 	client(os.Args)
 }
 
@@ -77,10 +79,11 @@ func client(args []string) {
 			Action: func(c *cli.Context) {
 				in := c.String("input")
 				out := c.String("output")
+				extent := uint(c.Int("extent"))
 				if in == "" || out == "" {
 					die("ERROR: --in & --out required")
 				}
-				mbt.GeoJsonToMbtiles(in, out)
+				mbt.GeoJsonToMbtiles(in, out, extent)
 				fmt.Println("Success!")
 			},
 			Flags: []cli.Flag{
@@ -90,8 +93,24 @@ func client(args []string) {
 				cli.StringFlag{
 					Name: "out, output, mbtiles",
 				},
+				cli.IntFlag{
+					Name:  "extent",
+					Value: 4096,
+					Usage: "Extent of tiles to be built. Default is 4096",
+				},
 			},
 		},
+	}
+	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name: "debug",
+		},
+	}
+	app.Before = func(c *cli.Context) error {
+		if c.Bool("debug") {
+			util.DEBUG = true
+		}
+		return nil
 	}
 	app.Run(args)
 }

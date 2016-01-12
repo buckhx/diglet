@@ -2,10 +2,12 @@ package mbt
 
 import (
 	"github.com/buckhx/diglet/mbt/mvt"
+	ts "github.com/buckhx/diglet/mbt/tile_system"
 	"github.com/buckhx/mbtiles"
 )
 
-func GeoJsonToMbtiles(gjpath, mbtpath string) {
+func GeoJsonToMbtiles(gjpath, mbtpath string, extent uint) {
+	ts.TileSize = extent
 	attrs := map[string]string{
 		"name":        "test",
 		"type":        "overlay",
@@ -23,7 +25,7 @@ func GeoJsonToMbtiles(gjpath, mbtpath string) {
 	for tile, features := range tiles {
 		aTile := mvt.NewTileAdapter(tile.X, tile.Y, tile.Z)
 		layer := "denver"
-		aTile.AddLayer(layer, 256)
+		aTile.AddLayer(layer, extent)
 		for _, feature := range features {
 			aTile.AddFeature(layer, feature.ToMvtAdapter(tile))
 		}

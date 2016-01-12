@@ -123,6 +123,7 @@ func TestToShapes(t *testing.T) {
 	}
 }
 
+/*
 func TestDerp(t *testing.T) {
 	mpoly := []*command{
 		moveTo(0, 0),
@@ -143,6 +144,7 @@ func TestDerp(t *testing.T) {
 	}
 
 }
+*/
 
 /*
 func TestGeometryRoundTrip(t *testing.T) {

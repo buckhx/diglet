@@ -2,6 +2,7 @@ package mbt
 
 import (
 	"encoding/json"
+	"github.com/buckhx/diglet/util"
 	"github.com/kpawlik/geojson"
 	"io/ioutil"
 
@@ -14,7 +15,7 @@ import (
 func gjFeatureAdapter(gjFeature *geojson.Feature) (feature *Feature) {
 	// TODO: This sucks... I just want to switch on Coordinates.(type)
 	igeom, err := gjFeature.GetGeometry()
-	check(err)
+	util.Check(err)
 	feature = NewFeature(igeom.GetType())
 	if gjFeature.Id != nil {
 		fid := gjFeature.Id.(float64)
@@ -93,10 +94,10 @@ func coordinatesAdapter(line geojson.Coordinates) (shape *Shape) {
 func readGeoJson(path string) (features *geojson.FeatureCollection) {
 	file, err := ioutil.ReadFile(path)
 	if err != nil {
-		check(err)
+		util.Check(err)
 	}
 	if err := json.Unmarshal(file, &features); err != nil {
-		check(err)
+		util.Check(err)
 	}
 	return features
 }
