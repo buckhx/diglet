@@ -75,12 +75,15 @@ func client(args []string) {
 			},
 		},
 		{
-			Name: "mbt",
+			Name:        "mbt",
+			Usage:       "diglet mbt --in file.geojson --out tileset.mbtiles",
+			Description: "Builds an mbtiles database from the given format",
 			Action: func(c *cli.Context) {
 				in := c.String("input")
 				out := c.String("output")
 				extent := uint(c.Int("extent"))
 				if in == "" || out == "" {
+					cli.ShowSubcommandHelp(c)
 					die("ERROR: --in & --out required")
 				}
 				mbt.GeoJsonToMbtiles(in, out, extent)
@@ -103,7 +106,8 @@ func client(args []string) {
 	}
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
-			Name: "debug",
+			Name:  "debug",
+			Usage: "Print debugging log lines",
 		},
 	}
 	app.Before = func(c *cli.Context) error {
