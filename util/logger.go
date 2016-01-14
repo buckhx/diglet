@@ -27,9 +27,14 @@ func Error(err ...error) {
 	log.Printf("ERROR: %s", err)
 }
 
+func Fatal(format string, vals ...interface{}) {
+	msg := Sprintf("FATAL: "+format, vals...)
+	log.Fatal(msg)
+}
+
 func Check(err error) {
 	if err != nil {
-		log.Fatal("FATAL ERROR: %s", err)
+		Fatal("%s", err)
 	}
 }
 

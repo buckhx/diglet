@@ -20,9 +20,9 @@ func main() {
 	client(os.Args)
 }
 
-func die(msg string) {
-	fmt.Println(msg)
-	os.Exit(1)
+func die(c *cli.Context, msg string) {
+	cli.ShowSubcommandHelp(c)
+	util.Fatal(msg)
 }
 
 func client(args []string) {
@@ -39,8 +39,7 @@ func client(args []string) {
 				port := c.String("port")
 				mbt := c.String("mbtiles")
 				if mbt == "" {
-					cli.ShowSubcommandHelp(c)
-					die("ERROR: --mbtiles flag is required")
+					die(c, "--mbtiles flag is required")
 				}
 				cert := c.String("cert")
 				key := c.String("key")
@@ -48,8 +47,7 @@ func client(args []string) {
 				if (cert != "") && (key != "") {
 					server.RunTLS(&cert, &key)
 				} else if cert != "" || key != "" {
-					cli.ShowSubcommandHelp(c)
-					die("ERROR: Both cert & key are required to serve over TLS/SSL")
+					die(c, "Both cert & key are required to serve over TLS/SSL")
 				} else {
 					server.Run()
 				}
@@ -81,11 +79,16 @@ func client(args []string) {
 			Action: func(c *cli.Context) {
 				in := c.String("input")
 				out := c.String("output")
+				minz := c.Int("min")
+				maxz := c.Int("max")
 				extent := uint(c.Int("extent"))
 				if in == "" || out == "" {
-					cli.ShowSubcommandHelp(c)
-					die("ERROR: --in & --out required")
+					die(c, "--in & --out required")
 				}
+				if maxz < minz || minz < 0 || maxz > 23 {
+					die(c, "--max > --min, --min > 9 --max < 24 not satisfied")
+				}
+
 				mbt.GeoJsonToMbtiles(in, out, extent)
 				fmt.Println("Success!")
 			},
@@ -100,6 +103,16 @@ func client(args []string) {
 					Name:  "extent",
 					Value: 4096,
 					Usage: "Extent of tiles to be built. Default is 4096",
+				},
+				cli.IntFlag{
+					Name:  "max, max-zoom",
+					Value: 10,
+					Usage: "Maximum zoom level to build tiles for. Not Implemented.",
+				},
+				cli.IntFlag{
+					Name:  "min, min-zoom",
+					Value: 5,
+					Usage: "Minimum zoom level to build tiles from. Not Implemented.",
 				},
 			},
 		},
