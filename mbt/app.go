@@ -2,29 +2,31 @@ package mbt
 
 import (
 	"github.com/buckhx/diglet/mbt/mvt"
-	ts "github.com/buckhx/diglet/mbt/tile_system"
+	"github.com/buckhx/diglet/mbt/tile_system"
+	"github.com/buckhx/diglet/util"
 	"github.com/buckhx/mbtiles"
 )
 
-func GeoJsonToMbtiles(gjpath, mbtpath string, extent uint) {
-	ts.TileSize = extent
+func CreateTileset(mbtpath, desc string, extent uint) (ts *mbtiles.Tileset, err error) {
+	tile_system.TileSize = extent
 	attrs := map[string]string{
-		"name":        "test",
+		"name":        util.SlugBase(mbtpath),
 		"type":        "overlay",
 		"version":     "1",
-		"description": "some info here",
+		"description": desc,
 		"format":      "pbf.gz",
 	}
-	ts, err := mbtiles.InitTileset(mbtpath, attrs)
-	if err != nil {
-		panic(err)
-	}
-	var zoom uint = 13
+	ts, err = mbtiles.InitTileset(mbtpath, attrs)
+	return
+}
+
+func GeojsonTileset(ts *mbtiles.Tileset, gjpath string, zmin, zmax uint) {
+	zoom := zmax
 	collection := readGeoJson(gjpath)
 	tiles := splitFeatures(publishFeatureCollection(collection), zoom)
 	for tile, features := range tiles {
 		aTile := mvt.NewTileAdapter(tile.X, tile.Y, tile.Z)
-		aLayer := aTile.NewLayer("denver", extent)
+		aLayer := aTile.NewLayer("denver", tile_system.TileSize)
 		for _, feature := range features {
 			aFeature := feature.ToMvtAdapter(tile)
 			aLayer.AddFeature(aFeature)

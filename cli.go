@@ -79,17 +79,21 @@ func client(args []string) {
 			Action: func(c *cli.Context) {
 				in := c.String("input")
 				out := c.String("output")
-				minz := c.Int("min")
-				maxz := c.Int("max")
+				desc := c.String("desc")
+				zmin := uint(c.Int("min"))
+				zmax := uint(c.Int("max"))
 				extent := uint(c.Int("extent"))
 				if in == "" || out == "" {
 					die(c, "--in & --out required")
 				}
-				if maxz < minz || minz < 0 || maxz > 23 {
+				if zmax < zmin || zmin < 0 || zmax > 23 {
 					die(c, "--max > --min, --min > 9 --max < 24 not satisfied")
 				}
-
-				mbt.GeoJsonToMbtiles(in, out, extent)
+				ts, err := mbt.CreateTileset(out, desc, extent)
+				if err != nil {
+					die(c, err.Error())
+				}
+				mbt.GeojsonTileset(ts, in, zmin, zmax)
 				fmt.Println("Success!")
 			},
 			Flags: []cli.Flag{
@@ -98,6 +102,11 @@ func client(args []string) {
 				},
 				cli.StringFlag{
 					Name: "out, output, mbtiles",
+				},
+				cli.StringFlag{
+					Name:  "desc, description",
+					Value: "Generated from Diglet",
+					Usage: "Value inserted into the description entry of the mbtiles",
 				},
 				cli.IntFlag{
 					Name:  "extent",
