@@ -24,10 +24,10 @@ func GeoJsonToMbtiles(gjpath, mbtpath string, extent uint) {
 	tiles := splitFeatures(publishFeatureCollection(collection), zoom)
 	for tile, features := range tiles {
 		aTile := mvt.NewTileAdapter(tile.X, tile.Y, tile.Z)
-		layer := "denver"
-		aTile.AddLayer(layer, extent)
+		aLayer := aTile.NewLayer("denver", extent)
 		for _, feature := range features {
-			aTile.AddFeature(layer, feature.ToMvtAdapter(tile))
+			aFeature := feature.ToMvtAdapter(tile)
+			aLayer.AddFeature(aFeature)
 		}
 		/*
 			for _, layer := range aTile.GetTile().GetLayers() {

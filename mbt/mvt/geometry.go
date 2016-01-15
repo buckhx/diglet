@@ -17,23 +17,23 @@ type Geometry struct {
 	//vt_geom []uint
 }
 
-func NewGeometry(vt_type vt.Tile_GeomType, shapes ...*Shape) *Geometry {
+func newGeometry(vt_type vt.Tile_GeomType, shapes ...*Shape) *Geometry {
 	return &Geometry{
 		vt_type: vt_type,
 		shapes:  shapes,
 	}
 }
 
-func GeometryFromVt(vt_type vt.Tile_GeomType, vtgeom []uint32) *Geometry {
+func geometryFromVt(vt_type vt.Tile_GeomType, vtgeom []uint32) *Geometry {
 	shapes, gtype, err := vtShapes(vtgeom)
 	util.Check(err)
 	if vt_type != gtype {
 		util.Info("Assigned GeomType did not match sniffed %v -> %v", vt_type, gtype)
 	}
-	return NewGeometry(vt_type, shapes...)
+	return newGeometry(vt_type, shapes...)
 }
 
-func (g *Geometry) ToVtGeometry() (vtgeom []uint32) {
+func (g *Geometry) toVtGeometry() (vtgeom []uint32) {
 	cmds := make(chan *command, 100)
 	go func() {
 		defer close(cmds)

@@ -68,10 +68,10 @@ func (s *Shape) ToTileShape(tile ts.Tile) (shp *mvt.Shape) {
 }
 
 type Feature struct {
-	Id       *uint64
-	Geometry []*Shape
-	Type     string
-	//Properties *Metadata
+	Id         *uint64
+	Geometry   []*Shape
+	Type       string
+	Properties map[string]interface{}
 }
 
 func NewFeature(geometryType string, geometry ...*Shape) *Feature {
@@ -115,8 +115,8 @@ func (f *Feature) ToTiledShapes(tile ts.Tile) (shps []*mvt.Shape) {
 	return
 }
 
-func (f *Feature) ToMvtAdapter(tile ts.Tile) (adapter *mvt.FeatureAdapter) {
-	adapter = mvt.NewFeatureAdapter(f.Id, f.Type)
+func (f *Feature) ToMvtAdapter(tile ts.Tile) (adapter *mvt.Feature) {
+	adapter = mvt.NewFeatureAdapter(f.Id, f.Type, f.Properties)
 	adapter.AddShape(f.ToTiledShapes(tile)...)
 	return
 	//properties := featureValues(feature)

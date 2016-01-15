@@ -12,15 +12,16 @@ import (
 
 // Flatten all the points of a feature into single list. This can hel in identifying which tiles are going to be
 // created
-func gjFeatureAdapter(gjFeature *geojson.Feature) (feature *Feature) {
+func geojsonFeatureAdapter(gj *geojson.Feature) (feature *Feature) {
 	// TODO: This sucks... I just want to switch on Coordinates.(type)
-	igeom, err := gjFeature.GetGeometry()
+	igeom, err := gj.GetGeometry()
 	util.Check(err)
 	feature = NewFeature(igeom.GetType())
-	if gjFeature.Id != nil {
-		fid := gjFeature.Id.(float64)
+	if gj.Id != nil {
+		fid := gj.Id.(float64)
 		feature.SetF64Id(fid)
 	}
+	feature.Properties = gj.Properties
 	//TODO if id == nil assign a fake one
 	feature.Type = igeom.GetType()
 	switch geom := igeom.(type) {
@@ -107,7 +108,7 @@ func publishFeatureCollection(collection *geojson.FeatureCollection) (features c
 	go func() {
 		defer close(features)
 		for _, feature := range collection.Features {
-			features <- gjFeatureAdapter(feature)
+			features <- geojsonFeatureAdapter(feature)
 		}
 	}()
 	return

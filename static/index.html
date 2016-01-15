@@ -93,7 +93,13 @@
 		}
 	}
 	var diglet = new L.TileLayer.DigletMVTSource("ws://192.168.33.10:8080/tileset/io", "311-calls", opts)
-	var denver = new L.TileLayer.MVTSource({url: "/tileset/test/{z}/{x}/{y}"})
+	dopts = {
+		url: "/tileset/test/{z}/{x}/{y}",
+		mutexToggle: true,
+		onClick: function(e) {console.log(e.feature)},
+		getIDForLayerFeature: function(feature) {feature._id},
+	}
+	var denver = new L.TileLayer.MVTSource(dopts)
 	//map.addLayer(diglet)
 	map.addLayer(denver)
 	document.getElementById('map').style.cursor = 'crosshair';
