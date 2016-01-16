@@ -14,17 +14,6 @@ import (
 )
 
 //go:generate go run scripts/include.go
-
-func main() {
-	//defer profile.Start(profile.CPUProfile).Stop()
-	client(os.Args)
-}
-
-func die(c *cli.Context, msg string) {
-	cli.ShowSubcommandHelp(c)
-	util.Fatal(msg)
-}
-
 func client(args []string) {
 	app := cli.NewApp()
 	app.Name = "diglet"
@@ -93,15 +82,24 @@ func client(args []string) {
 				if err != nil {
 					die(c, err.Error())
 				}
-				mbt.GeojsonTileset(ts, in, zmin, zmax)
+				/*
+					lat := c.String("csv-lat")
+					lon := c.String("csv-lon")
+					delim := c.String("csv-delimiter")
+					source := mbt.CsvTiles(in, delim, lat, lon)
+				*/
+				source := mbt.GeojsonTiles(in)
+				mbt.BuildTileset(ts, source, zmin, zmax)
 				fmt.Println("Success!")
 			},
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name: "in, input",
+					Name:  "in, input",
+					Usage: "REQUIRED: Path to read from",
 				},
 				cli.StringFlag{
-					Name: "out, output, mbtiles",
+					Name:  "out, output, mbtiles",
+					Usage: "REQUIRED: Path to write mbtiles to",
 				},
 				cli.StringFlag{
 					Name:  "desc, description",
@@ -123,6 +121,18 @@ func client(args []string) {
 					Value: 5,
 					Usage: "Minimum zoom level to build tiles from. Not Implemented.",
 				},
+				cli.StringFlag{
+					Name:  "csv-lat",
+					Value: "Latitude",
+				},
+				cli.StringFlag{
+					Name:  "csv-lon",
+					Value: "Longitude",
+				},
+				cli.StringFlag{
+					Name:  "csv-delimiter",
+					Value: ",",
+				},
 			},
 		},
 	}
@@ -139,4 +149,14 @@ func client(args []string) {
 		return nil
 	}
 	app.Run(args)
+}
+
+func main() {
+	//defer profile.Start(profile.CPUProfile).Stop()
+	client(os.Args)
+}
+
+func die(c *cli.Context, msg string) {
+	cli.ShowSubcommandHelp(c)
+	util.Fatal(msg)
 }

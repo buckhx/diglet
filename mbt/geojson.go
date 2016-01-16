@@ -10,6 +10,19 @@ import (
 	//"github.com/buckhx/diglet/mbt/mvt/vector_tile"
 )
 
+type GeojsonSource struct {
+	path string
+}
+
+func NewGeojsonSource(path string) *GeojsonSource {
+	return &GeojsonSource{path}
+}
+
+func (gj *GeojsonSource) Publish() (features chan *Feature, err error) {
+	collection := readGeoJson(gj.path)
+	return publishFeatureCollection(collection), nil
+}
+
 // Flatten all the points of a feature into single list. This can hel in identifying which tiles are going to be
 // created
 func geojsonFeatureAdapter(gj *geojson.Feature) (feature *Feature) {
