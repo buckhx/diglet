@@ -1,5 +1,6 @@
-// Package digletss is a diglet tile server
-package diglet
+// Package diglet/wms is an HTTP Tile Server that also support JSON-RPC & WebSocket requests. Tile subscriptions
+// are also available to support real-time map applications with large feature sets.
+package wms
 
 import (
 	dig "github.com/buckhx/diglet/burrow"
@@ -174,7 +175,7 @@ func getTileHandler(ctx *dig.RequestContext) (tile interface{}, err *dig.CodedEr
 		err = dig.Cerrorf(dig.RpcInvalidRequest, "Cannot find tileset %s", slug)
 	} else {
 		var tserr error
-		if tile, tserr = ts.ReadSlippyTile(x, y, z); tserr != nil {
+		if tile, tserr = ts.ReadOSMTile(x, y, z); tserr != nil {
 			err = dig.Cerrorf(dig.RpcInvalidRequest, tserr.Error())
 		}
 	}

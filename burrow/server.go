@@ -1,4 +1,5 @@
-// Package digletss is a diglet tile server
+// Package burrow is a small framework for building web apps that accept HTTP, JSON-RPC and WebSocket requests and use
+// the same business logic.
 package burrow
 
 import (

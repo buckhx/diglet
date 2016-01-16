@@ -23,9 +23,10 @@
 	  attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
 	});
 	var map = L.map('map', {
-	    center: [40.66, -73.97],
-	    zoom: 14,
-	    maxZoom: 14,
+	    //center: [40.66, -73.97],
+	    center: [39.7392, -104.9903],
+	    zoom: 13,
+	    maxZoom: 13,
 	});
 	//var baselayer = new L.tileLayer("/tileset/world-countries/{z}/{x}/{y}");
 	map.addLayer(baselayer);
@@ -92,7 +93,15 @@
 		}
 	}
 	var diglet = new L.TileLayer.DigletMVTSource("ws://192.168.33.10:8080/tileset/io", "311-calls", opts)
-	map.addLayer(diglet)
+	dopts = {
+		url: "/tileset/test/{z}/{x}/{y}",
+		mutexToggle: true,
+		onClick: function(e) {console.log(e.feature)},
+		getIDForLayerFeature: function(feature) {feature._id},
+	}
+	var denver = new L.TileLayer.MVTSource(dopts)
+	//map.addLayer(diglet)
+	map.addLayer(denver)
 	document.getElementById('map').style.cursor = 'crosshair';
   </script>
 </html>

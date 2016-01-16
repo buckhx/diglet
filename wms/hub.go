@@ -1,4 +1,4 @@
-package diglet
+package wms
 
 import (
 	dig "github.com/buckhx/diglet/burrow"
