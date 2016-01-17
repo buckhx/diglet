@@ -2,7 +2,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/buckhx/diglet/mbt"
@@ -78,19 +77,29 @@ func client(args []string) {
 				if zmax < zmin || zmin < 0 || zmax > 23 {
 					die(c, "--max > --min, --min > 9 --max < 24 not satisfied")
 				}
-				ts, err := mbt.CreateTileset(out, desc, extent)
-				if err != nil {
-					die(c, err.Error())
-				}
 				/*
-					lat := c.String("csv-lat")
-					lon := c.String("csv-lon")
-					delim := c.String("csv-delimiter")
-					source := mbt.CsvTiles(in, delim, lat, lon)
+						lat := c.String("csv-lat")
+						lon := c.String("csv-lon")
+						delim := c.String("csv-delimiter")
+						source := mbt.CsvTiles(in, delim, lat, lon)
+					source := mbt.GeojsonTiles(in)
+					mbt.BuildTileset(ts, source, zmin, zmax)
 				*/
-				source := mbt.GeojsonTiles(in)
-				mbt.BuildTileset(ts, source, zmin, zmax)
-				fmt.Println("Success!")
+				if tiles, err := mbt.InitTiles(in, out, desc, extent); err != nil {
+					util.Fatal(err.Error())
+				} else {
+					err = tiles.Build(zmin, zmax)
+					if err != nil {
+						util.Fatal(err.Error())
+					} else {
+						file, _ := os.Open(out)
+						defer file.Close()
+						stat, _ := file.Stat()
+						exp := float64(stat.Size()) / float64(1<<20)
+						util.Info("%s was successfully caught!", out)
+						util.Info("Diglet gained %f MB of EXP!", exp)
+					}
+				}
 			},
 			Flags: []cli.Flag{
 				cli.StringFlag{
@@ -100,6 +109,11 @@ func client(args []string) {
 				cli.StringFlag{
 					Name:  "out, output, mbtiles",
 					Usage: "REQUIRED: Path to write mbtiles to",
+				},
+				cli.StringFlag{
+					Name:  "input-type",
+					Value: "sniff",
+					Usage: "Type of input files, 'sniff' will pick type based on the extension",
 				},
 				cli.StringFlag{
 					Name:  "desc, description",
@@ -160,3 +174,13 @@ func die(c *cli.Context, msg string) {
 	cli.ShowSubcommandHelp(c)
 	util.Fatal(msg)
 }
+
+/*
+Go! Diglet!
+Diglet used Earthquake
+Foe DEWGONG fainted
+Diglet gain 1960 EXP. Points
+ELITE FOUR LORELEI is about to use CLOYSTER
+sent out
+Diglet fainted!
+*/
