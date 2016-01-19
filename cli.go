@@ -3,13 +3,14 @@ package main
 
 import (
 	"os"
+	"strings"
 
 	"github.com/buckhx/diglet/mbt"
 	"github.com/buckhx/diglet/util"
 	"github.com/buckhx/diglet/wms"
 
 	"github.com/codegangsta/cli"
-	//"github.com/davecheney/profile"
+	"github.com/davecheney/profile"
 )
 
 //go:generate go run scripts/include.go
@@ -68,6 +69,7 @@ func client(args []string) {
 				in := c.String("input")
 				out := c.String("output")
 				desc := c.String("desc")
+				layer := c.String("layer-name")
 				zmin := uint(c.Int("min"))
 				zmax := uint(c.Int("max"))
 				extent := uint(c.Int("extent"))
@@ -85,10 +87,11 @@ func client(args []string) {
 					source := mbt.GeojsonTiles(in)
 					mbt.BuildTileset(ts, source, zmin, zmax)
 				*/
-				if tiles, err := mbt.InitTiles(in, out, desc, extent); err != nil {
+				filter := strings.Split(c.String("filter"), ",")
+				if tiles, err := mbt.InitTiles(in, out, filter, desc, extent); err != nil {
 					util.Fatal(err.Error())
 				} else {
-					err = tiles.Build(zmin, zmax)
+					err = tiles.Build(layer, zmin, zmax)
 					if err != nil {
 						util.Fatal(err.Error())
 					} else {
@@ -116,6 +119,11 @@ func client(args []string) {
 					Usage: "Type of input files, 'sniff' will pick type based on the extension",
 				},
 				cli.StringFlag{
+					Name:  "layer-name",
+					Value: "features",
+					Usage: "Name of the layer for the features to be added to",
+				},
+				cli.StringFlag{
 					Name:  "desc, description",
 					Value: "Generated from Diglet",
 					Usage: "Value inserted into the description entry of the mbtiles",
@@ -136,12 +144,18 @@ func client(args []string) {
 					Usage: "Minimum zoom level to build tiles from. Not Implemented.",
 				},
 				cli.StringFlag{
+					Name: "filter",
+					Usage: "Only include fields keys in this comma delimited list.\t" +
+						"EXAMPLE --filter name,date,case_number,id\t" +
+						"NOTE all fields are lowercased and non-word chars replaced with '_'",
+				},
+				cli.StringFlag{
 					Name:  "csv-lat",
-					Value: "Latitude",
+					Value: "latitude",
 				},
 				cli.StringFlag{
 					Name:  "csv-lon",
-					Value: "Longitude",
+					Value: "longitude",
 				},
 				cli.StringFlag{
 					Name:  "csv-delimiter",
@@ -166,7 +180,11 @@ func client(args []string) {
 }
 
 func main() {
-	//defer profile.Start(profile.CPUProfile).Stop()
+	config := &profile.Config{
+		MemProfile: true,
+		CPUProfile: true,
+	}
+	defer profile.Start(config).Stop()
 	client(os.Args)
 }
 

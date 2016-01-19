@@ -14,7 +14,7 @@ type Tiles struct {
 	args    map[string]string
 }
 
-func InitTiles(srcpath, mbtpath, desc string, extent uint) (tiles Tiles, err error) {
+func InitTiles(srcpath, mbtpath string, filter []string, desc string, extent uint) (tiles Tiles, err error) {
 	tile_system.TileSize = extent
 	attrs := map[string]string{
 		"name":        util.SlugBase(mbtpath),
@@ -27,7 +27,7 @@ func InitTiles(srcpath, mbtpath, desc string, extent uint) (tiles Tiles, err err
 	if err != nil {
 		return
 	}
-	src := getSource(srcpath)
+	src := getSource(srcpath, filter)
 	tiles = Tiles{
 		tileset: ts,
 		source:  src,
@@ -35,7 +35,7 @@ func InitTiles(srcpath, mbtpath, desc string, extent uint) (tiles Tiles, err err
 	return
 }
 
-func (t Tiles) Build(zmin, zmax uint) (err error) {
+func (t Tiles) Build(layerName string, zmin, zmax uint) (err error) {
 	for zoom := zmax; zoom >= zmin; zoom-- {
 		//TODO goroutine per level
 		util.Info("Generating tiles for zoom level: %d", zoom)
@@ -46,7 +46,7 @@ func (t Tiles) Build(zmin, zmax uint) (err error) {
 		tiles := splitFeatures(features, zoom)
 		for tile, features := range tiles {
 			aTile := mvt.NewTileAdapter(tile.X, tile.Y, tile.Z)
-			aLayer := aTile.NewLayer("features", tile_system.TileSize)
+			aLayer := aTile.NewLayer(layerName, tile_system.TileSize)
 			for _, feature := range features {
 				aFeature := feature.ToMvtAdapter(tile)
 				aLayer.AddFeature(aFeature)
@@ -61,14 +61,14 @@ func (t Tiles) Build(zmin, zmax uint) (err error) {
 	return
 }
 
-func getSource(mbtpath string) FeatureSource {
+func getSource(mbtpath string, filter []string) FeatureSource {
 	src := filepath.Ext(mbtpath)[1:]
 	switch src {
 	case "csv":
 		//return NewCsvSource(mbtpath, delimiter, GeoFields{"lat": latField, "lon": lonField})
-		return NewCsvSource(mbtpath, ",", GeoFields{"lat": "Latitude", "lon": "Longitude"})
+		return NewCsvSource(mbtpath, filter, ",", GeoFields{"lat": "latitude", "lon": "longitude"})
 	case "geojson":
-		return NewGeojsonSource(mbtpath)
+		return NewGeojsonSource(mbtpath, filter)
 	default:
 		return nil
 	}
