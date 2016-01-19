@@ -23,8 +23,8 @@
 	  attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
 	});
 	var map = L.map('map', {
-	    //center: [40.66, -73.97],
-	    center: [39.7392, -104.9903],
+	    center: [40.66, -73.97],
+	    //center: [39.7392, -104.9903],
 	    zoom: 13,
 	    maxZoom: 13,
 	});
@@ -92,7 +92,10 @@
 			return style;
 		}
 	}
-	var diglet = new L.TileLayer.DigletMVTSource("ws://192.168.33.10:8080/tileset/io", "311-calls", opts)
+	//var rotate = new L.TileLayer.DigletMVTSource("ws://192.168.33.10:8080/tileset/io", "311-calls", opts)
+	//map.addLayer(rotate)
+	var nyc = new L.TileLayer.MVTSource(opts)
+	map.addLayer(nyc)
 	dopts = {
 		url: "/tileset/test/{z}/{x}/{y}",
 		mutexToggle: true,
@@ -100,7 +103,6 @@
 		getIDForLayerFeature: function(feature) {feature._id},
 	}
 	var denver = new L.TileLayer.MVTSource(dopts)
-	//map.addLayer(diglet)
 	map.addLayer(denver)
 	document.getElementById('map').style.cursor = 'crosshair';
   </script>
