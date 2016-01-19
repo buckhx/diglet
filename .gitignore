@@ -1,5 +1,5 @@
 # Binaries
-/diglet_*
+/diglet*
 /resources/*.go
 !/resources/version.go
 *.sh
