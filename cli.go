@@ -18,17 +18,22 @@ func client(args []string) {
 	app := cli.NewApp()
 	app.Name = "diglet"
 	app.Usage = "Your friend in the tile business"
-	app.Version = util.Version()
+	//app.Version = util.Version()
 	app.Commands = []cli.Command{
 		{
-			Name:        "start",
-			Usage:       "diglet start --mbtiles path/to/tiles",
+			Name:        "wms",
+			Usage:       "Starts the diglet Web Map Service",
 			Description: "Starts the diglet server",
+			ArgsUsage:   "mbtiles_directory",
 			Action: func(c *cli.Context) {
 				port := c.String("port")
-				mbt := c.String("mbtiles")
+				args := c.Args()
+				if len(args) < 1 {
+					die(c, "directory path to serve mbtiles from is required")
+				}
+				mbt := args[0]
 				if mbt == "" {
-					die(c, "--mbtiles flag is required")
+					die(c, "mbtiles_directory is required")
 				}
 				cert := c.String("cert")
 				key := c.String("key")
@@ -48,10 +53,6 @@ func client(args []string) {
 					Usage: "Port to bind",
 				},
 				cli.StringFlag{
-					Name:  "mbtiles",
-					Usage: "REQUIRED: Path to mbtiles to serve",
-				},
-				cli.StringFlag{
 					Name:  "cert, tls-certificate",
 					Usage: "Path to .pem TLS Certificate. Both cert & key required to serve HTTPS",
 				},
@@ -63,21 +64,30 @@ func client(args []string) {
 		},
 		{
 			Name:        "mbt",
-			Usage:       "diglet mbt --in file.geojson --out tileset.mbtiles",
+			Usage:       "Builds an mbtiles database from the input data source",
 			Description: "Builds an mbtiles database from the given format",
+			ArgsUsage:   "input_source",
 			Action: func(c *cli.Context) {
-				in := c.String("input")
 				out := c.String("output")
 				desc := c.String("desc")
 				layer := c.String("layer-name")
 				zmin := uint(c.Int("min"))
 				zmax := uint(c.Int("max"))
 				extent := uint(c.Int("extent"))
+				args := c.Args()
+				if len(args) < 1 {
+					die(c, "an input data source is required")
+				}
+				in := args[0]
 				if in == "" || out == "" {
 					die(c, "--in & --out required")
 				}
 				if zmax < zmin || zmin < 0 || zmax > 23 {
 					die(c, "--max > --min, --min > 9 --max < 24 not satisfied")
+				}
+				force := c.Bool("force")
+				if force {
+					os.Remove(out)
 				}
 				/*
 						lat := c.String("csv-lat")
@@ -87,8 +97,9 @@ func client(args []string) {
 					source := mbt.GeojsonTiles(in)
 					mbt.BuildTileset(ts, source, zmin, zmax)
 				*/
+				upsert := c.Bool("upsert")
 				filter := strings.Split(c.String("filter"), ",")
-				if tiles, err := mbt.InitTiles(in, out, filter, desc, extent); err != nil {
+				if tiles, err := mbt.InitTiles(in, out, upsert, filter, desc, extent); err != nil {
 					util.Fatal(err.Error())
 				} else {
 					err = tiles.Build(layer, zmin, zmax)
@@ -106,17 +117,21 @@ func client(args []string) {
 			},
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name:  "in, input",
-					Usage: "REQUIRED: Path to read from",
-				},
-				cli.StringFlag{
-					Name:  "out, output, mbtiles",
+					Name:  "o, output",
 					Usage: "REQUIRED: Path to write mbtiles to",
 				},
 				cli.StringFlag{
 					Name:  "input-type",
 					Value: "sniff",
 					Usage: "Type of input files, 'sniff' will pick type based on the extension",
+				},
+				cli.BoolFlag{
+					Name:  "f, force",
+					Usage: "Remove the existing .mbtiles file before running.",
+				},
+				cli.BoolFlag{
+					Name:  "u, upsert",
+					Usage: "Upsert into mbtiles instead of replacing.",
 				},
 				cli.StringFlag{
 					Name:  "layer-name",
