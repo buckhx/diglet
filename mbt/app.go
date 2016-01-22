@@ -14,16 +14,21 @@ type Tiles struct {
 	args    map[string]string
 }
 
-func InitTiles(srcpath, mbtpath string, filter []string, desc string, extent uint) (tiles Tiles, err error) {
+func InitTiles(srcpath, mbtpath string, upsert bool, filter []string, desc string, extent uint) (tiles Tiles, err error) {
 	tile_system.TileSize = extent
-	attrs := map[string]string{
-		"name":        util.SlugBase(mbtpath),
-		"type":        "overlay",
-		"version":     "1",
-		"description": desc,
-		"format":      "pbf.gz",
+	var ts *mbtiles.Tileset
+	if upsert {
+		ts, err = mbtiles.ReadTileset(mbtpath)
+	} else {
+		attrs := map[string]string{
+			"name":        util.SlugBase(mbtpath),
+			"type":        "overlay",
+			"version":     "1",
+			"description": desc,
+			"format":      "pbf.gz",
+		}
+		ts, err = mbtiles.InitTileset(mbtpath, attrs)
 	}
-	ts, err := mbtiles.InitTileset(mbtpath, attrs)
 	if err != nil {
 		return
 	}

@@ -52,7 +52,8 @@
 	var map = L.map('map', {
 	    center: prospectPark,
 	    zoom: 13,
-	    maxZoom: 13,
+	    maxZoom: 15,
+	    minZoom: 10,
 	});
 	document.getElementById('map').style.cursor = 'crosshair';
 	map.addLayer(baselayer);
@@ -86,7 +87,7 @@
 					var agency = feature.properties.agency;
 					var color = agencyColors[agency] || agencyColors['OTHER'];
 					style.color = convertHex(color, 25)
-					style.radius = function(zoom) {return Math.floor(zoom/map.getMaxZoom()) + 1;}
+					style.radius = function(zoom) {return Math.floor(zoom/13) + 1;}
 					style.selected = {
 						color: convertHex(color, 100), 
 						radius: 10,
@@ -106,6 +107,7 @@
 		}
 	}
 	var calls = new L.TileLayer.MVTSource(opts)
+	//var calls = new L.TileLayer.DigletMVTSource("ws://192.168.33.10:8080/tileset/io", "311-calls", opts)
 	map.addLayer(calls)
   </script>
 </html>
