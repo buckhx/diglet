@@ -19,6 +19,8 @@ const (
 	Remove
 )
 
+const CacheName = ".diglet.cache"
+
 type TsEvent struct {
 	Name string
 	Op   TsOp
@@ -34,6 +36,7 @@ type TilesetIndex struct {
 	Tilesets map[string]*mbtiles.Tileset
 	Events   chan TsEvent
 	watcher  *fsnotify.Watcher
+	cache    *TileCache
 }
 
 // NewTilesetIndex creates a new tileset index, but does not read the tile tilesets from disk
@@ -41,11 +44,14 @@ func NewTilesetIndex(mbtilesDir string) (tsi *TilesetIndex) {
 	watcher, err := fsnotify.NewWatcher()
 	check(err)
 	watcher.Add(mbtilesDir)
+	cache, err := InitTileCache(mbtilesDir + "/" + CacheName)
+	check(err)
 	tsi = &TilesetIndex{
 		Path:     mbtilesDir,
 		Tilesets: make(map[string]*mbtiles.Tileset),
 		Events:   make(chan TsEvent),
 		watcher:  watcher,
+		cache:    cache,
 	}
 	return
 }
@@ -54,68 +60,15 @@ func NewTilesetIndex(mbtilesDir string) (tsi *TilesetIndex) {
 // It spawns goroutine that will refresh Tilesets from disk on changes
 func ReadTilesets(mbtilesDir string) (tsi *TilesetIndex) {
 	tsi = NewTilesetIndex(mbtilesDir)
-	mbtPaths, err := filepath.Glob(filepath.Join(mbtilesDir, "*.mbtiles"))
+	mbtPaths, err := filepath.Glob(filepath.Join(mbtilesDir, "*.mbt*")) //match .mbtiles and mbt
 	check(err)
-	readTileset := func(path string) (ts *mbtiles.Tileset) {
-		ts, err := mbtiles.ReadTileset(path)
-		if err != nil {
-			warn(err, "skipping "+path)
-			return
-		}
-		name := cleanTilesetName(path)
-		if _, exists := tsi.Tilesets[name]; exists {
-			check(fmt.Errorf("Multiple tilesets with slug %q like %q", name, path))
-		}
-		return
-
-	}
 	for _, path := range mbtPaths {
-		if ts := readTileset(path); ts != nil {
+		if ts := tsi.readTileset(path); ts != nil {
 			name := cleanTilesetName(path)
 			tsi.Tilesets[name] = ts
 		}
 	}
-	watchMbtilesDir := func() {
-		opBuf := newOpBuffer()
-		go func() {
-			for _ = range opBuf.ticker.C {
-				for _, op := range opBuf.flush() {
-					info("fsnotify opbuffer flushed %s %d", op.String(), time.Now().UnixNano())
-					switch op.op {
-					case fsnotify.Write:
-						tsi.Events <- TsEvent{Op: Upsert, Name: op.tileset}
-					case fsnotify.Create:
-						if ts := readTileset(op.tileset); ts != nil {
-							tsi.Tilesets[op.tileset] = ts
-						}
-						tsi.Events <- TsEvent{Op: Upsert, Name: op.tileset}
-					case fsnotify.Remove, fsnotify.Rename:
-						if _, ok := tsi.Tilesets[op.tileset]; ok {
-							delete(tsi.Tilesets, op.tileset)
-						}
-						tsi.Events <- TsEvent{Op: Remove, Name: op.tileset}
-					default:
-						continue
-					}
-				}
-			}
-		}()
-		for {
-			select {
-			case event := <-tsi.watcher.Events:
-				//TODO make isMbtilesFile
-				if !strings.HasSuffix(event.Name, ".mbtiles") {
-					continue
-				}
-				//info("fsnotify triggered %s", event.String())
-				name := cleanTilesetName(event.Name)
-				opBuf.add(event.Op, name)
-			case err := <-tsi.watcher.Errors:
-				warn(err, "fsnotify")
-			}
-		}
-	}
-	go watchMbtilesDir()
+	go tsi.watchMbtilesDir()
 	return
 }
 
@@ -126,21 +79,98 @@ func (tsi *TilesetIndex) read(xyz TileXYZ) (tile *mbtiles.Tile, err error) {
 		//tile, err = ts.ReadSlippyTile(xyz.X, xyz.Y, xyz.Z)
 		// Again this is another hack to get try and wait until the DB is
 		// done writing
-		retries := 0
-		retry := time.NewTicker(100 * time.Millisecond)
-		for {
-			select {
-			case <-retry.C:
-				tile, err = ts.ReadOSMTile(xyz.X, xyz.Y, xyz.Z)
-				if err == nil || retries == 10 {
-					return
+		tile, ok = tsi.cache.GetTile(xyz.Tileset, xyz.String())
+		if !ok {
+			retries := 0
+			retry := time.NewTicker(100 * time.Millisecond)
+			for {
+				select {
+				case <-retry.C:
+					tile, err = ts.ReadOSMTile(xyz.X, xyz.Y, xyz.Z)
+					if err == nil {
+						err = tsi.cache.PutTile(xyz.Tileset, xyz.String(), tile)
+						check(err)
+					}
+					if err == nil || retries == 10 {
+						return
+					}
+					warn(err, "ts read retry "+string(retries))
+					retries += 1
 				}
-				warn(err, "ts read retry "+string(retries))
-				retries += 1
 			}
 		}
 	}
 	return
+}
+
+func (tsi *TilesetIndex) readTileset(path string) (ts *mbtiles.Tileset) {
+	ts, err := mbtiles.ReadTileset(path)
+	if err != nil {
+		warn(err, "skipping "+path)
+		return
+	}
+	name := cleanTilesetName(path)
+	if _, exists := tsi.Tilesets[name]; exists {
+		check(fmt.Errorf("Multiple tilesets with slug %q like %q", name, path))
+	}
+	return
+}
+
+func (tsi *TilesetIndex) watchMbtilesDir() {
+	opBuf := newOpBuffer()
+	go func() {
+		for _ = range opBuf.ticker.C {
+			for _, op := range opBuf.flush() {
+				info("fsnotify opbuffer flushed %s %d", op.String(), time.Now().UnixNano())
+				var event TsEvent
+				switch op.op {
+				case fsnotify.Write:
+					event = TsEvent{Op: Upsert, Name: op.tileset}
+					go tsi.refreshCache(op.tileset)
+				case fsnotify.Create:
+					if ts := tsi.readTileset(op.tileset); ts != nil {
+						tsi.Tilesets[op.tileset] = ts
+					}
+					event = TsEvent{Op: Upsert, Name: op.tileset}
+				case fsnotify.Remove, fsnotify.Rename:
+					if _, ok := tsi.Tilesets[op.tileset]; ok {
+						delete(tsi.Tilesets, op.tileset)
+					}
+					event = TsEvent{Op: Remove, Name: op.tileset}
+					go tsi.flushCache(op.tileset)
+				default:
+					continue
+				}
+				tsi.Events <- event
+			}
+		}
+	}()
+	for {
+		select {
+		case event := <-tsi.watcher.Events:
+			//TODO make isMbtilesFile
+			if !strings.HasSuffix(event.Name, ".mbtiles") {
+				continue
+			}
+			//info("fsnotify triggered %s", event.String())
+			name := cleanTilesetName(event.Name)
+			opBuf.add(event.Op, name)
+		case err := <-tsi.watcher.Errors:
+			warn(err, "fsnotify")
+		}
+	}
+}
+
+func (tsi *TilesetIndex) refreshCache(bucket string) {
+	if ts, ok := tsi.Tilesets[bucket]; ok {
+		tsi.cache.MapTiles(bucket, func(tile *mbtiles.Tile) (*mbtiles.Tile, error) {
+			return ts.ReadOSMTile(tile.X, tile.Y, tile.Z)
+		})
+	}
+}
+
+func (tsi *TilesetIndex) flushCache(bucket string) {
+	tsi.cache.DropBucket(bucket)
 }
 
 type TileXYZ struct {
