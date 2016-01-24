@@ -4,6 +4,7 @@ package wms
 
 import (
 	dig "github.com/buckhx/diglet/burrow"
+	"github.com/buckhx/diglet/resources"
 )
 
 var hub *IoHub
@@ -27,6 +28,16 @@ func MBTServer(mbtPath string, port string) *dig.App {
 	app.Port = port
 	app.Prefix = "/tileset"
 	app.Methods = []dig.Method{
+		{
+			Name:  "viewer",
+			Route: "/viewer",
+			Handler: func(ctx *dig.RequestContext) (t interface{}, err *dig.CodedError) {
+				w := ctx.HTTPWriter
+				w.Write([]byte(resources.Static_html()))
+				return
+			},
+			Help: "A simple tile viewer app",
+		},
 		{
 			Name: GetTile,
 			Params: dig.MethodParams{
@@ -160,7 +171,8 @@ func MBTServer(mbtPath string, port string) *dig.App {
 				return
 			},
 			Help: "Gets a tile and only writes it's raw contents. Used for hosting static tiles.",
-		}}
+		},
+	}
 	return app
 }
 

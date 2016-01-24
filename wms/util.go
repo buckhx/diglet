@@ -29,6 +29,7 @@ func errorlog(err ...error) {
 
 func check(err error) {
 	if err != nil {
+		panic(err)
 		log.Fatal("Fatal Diglet error: %s", err)
 	}
 }
