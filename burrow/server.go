@@ -46,7 +46,7 @@ func NewApp(name string) *App {
 
 func (app *App) start() (err error) {
 	info("%s used Burrow!", app.Name)
-	app.mountStatic()
+	//app.mountStatic()
 	http.Handle("/", app.Router)
 	if app.hasCerts() {
 		err = app.serveTLS()
