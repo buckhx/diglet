@@ -4,6 +4,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/buckhx/diglet/util"
 	"io"
 	"os"
 	pathlib "path"
@@ -26,6 +27,9 @@ func main() {
 		rsc := writeResource(name, string(contents.Bytes()))
 		logf("Created resource %s", rsc)
 	}
+	version := util.Version()
+	writeResource("Version", version)
+	logf("Created resource for Version %s", version)
 }
 
 func writeResource(name, contents string) (path string) {
