@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/buckhx/diglet/mbt"
+	"github.com/buckhx/diglet/resources"
 	"github.com/buckhx/diglet/util"
 	"github.com/buckhx/diglet/wms"
 
@@ -18,7 +19,7 @@ func client(args []string) {
 	app := cli.NewApp()
 	app.Name = "diglet"
 	app.Usage = "Your friend in the tile business"
-	//app.Version = util.Version()
+	app.Version = resources.Version
 	app.Commands = []cli.Command{
 		{
 			Name:        "wms",
@@ -195,11 +196,15 @@ func client(args []string) {
 }
 
 func main() {
-	config := &profile.Config{
-		MemProfile: true,
-		CPUProfile: true,
+	for _, arg := range os.Args {
+		if arg == "--debug" {
+			config := &profile.Config{
+				MemProfile: true,
+				CPUProfile: true,
+			}
+			defer profile.Start(config).Stop()
+		}
 	}
-	defer profile.Start(config).Stop()
 	client(os.Args)
 }
 
