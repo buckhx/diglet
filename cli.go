@@ -14,15 +14,16 @@ import (
 	"github.com/davecheney/profile"
 )
 
-//go:generate go run scripts/include.go
+//go:generate go run scripts/include.go static/static.html
 func client(args []string) {
 	app := cli.NewApp()
 	app.Name = "diglet"
 	app.Usage = "Your friend in the tile business"
-	app.Version = resources.Version
+	app.Version = resources.Version()
 	app.Commands = []cli.Command{
 		{
 			Name:        "wms",
+			Aliases:     []string{"serve"},
 			Usage:       "Starts the diglet Web Map Service",
 			Description: "Starts the diglet server",
 			ArgsUsage:   "mbtiles_directory",
@@ -65,6 +66,7 @@ func client(args []string) {
 		},
 		{
 			Name:        "mbt",
+			Aliases:     []string{"build"},
 			Usage:       "Builds an mbtiles database from the input data source",
 			Description: "Builds an mbtiles database from the given format",
 			ArgsUsage:   "input_source",
