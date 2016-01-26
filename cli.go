@@ -3,7 +3,9 @@ package main
 
 import (
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/buckhx/diglet/mbt"
 	"github.com/buckhx/diglet/resources"
@@ -45,7 +47,20 @@ func client(args []string) {
 				} else if cert != "" || key != "" {
 					die(c, "Both cert & key are required to serve over TLS/SSL")
 				} else {
-					server.Run()
+					sigs := make(chan os.Signal, 1)
+					done := make(chan bool, 1)
+					signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+					defer os.Remove(mbt + "/" + wms.CacheName) //TODO make path.Join
+					go func() {
+						err := server.Run()
+						util.Error(err)
+						done <- true
+					}()
+					go func() {
+						<-sigs
+						done <- true
+					}()
+					<-done
 				}
 			},
 			Flags: []cli.Flag{
@@ -105,7 +120,10 @@ func client(args []string) {
 					mbt.BuildTileset(ts, source, zmin, zmax)
 				*/
 				upsert := c.Bool("upsert")
-				filter := strings.Split(c.String("filter"), ",")
+				var filter []string
+				if len(c.String("filter")) > 0 {
+					filter = strings.Split(c.String("filter"), ",")
+				}
 				if tiles, err := mbt.InitTiles(in, out, upsert, filter, desc, extent); err != nil {
 					util.Fatal(err.Error())
 				} else {
