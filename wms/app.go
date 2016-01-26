@@ -29,14 +29,14 @@ func MBTServer(mbtPath string, port string) *dig.App {
 	app.Prefix = "/tileset"
 	app.Methods = []dig.Method{
 		{
-			Name:  "viewer",
-			Route: "/viewer",
+			Name:  "gallery",
+			Route: "/gallery",
 			Handler: func(ctx *dig.RequestContext) (t interface{}, err *dig.CodedError) {
 				w := ctx.HTTPWriter
 				w.Write([]byte(resources.Static_html()))
 				return
 			},
-			Help: "A simple tile viewer app",
+			Help: "A simple tile viewer gallery app",
 		},
 		{
 			Name: GetTile,
