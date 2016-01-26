@@ -25,7 +25,7 @@ func client(args []string) {
 			Name:        "wms",
 			Aliases:     []string{"serve"},
 			Usage:       "Starts the diglet Web Map Service",
-			Description: "Starts the diglet server",
+			Description: "Starts the diglet Web Map Service",
 			ArgsUsage:   "mbtiles_directory",
 			Action: func(c *cli.Context) {
 				port := c.String("port")
@@ -61,6 +61,10 @@ func client(args []string) {
 				cli.StringFlag{
 					Name:  "key, tls-private-key",
 					Usage: "Path to .pem TLS Private Key. Both cert & key required to serve HTTPS",
+				},
+				cli.BoolFlag{
+					Name:  "tms-origin",
+					Usage: "NOT IMPLEMENTED: Use TMS origin, SW origin w/ Y increasing North-wise",
 				},
 			},
 		},
@@ -174,6 +178,11 @@ func client(args []string) {
 				cli.StringFlag{
 					Name:  "csv-lon",
 					Value: "longitude",
+				},
+				cli.StringFlag{
+					Name:  "csv-geometry",
+					Value: "geometry",
+					Usage: "Column containing geometry in geojson-like 'coordinates' form",
 				},
 				cli.StringFlag{
 					Name:  "csv-delimiter",
