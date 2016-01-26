@@ -29,7 +29,7 @@ type CsvSource struct {
 
 func NewCsvSource(path string, filter []string, delimiter string, fields GeoFields) *CsvSource {
 	var set mapset.Set
-	if filter == nil {
+	if filter == nil || len(filter) == 0 {
 		set = nil
 	} else {
 		set = mapset.NewSet()
