@@ -2,9 +2,16 @@
 
 [![Build Status](https://travis-ci.org/buckhx/diglet.svg?branch=master)](https://travis-ci.org/buckhx/diglet)
 
+A simple tool for solving common geospatial workflows.
+
+* wms: Web Mapping Server (tile server)
+* mbt: Tile builder for vector tiles into the mbtiles spec
+
+# wms
+
 A real-time tile server in a single binary
 
-Here are some neat things that diglet does
+Here are some neat things that diglet wms does
 
 * Backend changes are pushed to the front end in real time
   * Currently changes are registered from the kernel (inotify/kqueue/ReadDirectoryChangesW)
@@ -15,9 +22,9 @@ Here are some neat things that diglet does
 * HTTP/JSON-RPC/WS endpoints
 * All packaged up in an itty-bitty binary
 
-# Usage
+## Usage
  
-    diglet start --port 80 --mbtiles ~/path/to/dir/with/mbtiles_files/
+    diglet wms ~/path/to/dir/with/mbtiles_files/ --port 80
 
 --mbtiles: Path to local directory containing mbtiles files. NOTE only serves files
 with .mbtiles extension
@@ -31,7 +38,7 @@ with .mbtiles extension
 If --cert and --key are both set, content will be served over TLS (HTTPS) and unecrypted HTTP will return nothing or a
 TLS error response
 
-# Methods
+## Methods
 
 The following methods are available via the HTTP API. The other methods in the [app definition](diglet/app.go) are for use with WS
 endpoints and mainly deal with tile subscriptions, which will remain undocumented until an official client is released
@@ -55,6 +62,36 @@ Get information about the specific tileset. This information is populated from t
 
 Get the tile at the given coordinates and return the contents as the response body. 
 Passing json=true as a will return the tile as a json object with it's coordinates 
+
+#mbt
+
+More info to come, but here's the current help message
+
+```
+NAME:
+   cli mbt - Builds an mbtiles database from the input data source
+
+USAGE:
+   cli mbt [command options] input_source
+
+DESCRIPTION:
+   Builds an mbtiles database from the given format
+
+OPTIONS:
+   -o, --output 					REQUIRED: Path to write mbtiles to
+   --input-type "sniff"					Type of input files, 'sniff' will pick type based on the extension
+   -f, --force						Remove the existing .mbtiles file before running.
+   -u, --upsert						Upsert into mbtiles instead of replacing.
+   --layer-name "features"				Name of the layer for the features to be added to
+   --desc, --description "Generated from Diglet"	Value inserted into the description entry of the mbtiles
+   --extent "4096"					Extent of tiles to be built. Default is 4096
+   --max, --max-zoom "10"				Maximum zoom level to build tiles for. Not Implemented.
+   --min, --min-zoom "5"				Minimum zoom level to build tiles from. Not Implemented.
+   --filter 						Only include fields keys in this comma delimited list.	EXAMPLE --filter name,date,case_number,id	NOTE all fields are lowercased and non-word chars replaced with '_'
+   --csv-lat "latitude"					
+   --csv-lon "longitude"				
+   --csv-delimiter ","			
+```
 
 ## Releases
 
