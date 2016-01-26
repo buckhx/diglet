@@ -23,17 +23,24 @@ Here are some neat things that diglet wms does
 * All packaged up in an itty-bitty binary
 
 ## Usage
- 
-    diglet wms ~/path/to/dir/with/mbtiles_files/ --port 80
 
---mbtiles: Path to local directory containing mbtiles files. NOTE only serves files
-with .mbtiles extension
+```
+NAME:
+   diglet wms - Starts the diglet Web Map Service
 
---port: Default is 8080
+USAGE:
+   diglet wms [command options] mbtiles_directory
 
---cert, --tls-certificate: Path to .pem TLS Certificate. Both cert & key required to serve HTTPS
+DESCRIPTION:
+   Starts the diglet Web Map Service
 
---key, --tls-private-key: Path to .pem Private Key
+OPTIONS:
+   --port "8080"		Port to bind
+   --cert, --tls-certificate 	Path to .pem TLS Certificate. Both cert & key required to serve HTTPS
+   --key, --tls-private-key 	Path to .pem TLS Private Key. Both cert & key required to serve HTTPS
+   --tms-origin			NOT IMPLEMENTED: Use TMS origin, SW origin w/ Y increasing North-wise
+
+```
 
 If --cert and --key are both set, content will be served over TLS (HTTPS) and unecrypted HTTP will return nothing or a
 TLS error response
@@ -69,10 +76,10 @@ More info to come, but here's the current help message
 
 ```
 NAME:
-   cli mbt - Builds an mbtiles database from the input data source
+   diglet mbt - Builds an mbtiles database from the input data source
 
 USAGE:
-   cli mbt [command options] input_source
+   diglet mbt [command options] input_source
 
 DESCRIPTION:
    Builds an mbtiles database from the given format
@@ -90,7 +97,8 @@ OPTIONS:
    --filter 						Only include fields keys in this comma delimited list.	EXAMPLE --filter name,date,case_number,id	NOTE all fields are lowercased and non-word chars replaced with '_'
    --csv-lat "latitude"					
    --csv-lon "longitude"				
-   --csv-delimiter ","			
+   --csv-geometry "geometry"				Column containing geometry in geojson-like 'coordinates' form
+   --csv-delimiter ","	
 ```
 
 ## Releases
