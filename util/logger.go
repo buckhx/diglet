@@ -28,7 +28,7 @@ func Error(err ...error) {
 }
 
 func Fatal(format string, vals ...interface{}) {
-	msg := Sprintf("FATAL: "+format, vals...)
+	msg := Sprintf("Diglet fainted! "+format, vals...)
 	log.Fatal(msg)
 }
 

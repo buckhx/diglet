@@ -3,19 +3,29 @@ package mbt
 import (
 	"encoding/json"
 	"github.com/buckhx/diglet/util"
+	"github.com/deckarep/golang-set"
 	"github.com/kpawlik/geojson"
 	"io/ioutil"
-
 	//"github.com/buckhx/diglet/mbt/mvt"
 	//"github.com/buckhx/diglet/mbt/mvt/vector_tile"
 )
 
 type GeojsonSource struct {
-	path string
+	path   string
+	filter mapset.Set
 }
 
-func NewGeojsonSource(path string) *GeojsonSource {
-	return &GeojsonSource{path}
+func NewGeojsonSource(path string, filter []string) *GeojsonSource {
+	var set mapset.Set
+	if filter == nil {
+		set = nil
+	} else {
+		set = mapset.NewSet()
+		for _, k := range filter {
+			set.Add(k)
+		}
+	}
+	return &GeojsonSource{path, set}
 }
 
 func (gj *GeojsonSource) Publish() (features chan *Feature, err error) {
@@ -34,6 +44,7 @@ func geojsonFeatureAdapter(gj *geojson.Feature) (feature *Feature) {
 		fid := gj.Id.(float64)
 		feature.SetF64Id(fid)
 	}
+	//TODO filter properties
 	feature.Properties = gj.Properties
 	//TODO if id == nil assign a fake one
 	feature.Type = igeom.GetType()
