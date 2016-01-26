@@ -9,7 +9,7 @@
 <body>
   <h1>A wild diglet was encountered!</h1>
   <div id="map" style="height:75vh"></div>
-  <h3 id="featureProperties"></h3>
+  <h3 id="featureProperties">Click on a feature!</h3>
 </body>
   <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.20/require.js"></script> -->
   <!-- <script src="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet-src.js"></script> -->
@@ -19,36 +19,47 @@
   <script src="/static/js/pbf.js"></script>
   <script src="/static/js/Leaflet.Diglet.js"></script>
   <script>
+	function convertHex(hex,opacity){
+	    hex = hex.replace('#','');
+	    r = parseInt(hex.substring(0,2), 16);
+	    g = parseInt(hex.substring(2,4), 16);
+	    b = parseInt(hex.substring(4,6), 16);
+	    rgba = 'rgba('+r+','+g+','+b+','+opacity/100+')';
+	    return rgba;
+	}
 	var baselayer = L.tileLayer('http://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',{
 	  attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
 	});
+	var agencyColors = {
+		'HPD':	'#139CCA',		//blue
+		'NYPD': '#003366',		//nypd blue 
+		'DOT': 	'#E87600',		//safety orange
+		'DEP':	'#009D55',		//leaf green
+		'DSNY':	'#E9D66B',		//acrylite yellow
+		'DOB':	'#BCD4E6',		//bluish-greyish-blue
+		'DPR':	'#88C659',		//bug green
+		'DOHMH':'#CCCCFF',		//lavender
+		'DOF':	'#FFD700',		//betty white gold
+		'HRA':	'#FF69B4',		//neon pink
+		'TLC':	'#FFFF00',		//taxi yellow
+		'DCAS':	'#F89F59',		//consumer affair peach
+		'CHALL':'#6F00FF',		//indigo
+		'FDNY':	'#BE0712',		//fire red
+		'DHS':	'#38EEFF',		//cyber teal
+		'OTHER':'#E3FF00',		//lemon-lime
+	}
+        var prospectPark = [40.66, -73.97]
 	var map = L.map('map', {
-	    //center: [40.66, -73.97],
-	    center: [39.7392, -104.9903],
+	    center: prospectPark,
 	    zoom: 13,
-	    maxZoom: 13,
+	    maxZoom: 15,
+	    minZoom: 10,
 	});
-	//var baselayer = new L.tileLayer("/tileset/world-countries/{z}/{x}/{y}");
+	document.getElementById('map').style.cursor = 'crosshair';
 	map.addLayer(baselayer);
-
-	
-	//var mvt = new L.TileLayer.MVTSource({url: "/tileset/counties/{z}/{x}/{y}"})
-	//var mvt = new L.TileLayer.MVTSource({url: "/tileset/311-calls/{z}/{x}/{y}"})
-	//map.addLayer(mvt)
-	//var diglet = new L.TileLayer.DigletSource("ws://192.168.33.10:8080/tileset/io", "world-countries")
-	//var diglet = new L.TileLayer.DigletSource("ws://192.168.33.10:8080/tileset/io", "311-calls")
-	var toZoom = map.getZoom();
-	map.on("zoomanim", function(e) {
-		toZoom = e.target._animateToZoom;
-	})
-	var featureCount = 0;
-	opts = {
+	var opts = {
 		url: "/tileset/311-calls/{z}/{x}/{y}",
 		mutexToggle: true,
-		filter: function(feature, context) {
-			featureCount++;
-			// TODO need a decrement
-		},
 		getIDForLayerFeature: function(feature) {
 			return feature.properties.unique_key;
 		},
@@ -67,18 +78,21 @@
 				}
 				console.log(feature);
 			}
-			console.log(featureCount);
 		},
 		style: function (feature) {
 			var style = {};
 			var type = feature.type;
 			switch (type) {
 				case 1: //'Point'
-					style.color = 'rgba(56, 238, 255, 0.7)';
-					style.radius = Math.floor(toZoom/map.getMaxZoom()) + 1;
+					var agency = feature.properties.agency;
+					var color = agencyColors[agency] || agencyColors['OTHER'];
+					style.color = convertHex(color, 25)
+					style.radius = function(zoom) {return Math.floor(zoom/13) + 1;}
 					style.selected = {
-						color: 'rgba(255, 255, 0, 0.9)',
-						radius: 7
+						color: convertHex(color, 100), 
+						radius: 10,
+						lineWidth: 2,
+						strokeStyle: '#CCC'
 					};
 					break;
 				case 2: //'LineString'
@@ -92,16 +106,8 @@
 			return style;
 		}
 	}
-	var diglet = new L.TileLayer.DigletMVTSource("ws://192.168.33.10:8080/tileset/io", "311-calls", opts)
-	dopts = {
-		url: "/tileset/test/{z}/{x}/{y}",
-		mutexToggle: true,
-		onClick: function(e) {console.log(e.feature)},
-		getIDForLayerFeature: function(feature) {feature._id},
-	}
-	var denver = new L.TileLayer.MVTSource(dopts)
-	//map.addLayer(diglet)
-	map.addLayer(denver)
-	document.getElementById('map').style.cursor = 'crosshair';
+	var calls = new L.TileLayer.MVTSource(opts)
+	//var calls = new L.TileLayer.DigletMVTSource("ws://192.168.33.10:8080/tileset/io", "311-calls", opts)
+	map.addLayer(calls)
   </script>
 </html>

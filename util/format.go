@@ -9,7 +9,11 @@ import (
 var slugger = regexp.MustCompile("[^a-z0-9]+")
 
 func Slug(s string) string {
-	return strings.Trim(slugger.ReplaceAllString(strings.ToLower(s), "-"), "-")
+	return Slugged(s, "-")
+}
+
+func Slugged(s, delim string) string {
+	return strings.Trim(slugger.ReplaceAllString(strings.ToLower(s), delim), delim)
 }
 
 // Slugs the basename of the path, removing the path and extension

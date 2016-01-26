@@ -4,6 +4,7 @@ package wms
 
 import (
 	dig "github.com/buckhx/diglet/burrow"
+	"github.com/buckhx/diglet/resources"
 )
 
 var hub *IoHub
@@ -27,6 +28,16 @@ func MBTServer(mbtPath string, port string) *dig.App {
 	app.Port = port
 	app.Prefix = "/tileset"
 	app.Methods = []dig.Method{
+		{
+			Name:  "gallery",
+			Route: "/gallery",
+			Handler: func(ctx *dig.RequestContext) (t interface{}, err *dig.CodedError) {
+				w := ctx.HTTPWriter
+				w.Write([]byte(resources.Static_html()))
+				return
+			},
+			Help: "A simple tile viewer gallery app",
+		},
 		{
 			Name: GetTile,
 			Params: dig.MethodParams{
@@ -160,7 +171,8 @@ func MBTServer(mbtPath string, port string) *dig.App {
 				return
 			},
 			Help: "Gets a tile and only writes it's raw contents. Used for hosting static tiles.",
-		}}
+		},
+	}
 	return app
 }
 
@@ -171,13 +183,10 @@ func getTileHandler(ctx *dig.RequestContext) (tile interface{}, err *dig.CodedEr
 	y := params["y"].GetInt()
 	z := params["z"].GetInt()
 	slug := params["tileset"].GetString()
-	if ts, ok := tilesets.Tilesets[slug]; !ok {
-		err = dig.Cerrorf(dig.RpcInvalidRequest, "Cannot find tileset %s", slug)
-	} else {
-		var tserr error
-		if tile, tserr = ts.ReadOSMTile(x, y, z); tserr != nil {
-			err = dig.Cerrorf(dig.RpcInvalidRequest, tserr.Error())
-		}
+	xyz := TileXYZ{Tileset: slug, X: x, Y: y, Z: z}
+	tile, tserr := tilesets.read(xyz)
+	if tserr != nil {
+		err = dig.Cerrorf(500, tserr.Error())
 	}
 	return
 }
