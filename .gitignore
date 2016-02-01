@@ -3,6 +3,7 @@
 /resources/*.go
 !/resources/stub.go
 *.sh
+*.dig
 
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
 *.o

@@ -44,6 +44,10 @@ func Checks(errs ...error) {
 	}
 }
 
+func Printf(format string, vals ...interface{}) {
+	fmt.Printf(format, vals...)
+}
+
 func Sprintf(format string, vals ...interface{}) string {
 	return fmt.Sprintf(format, vals...)
 }

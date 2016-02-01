@@ -131,6 +131,7 @@ Here are dependencies and their licenese
 * buckhx/diglet: MIT
 * buckhx/mbtiles: MIT
 * codegangsta/cli: MIT
+* qedus/osmpbf: MIT
 * gorilla: BSD 3-Clause
 * mattn/go-sqlite3: MIT
 * go-std-lib: BSD 3-Clause

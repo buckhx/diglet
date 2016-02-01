@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/buckhx/diglet/goc"
 	"github.com/buckhx/diglet/mbt"
 	"github.com/buckhx/diglet/resources"
 	"github.com/buckhx/diglet/util"
@@ -178,6 +179,45 @@ func client(args []string) {
 				cli.StringFlag{
 					Name:  "csv-delimiter",
 					Value: ",",
+				},
+			},
+		},
+		{
+			Name:        "goc",
+			Aliases:     []string{"geocode"},
+			Usage:       "Geocoding utility",
+			Description: "Geocoding",
+			ArgsUsage:   "goc_db",
+			Action: func(c *cli.Context) {
+				args := c.Args()
+				if len(args) < 1 {
+					die(c, "requires a goc db")
+				}
+				defer util.Info("Done!")
+				db := args[0]
+				pbf := c.String("pbf")
+				addr := c.String("address")
+				if pbf != "" {
+					err := goc.HydrateDb(db, pbf)
+					util.Check(err)
+				} else if addr != "" {
+					geo, err := goc.Geocode(db, addr)
+					util.Check(err)
+					util.Printf("%s", geo)
+				}
+			},
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "d, database",
+					Usage: "path to write geocoding db to",
+				},
+				cli.StringFlag{
+					Name:  "pbf",
+					Usage: "Translate this osm pbf into the db",
+				},
+				cli.StringFlag{
+					Name:  "address",
+					Usage: "Address to geocode, if db is being served, this will block",
 				},
 			},
 		},
