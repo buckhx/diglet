@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/buckhx/diglet/goc"
+	"github.com/buckhx/diglet/dig"
 	"github.com/buckhx/diglet/mbt"
 	"github.com/buckhx/diglet/resources"
 	"github.com/buckhx/diglet/util"
@@ -183,40 +183,36 @@ func client(args []string) {
 			},
 		},
 		{
-			Name:        "goc",
+			Name:        "dig",
 			Aliases:     []string{"geocode"},
 			Usage:       "Geocoding utility",
 			Description: "Geocoding",
-			ArgsUsage:   "goc_db",
+			ArgsUsage:   "digdb",
 			Action: func(c *cli.Context) {
 				args := c.Args()
 				if len(args) < 1 {
-					die(c, "requires a goc db")
+					die(c, "requires a digdb (*.dig)")
 				}
 				defer util.Info("Done!")
 				db := args[0]
 				pbf := c.String("pbf")
-				addr := c.String("address")
+				addr := c.String("query")
 				if pbf != "" {
-					err := goc.HydrateDb(db, pbf)
+					err := dig.ExcavateOSM(db, pbf)
 					util.Check(err)
 				} else if addr != "" {
-					geo, err := goc.Geocode(db, addr)
+					geo, err := dig.Geocode(db, addr)
 					util.Check(err)
 					util.Printf("%s", geo)
 				}
 			},
 			Flags: []cli.Flag{
 				cli.StringFlag{
-					Name:  "d, database",
-					Usage: "path to write geocoding db to",
-				},
-				cli.StringFlag{
 					Name:  "pbf",
 					Usage: "Translate this osm pbf into the db",
 				},
 				cli.StringFlag{
-					Name:  "address",
+					Name:  "query, q",
 					Usage: "Address to geocode, if db is being served, this will block",
 				},
 			},

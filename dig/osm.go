@@ -1,4 +1,4 @@
-package goc
+package dig
 
 import (
 	"bytes"
@@ -20,15 +20,6 @@ import (
 
 const DEBUG = false
 const (
-	AddrHouseNum = "addr:housenumber"
-	AddrStreet   = "addr:street"
-	AddrCity     = "addr:city"
-	AddrCountry  = "addr:country"
-
-	AddrPrefix  = "addr:"
-	GnisPrefix  = "gnis:"
-	TigerPrefix = "tiger:"
-
 	ZoomRes   = 23
 	BlockSize = 8000
 )
@@ -37,134 +28,8 @@ var (
 	AddressBucket = []byte("address")
 	NodeBucket    = []byte("node")
 	empty         struct{}
+	threads       = 1
 )
-
-func Geocode(dbPath, query string) (geo string, err error) {
-	db, err := bolt.Open(dbPath, 0600, nil) //&bolt.Options{Timeout: 5 * time.Second})
-	if err != nil {
-		return
-	}
-	defer db.Close()
-	query = clean(query)
-	util.Info(expand(query))
-	err = db.View(func(tx *bolt.Tx) error {
-		c := tx.Bucket(AddressBucket).Cursor()
-		nodes := make(nodeset)
-		prefix := []byte(queryKey(query))
-		util.Info("Prefix %s", prefix)
-		for k, v := c.Seek(prefix); bytes.HasPrefix(k, prefix); k, v = c.Next() {
-			util.Info("Inspecting %s", k)
-			group, err := unmarshalNodeset(v)
-			if err != nil {
-				return err
-			}
-			for id := range group {
-				nodes[id] = empty
-			}
-		}
-		nb := tx.Bucket(NodeBucket)
-		exq := expand(query)
-		mdist := 0.0
-		var m *osmpbf.Node
-		for id := range nodes {
-			v := nb.Get(marshalId(id))
-			node, err := unmarshalNode(v)
-			if err != nil {
-				return err
-			}
-			//todo lookup
-			addr := nodeAddress(node)
-			exa := expand(addr)
-			dist := matchr.JaroWinkler(exq, exa, false)
-			if dist > mdist {
-				mdist = dist
-				m = node
-			}
-			util.Info("%v -> %v - d:%f", query, addr, dist)
-		}
-		util.Info("MATCH %v -> %v - d:%f", query, nodeAddress(m), mdist)
-		return err
-	})
-	return
-}
-
-func nodeAddress(node *osmpbf.Node) (addr string) {
-	house := node.Tags[AddrHouseNum] //TODO housename/conscription
-	street := node.Tags[AddrStreet]
-	// TODO infer the following from geometries
-	city := node.Tags[AddrCity] //
-	//region :=
-	country := node.Tags[AddrCountry]
-	addr = strings.Join([]string{house, street, city, country}, " ")
-	addr = clean(strings.Trim(addr, " "))
-	return
-}
-
-var threads = 1 //runtime.GOMAXPROCS(-1)
-
-func setThreads() int {
-	if procs := runtime.GOMAXPROCS(-1); procs > threads {
-		threads = procs
-	}
-	if cpus := runtime.NumCPU(); cpus > threads {
-		threads = cpus
-	}
-	return threads
-}
-
-func HydrateDb(dbPath, pbfPath string) (err error) {
-	setThreads()
-	util.Info("Hydrating across %d cores", threads)
-	pbff, err := os.Open(pbfPath)
-	if err != nil {
-		return
-	}
-	defer pbff.Close()
-	db, err := bolt.Open(dbPath, 0600, nil) //&bolt.Options{Timeout: 5 * time.Second})
-	if err != nil {
-		return
-	}
-	defer db.Close()
-	if err = db.Update(func(tx *bolt.Tx) error {
-		//we're shadowing one of them ehre
-		_, err = tx.CreateBucketIfNotExists(AddressBucket)
-		_, err = tx.CreateBucketIfNotExists(NodeBucket)
-		return err
-	}); err != nil {
-		return
-	}
-	pbfd := osmpbf.NewDecoder(pbff)
-	err = pbfd.Start(threads)
-	if err != nil {
-		return
-	}
-	nodes := make(chan *osmpbf.Node, BlockSize)
-	decoders := &sync.WaitGroup{}
-	for i := 0; i < threads; i++ {
-		decoders.Add(1)
-		go decoder(pbfd, nodes, decoders)
-	}
-	go func() {
-		decoders.Wait()
-		close(nodes)
-	}()
-	encoders := &sync.WaitGroup{}
-	for i := 0; i < threads; i++ {
-		encoders.Add(1)
-		go encoder(db, nodes, encoders)
-		/*
-			go func() {
-				defer encoders.Done()
-				for node := range nodes {
-					util.Info("%+v", node)
-				}
-			}()
-		*/
-	}
-	encoders.Wait()
-
-	return
-}
 
 type nodeset map[int64]struct{}
 
@@ -192,16 +57,17 @@ func encoder(db *bolt.DB, nodes <-chan *osmpbf.Node, wg *sync.WaitGroup) {
 			nb := tx.Bucket(NodeBucket)
 			nodes := make(map[string]nodeset, size)
 			for _, node := range batch {
-				mp := node.Tags["dig:mp"]
-				if group, ok := nodes[mp]; !ok {
-					if g := ab.Get([]byte(mp)); g == nil {
-						group = make(nodeset)
-					} else if group, err = unmarshalNodeset(g); err != nil {
-						return
+				for _, mp := range strings.Split(node.Tags["dig:key"], ",") {
+					if group, ok := nodes[mp]; !ok {
+						if g := ab.Get([]byte(mp)); g == nil {
+							group = make(nodeset)
+						} else if group, err = unmarshalNodeset(g); err != nil {
+							return
+						}
+						nodes[mp] = group
 					}
-					nodes[mp] = group
+					nodes[mp][node.ID] = empty
 				}
-				nodes[mp][node.ID] = empty
 				// Insert node
 				v, err := marshalNode(node)
 				k := marshalId(node.ID)
@@ -248,6 +114,9 @@ func decoder(pbf *osmpbf.Decoder, nodes chan<- *osmpbf.Node, wg *sync.WaitGroup)
 				if hasPrefix(v.Tags, AddrStreet) {
 					tagQuadkey(v)
 					nodes <- v
+					if strings.Contains(v.Tags[AddrStreet], " 42nd") {
+						util.Info("%+v", v)
+					}
 				}
 			case *osmpbf.Way:
 				//util.Info("Way: %+v", v)
@@ -289,19 +158,22 @@ func tagQuadkey(node *osmpbf.Node) {
 	lon := strconv.FormatFloat(node.Lon, 'f', 8, 64)
 	node.Tags["dig:lat"] = lat
 	node.Tags["dig:lon"] = lon
-	node.Tags["dig:mp"] = nodeKey(node)
+	node.Tags["dig:key"] = nodeKey(node)
 	node.Tags["dig:qk"] = tile.QuadKey()
 }
 
 func key(value string) string {
-	var buf bytes.Buffer
+	var b1, b2 bytes.Buffer
 	value = expand(clean(value))
-	for _, word := range strings.Split(value, " ") {
-		m1, _ := matchr.DoubleMetaphone(word)
-		// TODO add secodary mphone
-		buf.WriteString(m1)
+	terms := strings.Split(value, " ")
+	for _, term := range terms {
+		m1, m2 := matchr.DoubleMetaphone(term)
+		b1.WriteString(m1)
+		b2.WriteString(m2)
 	}
-	return buf.String()
+	b1.WriteString(",")
+	b1.Write(b2.Bytes())
+	return b1.String()
 }
 
 var nonword = regexp.MustCompile("[^\\w ]")
@@ -317,13 +189,13 @@ var expansions = map[string]string{
 	"8":     "eight ",
 	"9":     "nine ",
 	" n ":   "north ",
-	" e ":   "east ",
+	" e ":   "este ",
 	" s ":   "south ",
-	" w ":   "whest ",
+	" w ":   "oost ",
 	"north": "north ", //for
-	"east":  "east ",
+	"east":  "este ",
 	"south": "south ",
-	"west":  "whest ",
+	"west":  "oost ",
 }
 
 func clean(s string) string {
@@ -364,10 +236,11 @@ func unmarshalNode(raw []byte) (node *osmpbf.Node, err error) {
 func nodeKey(node *osmpbf.Node) string {
 	//k := strings.Join([]string{node.Tags[AddrHouseNum], node.Tags[AddrStreet]}, " ")
 	k := node.Tags[AddrStreet]
-	return key(k)
+	k = key(k)
+	return k
 }
 
-func queryKey(q string) string {
+func queryKeys(q string) []string {
 	util.Info(q)
 	tags := strings.Split(q, " ")
 	util.Info("%q", tags)
@@ -383,6 +256,7 @@ func queryKey(q string) string {
 	k = expand(k)
 	util.Info(k)
 	k = key(k)
-	util.Info(k)
-	return k
+	ks := strings.Split(k, ",")
+	util.Info("%s", ks)
+	return ks
 }
