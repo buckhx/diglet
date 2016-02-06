@@ -198,12 +198,15 @@ func client(args []string) {
 				pbf := c.String("pbf")
 				addr := c.String("query")
 				if pbf != "" {
-					err := dig.ExcavateOSM(db, pbf)
+					pdb, _ := dig.NewQuarry(db)
+					err := pdb.Excavate(pbf)
 					util.Check(err)
 				} else if addr != "" {
-					geo, err := dig.Geocode(db, addr)
-					util.Check(err)
-					util.Printf("%s", geo)
+					/*
+						geo, err := dig.Geocode(db, addr)
+						util.Check(err)
+						util.Printf("%s", geo)
+					*/
 				}
 			},
 			Flags: []cli.Flag{
