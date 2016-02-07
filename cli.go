@@ -196,17 +196,17 @@ func client(args []string) {
 				defer util.Info("Done!")
 				db := args[0]
 				pbf := c.String("pbf")
-				addr := c.String("query")
+				q := c.String("query")
+				quarry, _ := dig.NewQuarry(db)
 				if pbf != "" {
-					pdb, _ := dig.NewQuarry(db)
-					err := pdb.Excavate(pbf)
+					err := quarry.Excavate(pbf)
 					util.Check(err)
-				} else if addr != "" {
-					/*
-						geo, err := dig.Geocode(db, addr)
-						util.Check(err)
-						util.Printf("%s", geo)
-					*/
+				} else if q != "" {
+					terms := strings.Split(q, " ")
+					hn := terms[0]
+					st := strings.Join(terms[1:], " ")
+					node := quarry.Dig(hn, st)
+					util.Printf("Found! %s", node.AddressString())
 				}
 			},
 			Flags: []cli.Flag{

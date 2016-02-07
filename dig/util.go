@@ -8,8 +8,29 @@ import (
 	"github.com/reiver/go-porterstemmer"
 	_ "math/rand"
 	"regexp"
+	"strconv"
 	"strings"
 )
+
+func score(house, street string, node *Node) float64 {
+	qterm := expand(clean(street))
+	nterm := expand(clean(node.Tags[AddrStreet]))
+	s := matchr.JaroWinkler(qterm, nterm, true)
+	qhn, e1 := strconv.Atoi(house)
+	nhn, e2 := strconv.Atoi(node.Tags[AddrHouseNum])
+	h := matchr.JaroWinkler(house+"  ", node.Tags[AddrHouseNum]+"  ", true)
+	if e1 == nil && e2 == nil { //use integer diff if both parsable
+		d := qhn - nhn
+		if d < 0 {
+			d = -d
+		}
+		h = float64(1000-d) / 1000.0
+		if h < 0 {
+			h = 0.0
+		}
+	}
+	return 5*s + h
+}
 
 func mphones(value string) <-chan string {
 	indexes := make(chan string)

@@ -2,7 +2,7 @@ package dig
 
 import "testing"
 
-func TestMphoneIndex(t *testing.T) {
+func testMphoneIndex(t *testing.T) {
 	street := "42nd Street"
 	for k := range mphones(street) {
 		t.Error(k)

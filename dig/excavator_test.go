@@ -10,7 +10,8 @@ import (
 var (
 	NY_PBF = "/vagrant/us_ny.osm.pbf"
 	HI_PBF = "/vagrant/us_hi.pbf"
-	HI_DIG = "us_hi.dig"
+	NY_DIG = "US_NY.dig"
+	HI_DIG = "US_HI.dig"
 )
 
 func noder(nodes <-chan *dig.Node) {

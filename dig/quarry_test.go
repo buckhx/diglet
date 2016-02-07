@@ -8,13 +8,13 @@ import (
 )
 
 func TestQuarryExcavate(t *testing.T) {
-	qdb, err := dig.NewQuarry(HI_DIG)
+	qdb, err := dig.NewQuarry(NY_DIG)
 	if err != nil {
 		t.Error(err)
 	}
-	//qdb.Excavate(HI_PBF)
+	//qdb.Excavate(NY_PBF)
 	//qdb.PrintStats()
-	qdb.Dig("1000", "Bishop Street")
+	qdb.Dig("11", "west 42nd Street")
 
 	/*
 		util.Info("Starting couriers")

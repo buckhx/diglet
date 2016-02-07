@@ -25,7 +25,7 @@ func NewQuarry(path string) (quarry *Quarry, err error) {
 		return
 	}
 	if err = db.Update(func(tx *bolt.Tx) error {
-		//we're shadowing one of them here
+		//we're shadowing errors
 		_, err = tx.CreateBucketIfNotExists(AddressBucket)
 		_, err = tx.CreateBucketIfNotExists(NodeBucket)
 		_, err = tx.CreateBucketIfNotExists(WayBucket)
@@ -41,144 +41,202 @@ func NewQuarry(path string) (quarry *Quarry, err error) {
 	return
 }
 
-func (q *Quarry) Dig(house, street string) {
+func (q *Quarry) Dig(house, street string) *Node {
+	util.Info("QUERY: %s %s", house, street)
 	indexes := mphones(street)
-	err := q.db.View(func(tx *bolt.Tx) error {
-		ab := tx.Bucket(AddressBucket)
-		nb := tx.Bucket(NodeBucket)
-		for idx := range indexes {
-			k, _ := addressNodes(idx, nil)
-			nids := unmarshalNids(ab.Get(k))
-			for _, nid := range nids {
-				id, _ := marshalID(nid)
-				node, _ := unmarshalNode(nb.Get(id))
-				util.Info("%s", node)
+	nodes := make(chan *Node)
+	go func() {
+		q.db.View(func(tx *bolt.Tx) error {
+			ab := tx.Bucket(AddressBucket)
+			nb := tx.Bucket(NodeBucket)
+			for idx := range indexes {
+				util.Info("%s", idx)
+				k := []byte(idx)
+				nids := unmarshalNids(ab.Get(k))
+				for _, nid := range nids {
+					id, _ := marshalID(nid)
+					node, _ := unmarshalNode(nb.Get(id))
+					nodes <- node
+				}
 			}
+			close(nodes)
+			return nil
+		})
+	}()
+	var match *Node
+	maxscore := 0.0
+	for node := range nodes {
+		s := score(house, street, node)
+		if s > maxscore {
+			maxscore = s
+			match = node
 		}
-		return nil
-	})
-	_ = err
+		util.Info("%s: %f", node.AddressString(), s)
+	}
+	return match
+}
+
+func (q *Quarry) WayNodes(tags ...string) <-chan *WayNode {
+	waynodes := make(chan *WayNode, 1<<15)
+	go func() {
+		defer close(waynodes)
+		prev, _ := marshalID(-1) //first
+		for prev != nil {
+			q.db.View(func(tx *bolt.Tx) error {
+				nb := tx.Bucket(NodeBucket)
+				wb := tx.Bucket(WayBucket)
+				cur := wb.Cursor()
+				cur.Seek(prev)
+				for i := 0; i < 1<<15; i++ {
+					k, v := cur.Next()
+					prev = k
+					if k == nil {
+						break
+					}
+					way, err := unmarshalWay(v)
+					if err != nil {
+						return err
+					}
+					for _, tag := range tags {
+						if _, ok := way.Tags[tag]; ok {
+							nodes := make([]*Node, len(way.NodeIDs))
+							waynode := &WayNode{Way: way, Nodes: nodes}
+							for i, n := range way.NodeIDs {
+								nid, err := marshalID(n)
+								if err != nil {
+									return err
+								}
+								node, err := unmarshalNode(nb.Get(nid))
+								if err != nil {
+									return err
+								}
+								waynode.Nodes[i] = node
+							}
+							waynodes <- waynode
+							break
+						}
+					}
+				}
+				return nil
+			})
+		}
+	}()
+	return waynodes
+}
+
+func (q *Quarry) Nodes(tags ...string) <-chan *Node {
+	nodes := make(chan *Node, 1<<15)
+	go func() {
+		defer close(nodes)
+		err := q.db.View(func(tx *bolt.Tx) error {
+			err := tx.Bucket(NodeBucket).ForEach(func(k, v []byte) error {
+				node, err := unmarshalNode(v)
+				if err != nil {
+					return err
+				}
+				for _, tag := range tags {
+					if _, ok := node.Tags[tag]; ok {
+						nodes <- node
+						break
+					}
+				}
+				return nil
+			})
+			return err
+		})
+		_ = err
+	}()
+	return nodes
 }
 
 func (q *Quarry) indexAddresses() error {
 	util.Info("Indexing addresses...")
 	defer util.Info("Done indexing addresses")
-	err := q.db.Update(func(tx *bolt.Tx) error {
-		ab := tx.Bucket(AddressBucket)
-		addresses := make(map[string][]int64)
-		err := tx.Bucket(NodeBucket).ForEach(func(k, v []byte) error {
-			node, err := unmarshalNode(v)
-			if err != nil {
-				return err
-			}
-			addrs := nodeAddrs(node)
-			for addr := range addrs {
-				addresses[addr] = append(addresses[addr], node.ID)
+	flushAddresses := func(addrs map[string][]int64) error {
+		util.Info("Flushing addresses")
+		err := q.db.Update(func(tx *bolt.Tx) error {
+			ab := tx.Bucket(AddressBucket)
+			for addr, ids := range addrs {
+				k, v := addressNodes(addr, ids)
+				if val := ab.Get(k); val != nil {
+					nids := unmarshalNids(val)
+					ids = append(ids, nids...) //TODO unique
+					k, v = addressNodes(addr, ids)
+				}
+				err := ab.Put(k, v)
+				if err != nil {
+					return err
+				}
 			}
 			return nil
 		})
-		for addr, ids := range addresses {
-			util.Info("a: %s n: %d", addr, len(ids))
-			k, v := addressNodes(addr, ids)
-			err = ab.Put(k, v)
+		return err
+	}
+	i := 0
+	batchSize := 1 << 16
+	addresses := make(map[string][]int64, batchSize)
+	for node := range q.Nodes(AddrStreet) {
+		addrs := nodeAddrs(node)
+		for addr := range addrs {
+			addresses[addr] = append(addresses[addr], node.ID) //TODO unique
+		}
+		if i%batchSize == 0 && i > 0 {
+			err := flushAddresses(addresses)
 			if err != nil {
 				return err
 			}
+			addresses = make(map[string][]int64, batchSize)
 		}
-		return err
-	})
+		i++
+	}
+	err := flushAddresses(addresses)
+	util.Info("Indexed %d addresses", i)
 	return err
 }
 
+func (q *Quarry) enrichNodes() error {
+	util.Info("Enriching nodes")
+	nodes := make(chan *Node, 1<<15)
+	defer close(nodes)
+	go q.AddNodes(nodes)
+	enriched := 0
+	for waynode := range q.WayNodes(AddrStreet) {
+		enriched++
+		way := waynode.Way
+		node := waynode.Nodes[0]
+		node.Tags[AddrHouseNum] = way.Tags[AddrHouseNum]
+		node.Tags[AddrStreet] = way.Tags[AddrStreet]
+		nodes <- node
+	}
+	util.Info("Enriched %d nodes", enriched)
+	return nil
+}
+
 func (q *Quarry) Excavate(pbf string) error {
-	util.Info("Loading Primitives")
-	defer util.Info("Done loading primitives")
 	//q.db.NoSync = true
 	ex, err := NewExcavator(pbf)
 	if err != nil {
 		return err
 	}
-	ex.WayCourier = q.AddWays
-	ex.NodeCourier = q.AddNodes
+	//ex.WayCourier = q.AddWays
+	ex.NodeCourier = q.AddAddressableNodes
 	err = ex.Start(1)
 	if err != nil {
 		return err
 	}
-	util.Info("Enriching nodes")
-	err = q.db.Update(func(tx *bolt.Tx) error {
-		enriched := 0
-		nb := tx.Bucket(NodeBucket)
-		err := tx.Bucket(WayBucket).ForEach(func(k, v []byte) error {
-			way, err := unmarshalWay(v)
-			if err != nil {
-				return err
-			}
-			if _, ok := way.Tags[AddrStreet]; ok {
-				nid, err := marshalID(way.NodeIDs[0])
-				if err != nil {
-					return err
-				}
-				node, err := unmarshalNode(nb.Get(nid))
-				if err != nil {
-					return err
-				}
-				node.Tags[AddrHouseNum] = way.Tags[AddrHouseNum]
-				node.Tags[AddrStreet] = way.Tags[AddrStreet]
-				k, v = node.Keyed()
-				err = nb.Put(k, v)
-				if err != nil {
-					return err
-				}
-				enriched++
-			}
-			return nil
-		})
-		util.Info("Enriched %d nodes", enriched)
-		return err
-	})
-	if err != nil {
-		return err
-	}
-	err = q.indexAddresses()
 	/*
-		ex.WayCourier = func(ways <-chan *Way) {
-			util.Info("IN COURIER")
-			joins := make(chan *Way)
-			defer close(joins)
-			//	go q.AddWays(joins)
-			for way := range ways {
-				util.Info("WAY: %+v", way)
-				if _, ok := way.Tags[AddrHouseNum]; ok {
-					way.NodeIDs = way.NodeIDs[:1]
-					way.ID = way.NodeIDs[0]
-					joins <- way
-				}
-			}
-		}
-		err = ex.Start(1)
-		if err != nil {
-			return err
-		}
-		ex.NodeCourier = func(nodes <-chan *Node) {
-			inserts := make(chan *Node)
-			q.AddNodes(inserts)
-			for node := range nodes {
-				if _, ok := node.Tags[AddrStreet]; ok {
-					inserts <- node
-				}
-			}
-		}
-		err = ex.Restart(1)
+		err = q.enrichNodes()
 		if err != nil {
 			return err
 		}
 	*/
-	return nil
+	err = q.indexAddresses()
+	return err
 }
 
 func (q *Quarry) AddWays(ways <-chan *Way) {
 	i := 0
-	capacity := 65536 //BlockSize
+	capacity := 1 << 16 //BlockSize
 	batch := make([]OsmElement, capacity)
 	for way := range ways {
 		batch[i] = way
@@ -193,9 +251,20 @@ func (q *Quarry) AddWays(ways <-chan *Way) {
 	util.Warn(err, "batch error")
 }
 
+func (q *Quarry) AddAddressableNodes(nodes <-chan *Node) {
+	addrs := make(chan *Node, 1<<16)
+	defer close(addrs)
+	go q.AddNodes(addrs)
+	for node := range nodes {
+		if _, ok := node.Tags[AddrStreet]; ok {
+			addrs <- node
+		}
+	}
+}
+
 func (q *Quarry) AddNodes(nodes <-chan *Node) {
 	i := 0
-	capacity := 65536 //BlockSize
+	capacity := 1 << 16 //BlockSize
 	batch := make([]OsmElement, capacity)
 	for node := range nodes {
 		n := i % capacity
@@ -221,6 +290,10 @@ func (q *Quarry) PrintStats() {
 
 // Write an ordered key
 func (q *Quarry) flush(bucket []byte, elements []OsmElement) error {
+	if len(elements) < 1 {
+		util.Info("Flushing empty batch, skipping")
+		return nil
+	}
 	util.Info("Flushing batch %s %d -> %d", bucket, elements[0].GetID(), elements[len(elements)-1].GetID())
 	return q.db.Batch(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucket)
@@ -231,7 +304,7 @@ func (q *Quarry) flush(bucket []byte, elements []OsmElement) error {
 				return err
 			}
 		}
-		util.Debug("TX - id: %d, stats: %+v", tx.ID, tx.Stats())
+		//util.Debug("TX - id: %d, stats: %+v", tx.ID, tx.Stats())
 		return nil
 	})
 }
