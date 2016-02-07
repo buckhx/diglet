@@ -1,6 +1,7 @@
 package dig
 
 import (
+	"bytes"
 	"github.com/boltdb/bolt"
 	"github.com/buckhx/diglet/util"
 )
@@ -51,12 +52,15 @@ func (q *Quarry) Dig(house, street string) *Node {
 			nb := tx.Bucket(NodeBucket)
 			for idx := range indexes {
 				util.Info("%s", idx)
-				k := []byte(idx)
-				nids := unmarshalNids(ab.Get(k))
-				for _, nid := range nids {
-					id, _ := marshalID(nid)
-					node, _ := unmarshalNode(nb.Get(id))
-					nodes <- node
+				c := ab.Cursor()
+				pre := []byte(idx)
+				for k, v := c.Seek(pre); bytes.HasPrefix(k, pre); k, v = c.Next() {
+					nids := unmarshalNids(v)
+					for _, nid := range nids {
+						id, _ := marshalID(nid)
+						node, _ := unmarshalNode(nb.Get(id))
+						nodes <- node
+					}
 				}
 			}
 			close(nodes)
