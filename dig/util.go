@@ -3,7 +3,7 @@ package dig
 import (
 	"bytes"
 	"github.com/antzucaro/matchr"
-	_ "github.com/buckhx/diglet/util"
+	"github.com/buckhx/diglet/util"
 	"github.com/deckarep/golang-set"
 	"github.com/reiver/go-porterstemmer"
 	_ "math/rand"
@@ -12,15 +12,15 @@ import (
 	"strings"
 )
 
-func score(house, street string, node *Node) float64 {
-	qterm := expand(clean(street))
-	nterm := expand(clean(node.Tags[AddrStreet]))
+func editDist(from_st, from_hn, to_st, to_hn string) float64 {
+	qterm := expand(clean(from_st))
+	nterm := expand(clean(to_st))
 	s := matchr.JaroWinkler(qterm, nterm, true)
-	qhn, e1 := strconv.Atoi(house)
-	nhn, e2 := strconv.Atoi(node.Tags[AddrHouseNum])
-	h := matchr.JaroWinkler(house+"  ", node.Tags[AddrHouseNum]+"  ", true)
+	fhn, e1 := strconv.Atoi(from_hn)
+	thn, e2 := strconv.Atoi(to_hn)
+	h := matchr.JaroWinkler(from_hn+"  ", to_hn+"  ", true)
 	if e1 == nil && e2 == nil { //use integer diff if both parsable
-		d := qhn - nhn
+		d := fhn - thn
 		if d < 0 {
 			d = -d
 		}
@@ -94,17 +94,20 @@ func joinStrings(vals []interface{}) string {
 }
 
 func expand(s string) string {
+	s = util.Sprintf(" %s ", s)
 	for i, o := range expansions {
 		s = strings.Replace(s, i, o, -1)
 	}
 	s = strings.Replace(s, "  ", " ", -1)
+	s = strings.Trim(s, " ")
 	//return util.Sprintf(" %s ", s)
 	return s
 }
 
 func clean(s string) string {
 	s = strings.ToLower(s)
-	return nonword.ReplaceAllString(s, "")
+	s = nonword.ReplaceAllString(s, "")
+	return s
 }
 
 var nonword = regexp.MustCompile("[^\\w ]")

@@ -6,7 +6,6 @@ import (
 	_ "github.com/buckhx/diglet/util"
 	"github.com/qedus/osmpbf"
 	"gopkg.in/vmihailenco/msgpack.v2"
-	"strings"
 )
 
 const (
@@ -14,6 +13,7 @@ const (
 	AddrStreet   = "addr:street"
 	AddrCity     = "addr:city"
 	AddrCountry  = "addr:country"
+	AddrPostcode = "addr:postcode"
 
 	AddrPrefix  = "addr:"
 	GnisPrefix  = "gnis:"
@@ -27,8 +27,8 @@ type OsmElement interface {
 	GetID() int64
 }
 
-func addressNodes(addr string, nodeIDs []int64) (k, v []byte) {
-	k = []byte(addr)
+func marshalAddrIndex(idx string, nodeIDs []int64) (k, v []byte) {
+	k = []byte(idx)
 	v, err := msgpack.Marshal(nodeIDs)
 	if err != nil {
 		k = nil
@@ -39,11 +39,6 @@ func addressNodes(addr string, nodeIDs []int64) (k, v []byte) {
 func unmarshalNids(b []byte) (nids []int64) {
 	_ = msgpack.Unmarshal(b, &nids)
 	return
-}
-
-func nodeAddrs(node *Node) (addrs <-chan string) {
-	// metaphone terms
-	return mphones(node.Tags[AddrStreet])
 }
 
 type WayNode struct {
@@ -58,18 +53,6 @@ type Node struct {
 func unmarshalNode(b []byte) (o *Node, err error) {
 	err = msgpack.Unmarshal(b, &o)
 	return
-}
-
-func (node *Node) AddressString() string {
-	house := node.Tags[AddrHouseNum] //TODO housename/conscription
-	street := node.Tags[AddrStreet]
-	// TODO infer the following from geometries
-	city := node.Tags[AddrCity] //
-	//region :=
-	country := node.Tags[AddrCountry]
-	addr := strings.Join([]string{house, street, city, country}, " ")
-	addr = clean(strings.Trim(addr, " "))
-	return addr
 }
 
 func (o *Node) GetID() int64 {

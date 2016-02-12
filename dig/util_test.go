@@ -2,17 +2,30 @@ package dig
 
 import "testing"
 
-func testMphoneIndex(t *testing.T) {
-	street := "42nd Street"
-	for k := range mphones(street) {
-		t.Error(k)
+func TestMphoneIndex(t *testing.T) {
+	addrs := []string{
+		"42nd Street",
+		"N 4th Street",
+		"n. forth Street",
 	}
-	street = "N 4th Street"
-	for k := range mphones(street) {
-		t.Error(k)
+	for _, addr := range addrs {
+		mphones := mphones(addr)
+		for mphone := range mphones {
+			t.Errorf(mphone)
+		}
 	}
-	street = "N forth Street"
-	for k := range mphones(street) {
-		t.Error(k)
+}
+
+func TestExpand(t *testing.T) {
+	addrs := []string{
+		"72 n forth st",
+		"72 n. forth st",
+		"72 n. 4th st",
+		"n. 4th st",
+		"north 4th st",
+	}
+	for _, addr := range addrs {
+		exaddr := expand(clean(addr))
+		t.Errorf("%s -> %s ", addr, exaddr)
 	}
 }

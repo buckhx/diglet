@@ -42,10 +42,10 @@ func NewQuarry(path string) (quarry *Quarry, err error) {
 	return
 }
 
-func (q *Quarry) Dig(house, street string) *Node {
-	util.Info("QUERY: %s %s", house, street)
-	indexes := mphones(street)
-	nodes := make(chan *Node)
+func (q *Quarry) Dig(query Address) (match Address) {
+	util.Info("QUERY: %s", query)
+	indexes := query.Indexes()
+	addresses := make(chan Address)
 	go func() {
 		q.db.View(func(tx *bolt.Tx) error {
 			ab := tx.Bucket(AddressBucket)
@@ -59,25 +59,25 @@ func (q *Quarry) Dig(house, street string) *Node {
 					for _, nid := range nids {
 						id, _ := marshalID(nid)
 						node, _ := unmarshalNode(nb.Get(id))
-						nodes <- node
+						addresses <- NodeAddress(node)
 					}
 				}
 			}
-			close(nodes)
+			close(addresses)
 			return nil
 		})
 	}()
-	var match *Node
-	maxscore := 0.0
-	for node := range nodes {
-		s := score(house, street, node)
-		if s > maxscore {
-			maxscore = s
-			match = node
+	maxdist := 0.0
+	for addr := range addresses {
+		d := query.edist(addr)
+		if d > maxdist {
+			maxdist = d
+			match = addr
 		}
-		util.Info("%s: %f", node.AddressString(), s)
+		util.Info("%s: %f", addr, d)
 	}
-	return match
+	util.Info("MATCH %s: %f", match, maxdist)
+	return
 }
 
 func (q *Quarry) WayNodes(tags ...string) <-chan *WayNode {
@@ -156,16 +156,16 @@ func (q *Quarry) Nodes(tags ...string) <-chan *Node {
 func (q *Quarry) indexAddresses() error {
 	util.Info("Indexing addresses...")
 	defer util.Info("Done indexing addresses")
-	flushAddresses := func(addrs map[string][]int64) error {
+	flushIndexes := func(indexes map[string][]int64) error {
 		util.Info("Flushing addresses")
 		err := q.db.Update(func(tx *bolt.Tx) error {
 			ab := tx.Bucket(AddressBucket)
-			for addr, ids := range addrs {
-				k, v := addressNodes(addr, ids)
+			for idx, ids := range indexes {
+				k, v := marshalAddrIndex(idx, ids)
 				if val := ab.Get(k); val != nil {
 					nids := unmarshalNids(val)
 					ids = append(ids, nids...) //TODO unique
-					k, v = addressNodes(addr, ids)
+					k, v = marshalAddrIndex(idx, ids)
 				}
 				err := ab.Put(k, v)
 				if err != nil {
@@ -178,22 +178,22 @@ func (q *Quarry) indexAddresses() error {
 	}
 	i := 0
 	batchSize := 1 << 16
-	addresses := make(map[string][]int64, batchSize)
+	indexes := make(map[string][]int64, batchSize)
 	for node := range q.Nodes(AddrStreet) {
-		addrs := nodeAddrs(node)
-		for addr := range addrs {
-			addresses[addr] = append(addresses[addr], node.ID) //TODO unique
+		addr := NodeAddress(node)
+		for idx := range addr.Indexes() {
+			indexes[idx] = append(indexes[idx], node.ID) //TODO unique
 		}
 		if i%batchSize == 0 && i > 0 {
-			err := flushAddresses(addresses)
+			err := flushIndexes(indexes)
 			if err != nil {
 				return err
 			}
-			addresses = make(map[string][]int64, batchSize)
+			indexes = make(map[string][]int64, batchSize)
 		}
 		i++
 	}
-	err := flushAddresses(addresses)
+	err := flushIndexes(indexes)
 	util.Info("Indexed %d addresses", i)
 	return err
 }
@@ -216,18 +216,18 @@ func (q *Quarry) enrichNodes() error {
 	return nil
 }
 
-func (q *Quarry) Excavate(pbf string) error {
+func (q *Quarry) Excavate(pbf string) (err error) {
 	//q.db.NoSync = true
-	ex, err := NewExcavator(pbf)
-	if err != nil {
-		return err
-	}
-	//ex.WayCourier = q.AddWays
-	ex.NodeCourier = q.AddAddressableNodes
-	err = ex.Start(1)
-	if err != nil {
-		return err
-	}
+	//ex, err := NewExcavator(pbf)
+	//if err != nil {
+	//	return err
+	//}
+	//ex.WayCourier = q.AddAdminWays
+	//ex.NodeCourier = q.AddAddressableNodes
+	//err = ex.Start(1)
+	//if err != nil {
+	//	return err
+	//}
 	/*
 		err = q.enrichNodes()
 		if err != nil {
@@ -235,7 +235,7 @@ func (q *Quarry) Excavate(pbf string) error {
 		}
 	*/
 	err = q.indexAddresses()
-	return err
+	return
 }
 
 func (q *Quarry) AddWays(ways <-chan *Way) {
@@ -253,6 +253,16 @@ func (q *Quarry) AddWays(ways <-chan *Way) {
 	}
 	err := q.flush(WayBucket, batch[:i+1])
 	util.Warn(err, "batch error")
+}
+
+func (q *Quarry) AddAdminWays(ways <-chan *Way) {
+	for way := range ways {
+		if adlvl, ok := way.Tags["admin_level"]; ok && adlvl == "6" {
+			util.Info("%s %d", way.Tags, len(way.NodeIDs))
+
+			//addrs <- node
+		}
+	}
 }
 
 func (q *Quarry) AddAddressableNodes(nodes <-chan *Node) {

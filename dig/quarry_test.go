@@ -14,7 +14,9 @@ func TestQuarryExcavate(t *testing.T) {
 	}
 	//qdb.Excavate(NY_PBF)
 	//qdb.PrintStats()
-	qdb.Dig("11", "west 42nd Street")
+	addr := dig.Address{HouseNumber: "72", Street: "N 4th Street", Postcode: "11249"}
+	qdb.Dig(addr)
+	//qdb.Dig("11", "west 42nd Street", "")
 
 	/*
 		util.Info("Starting couriers")
