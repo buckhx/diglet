@@ -80,6 +80,7 @@ func (q *Quarry) Dig(query Address) (match Address) {
 	return
 }
 
+/*
 func (q *Quarry) WayNodes(tags ...string) <-chan *WayNode {
 	waynodes := make(chan *WayNode, 1<<15)
 	go func() {
@@ -127,6 +128,7 @@ func (q *Quarry) WayNodes(tags ...string) <-chan *WayNode {
 	}()
 	return waynodes
 }
+*/
 
 func (q *Quarry) Nodes(tags ...string) <-chan *Node {
 	nodes := make(chan *Node, 1<<15)
@@ -157,7 +159,6 @@ func (q *Quarry) indexAddresses() error {
 	util.Info("Indexing addresses...")
 	defer util.Info("Done indexing addresses")
 	flushIndexes := func(indexes map[string][]int64) error {
-		util.Info("Flushing addresses")
 		err := q.db.Update(func(tx *bolt.Tx) error {
 			ab := tx.Bucket(AddressBucket)
 			for idx, ids := range indexes {
@@ -186,6 +187,7 @@ func (q *Quarry) indexAddresses() error {
 		}
 		if i%batchSize == 0 && i > 0 {
 			err := flushIndexes(indexes)
+			util.Info("Flushing %d addresses @ %d", len(indexes), i)
 			if err != nil {
 				return err
 			}
@@ -198,6 +200,7 @@ func (q *Quarry) indexAddresses() error {
 	return err
 }
 
+/*
 func (q *Quarry) enrichNodes() error {
 	util.Info("Enriching nodes")
 	nodes := make(chan *Node, 1<<15)
@@ -215,46 +218,90 @@ func (q *Quarry) enrichNodes() error {
 	util.Info("Enriched %d nodes", enriched)
 	return nil
 }
+*/
 
 func (q *Quarry) Excavate(pbf string) (err error) {
 	//q.db.NoSync = true
-	//ex, err := NewExcavator(pbf)
-	//if err != nil {
-	//	return err
-	//}
-	//ex.WayCourier = q.AddAdminWays
-	//ex.NodeCourier = q.AddAddressableNodes
-	//err = ex.Start(1)
-	//if err != nil {
-	//	return err
-	//}
+	ex, err := NewExcavator(pbf)
+	if err != nil {
+		return err
+	}
+	//ex.NodeCourier = q.AddNodes         //AddressableNodes
+	ex.WayCourier = q.AddWays //AddressableNodes
+	//ex.RelationCourier = q.AddRelations //AddressableNodes
+	err = ex.Start(4)
+	if err != nil {
+		return err
+	}
 	/*
 		err = q.enrichNodes()
 		if err != nil {
 			return err
 		}
+		err = q.indexAddresses()
 	*/
-	err = q.indexAddresses()
 	return
 }
 
-func (q *Quarry) AddWays(ways <-chan *Way) {
-	i := 0
-	capacity := 1 << 16 //BlockSize
-	batch := make([]OsmElement, capacity)
-	for way := range ways {
-		batch[i] = way
-		if i >= capacity-1 {
-			err := q.flush(WayBucket, batch)
-			util.Warn(err, "batch error")
-			i = -1
+func (q *Quarry) AddRelations(relations <-chan *Relation) {
+	count := 0
+	members := 0
+	for r := range relations {
+		if r.Tags["admin_level"] == "6" {
+			util.Info("%s", r)
+			count++
+			members += len(r.Members)
 		}
-		i++
 	}
-	err := q.flush(WayBucket, batch[:i+1])
-	util.Warn(err, "batch error")
+	util.Info("%d relations, %d members", count, members)
+	/*
+		elems := make(chan OsmElement)
+		go func() {
+			defer close(elems)
+			for e := range relations {
+				elems <- e
+			}
+		}()
+		q.addOsmElements(RelationBucket, elems)
+	*/
 }
 
+func (q *Quarry) AddWays(ways <-chan *Way) {
+	count := 0
+	members := 0
+	for way := range ways {
+		if _, ok := way.Tags["building"]; ok { //way.Tags["admin_level"] == "6" {
+			//util.Info("%s", way)
+			count++
+			members += len(way.NodeIDs)
+		}
+	}
+	util.Info("%d ways, %d members", count, members)
+	/*
+		elems := make(chan OsmElement)
+		go func() {
+			defer close(elems)
+			for e := range ways {
+				elems <- e
+			}
+		}()
+		q.addOsmElements(WayBucket, elems)
+	*/
+}
+
+func (q *Quarry) AddNodes(nodes <-chan *Node) {
+	elems := make(chan OsmElement)
+	go func() {
+		defer close(elems)
+		for e := range nodes {
+			// TODO filter has street or in bloom
+			elems <- e
+		}
+	}()
+	q.addOsmElements(NodeBucket, elems)
+}
+
+/*
 func (q *Quarry) AddAdminWays(ways <-chan *Way) {
 	for way := range ways {
 		if adlvl, ok := way.Tags["admin_level"]; ok && adlvl == "6" {
@@ -275,24 +322,7 @@ func (q *Quarry) AddAddressableNodes(nodes <-chan *Node) {
 		}
 	}
 }
-
-func (q *Quarry) AddNodes(nodes <-chan *Node) {
-	i := 0
-	capacity := 1 << 16 //BlockSize
-	batch := make([]OsmElement, capacity)
-	for node := range nodes {
-		n := i % capacity
-		batch[n] = node
-		if n == 0 && i > 0 {
-			err := q.flush(NodeBucket, batch)
-			util.Warn(err, "batch error")
-		}
-		i++
-	}
-	err := q.flush(NodeBucket, batch[:i%capacity])
-	util.Warn(err, "batch error")
-	util.Info("Added %d nodes", i)
-}
+*/
 
 func (q *Quarry) PrintStats() {
 	q.db.View(func(tx *bolt.Tx) error {
@@ -321,6 +351,24 @@ func (q *Quarry) flush(bucket []byte, elements []OsmElement) error {
 		//util.Debug("TX - id: %d, stats: %+v", tx.ID, tx.Stats())
 		return nil
 	})
+}
+
+func (q *Quarry) addOsmElements(bucket []byte, elems <-chan OsmElement) {
+	i := 0
+	capacity := 1 << 16 //BlockSize
+	batch := make([]OsmElement, capacity)
+	for e := range elems {
+		n := i % capacity
+		if n == 0 && i > 0 {
+			err := q.flush(bucket, batch)
+			util.Warn(err, "batch error")
+		}
+		batch[n] = e
+		i++
+	}
+	err := q.flush(bucket, batch[:i%capacity])
+	util.Warn(err, "batch error")
+	util.Info("Added %d %ss", i, bucket)
 }
 
 func (q *Quarry) Close() {

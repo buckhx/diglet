@@ -28,6 +28,13 @@ func NewExcavator(pbfpath string) (ex *Excavator, err error) {
 	if err != nil {
 		return
 	}
+	/*
+		stat, err := file.Stat()
+		if err != nil {
+			return
+		}
+		est := stat.Size() >> 8
+	*/
 	pbf := osmpbf.NewDecoder(file)
 	ex = &Excavator{
 		pbfpath:   pbfpath,

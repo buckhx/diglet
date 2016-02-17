@@ -25,6 +25,16 @@ func NodeAddress(node *Node) Address {
 	return Address{HouseNumber: hn, Street: st, Postcode: pc, Tags: tags}
 }
 
+func QueryAddress(query string) Address {
+	tags := make(map[string]string)
+	params := strings.Split(query, "&")
+	for _, param := range params {
+		kv := strings.Split(param, "=")
+		tags[kv[0]] = kv[1]
+	}
+	return Address{HouseNumber: tags["house"], Street: tags["street"], Postcode: tags["postcode"], Tags: tags}
+}
+
 func (a Address) Indexes() <-chan string {
 	keys := make(chan string)
 	post := a.Postcode

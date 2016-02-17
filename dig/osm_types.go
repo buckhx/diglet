@@ -108,6 +108,26 @@ type Relation struct {
 	*osmpbf.Relation
 }
 
+func (o *Relation) GetID() int64 {
+	return o.ID
+}
+
+func (o *Relation) Keyed() (k, v []byte) {
+	k, err := msgpack.Marshal(o.ID)
+	if err != nil {
+		return
+	}
+	v, err = msgpack.Marshal(o)
+	if err != nil {
+		k = nil
+	}
+	return
+}
+
+func (o *Relation) Valid() bool {
+	return o.Info.Visible
+}
+
 func marshalID(id int64) ([]byte, error) {
 	return msgpack.Marshal(id)
 }

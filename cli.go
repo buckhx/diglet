@@ -202,11 +202,9 @@ func client(args []string) {
 					err := quarry.Excavate(pbf)
 					util.Check(err)
 				} else if q != "" {
-					terms := strings.Split(q, " ")
-					hn := terms[0]
-					st := strings.Join(terms[1:], " ")
-					node := quarry.Dig(hn, st)
-					util.Printf("Found! %s", node.AddressString())
+					addr := dig.QueryAddress(q)
+					match := quarry.Dig(addr)
+					util.Printf("Found! %s", match)
 				}
 			},
 			Flags: []cli.Flag{
