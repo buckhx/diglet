@@ -12,7 +12,10 @@ func TestQuarryExcavate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	qdb.Excavate(NY_PBF)
+	//qdb.Survey(GNPOST)
+	dig.Excavate(qdb, NY_PBF, GNPOST)
+
+	//qdb.Excavate(NY_PBF)
 	//qdb.PrintStats()
 	//addr := dig.Address{HouseNumber: "72", Street: "N 4th Street", Postcode: "11249"}
 	//qdb.Dig(addr)

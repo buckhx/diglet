@@ -3,9 +3,10 @@ package dig
 import (
 	_ "bytes"
 	_ "encoding/gob"
-	_ "github.com/buckhx/diglet/util"
+	"github.com/buckhx/diglet/util"
 	"github.com/qedus/osmpbf"
 	"gopkg.in/vmihailenco/msgpack.v2"
+	"strconv"
 )
 
 const (
@@ -14,18 +15,14 @@ const (
 	AddrCity     = "addr:city"
 	AddrCountry  = "addr:country"
 	AddrPostcode = "addr:postcode"
+	AdminLevel   = "admin_level"
+	Boundary     = "boundary"
 
 	AddrPrefix  = "addr:"
 	GnisPrefix  = "gnis:"
 	TigerPrefix = "tiger:"
 	BlockSize   = 8000
 )
-
-type OsmElement interface {
-	Keyed() (key, value []byte)
-	Valid() bool
-	GetID() int64
-}
 
 func marshalAddrIndex(idx string, nodeIDs []int64) (k, v []byte) {
 	k = []byte(idx)
@@ -41,11 +38,6 @@ func unmarshalNids(b []byte) (nids []int64) {
 	return
 }
 
-type WayNode struct {
-	Nodes []*Node
-	Way   *Way
-}
-
 type Node struct {
 	*osmpbf.Node
 }
@@ -55,8 +47,16 @@ func unmarshalNode(b []byte) (o *Node, err error) {
 	return
 }
 
-func (o *Node) GetID() int64 {
-	return o.ID
+func (o *Node) IsAddressable() bool {
+	return o.Valid() && o.Tags[AddrStreet] != ""
+}
+
+func (o *Node) Key() string {
+	return strconv.FormatInt(o.ID, 10)
+}
+
+func (o *Node) String() string {
+	return util.Sprintf("%+v", o)
 }
 
 func (o *Node) Keyed() (k, v []byte) {
@@ -71,6 +71,10 @@ func (o *Node) Keyed() (k, v []byte) {
 	return
 }
 
+func (o *Node) GetID() int64 {
+	return o.ID
+}
+
 func (o *Node) Valid() bool {
 	return o.Info.Visible
 }
@@ -79,13 +83,25 @@ type Way struct {
 	*osmpbf.Way
 }
 
+func (o *Way) IsSubregionBoundary() bool {
+	return o.Tags[AdminLevel] == "6" && o.Tags[Boundary] == "administrative"
+}
+
+func (o *Way) IsAddressable() bool {
+	return o.Valid() && (o.Tags[AddrStreet] != "" || o.Tags["highway"] == "residential")
+}
+
 func unmarshalWay(b []byte) (o *Way, err error) {
 	err = msgpack.Unmarshal(b, &o)
 	return
 }
 
-func (o *Way) GetID() int64 {
-	return o.ID
+func (o *Way) Key() string {
+	return strconv.FormatInt(o.ID, 10)
+}
+
+func (o *Way) String() string {
+	return util.Sprintf("%+v", o)
 }
 
 func (o *Way) Keyed() (k, v []byte) {
@@ -108,8 +124,16 @@ type Relation struct {
 	*osmpbf.Relation
 }
 
-func (o *Relation) GetID() int64 {
-	return o.ID
+func (o *Relation) IsSubregionBoundary() bool {
+	return o.Tags[AdminLevel] == "6" && o.Tags[Boundary] == "administrative"
+}
+
+func (o *Relation) Key() string {
+	return strconv.FormatInt(o.ID, 10)
+}
+
+func (o *Relation) String() string {
+	return util.Sprintf("%+v", o)
 }
 
 func (o *Relation) Keyed() (k, v []byte) {

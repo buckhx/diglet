@@ -12,6 +12,7 @@ var (
 	HI_PBF = "/vagrant/us_hi.pbf"
 	NY_DIG = "US_NY.dig"
 	HI_DIG = "US_HI.dig"
+	GNPOST = "/vagrant/postcodes/allCountries.txt"
 )
 
 func noder(nodes <-chan *dig.Node) {
