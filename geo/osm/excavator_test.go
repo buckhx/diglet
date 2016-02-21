@@ -1,4 +1,4 @@
-package dig_test
+package osm_test
 
 import (
 	"github.com/buckhx/diglet/dig"

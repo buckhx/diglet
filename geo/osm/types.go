@@ -1,4 +1,4 @@
-package dig
+package osm
 
 import (
 	_ "bytes"
@@ -9,6 +9,7 @@ import (
 	"strconv"
 )
 
+//TODO split types into their own module
 const (
 	AddrHouseNum = "addr:housenumber"
 	AddrStreet   = "addr:street"
@@ -22,9 +23,12 @@ const (
 	GnisPrefix  = "gnis:"
 	TigerPrefix = "tiger:"
 	BlockSize   = 8000
+
+	RoleOuter = "outer"
+	RoleInner = "inner"
 )
 
-func marshalAddrIndex(idx string, nodeIDs []int64) (k, v []byte) {
+func MarshalAddrIndex(idx string, nodeIDs []int64) (k, v []byte) {
 	k = []byte(idx)
 	v, err := msgpack.Marshal(nodeIDs)
 	if err != nil {
@@ -33,7 +37,7 @@ func marshalAddrIndex(idx string, nodeIDs []int64) (k, v []byte) {
 	return
 }
 
-func unmarshalNids(b []byte) (nids []int64) {
+func UnmarshalNids(b []byte) (nids []int64) {
 	_ = msgpack.Unmarshal(b, &nids)
 	return
 }
@@ -42,7 +46,7 @@ type Node struct {
 	*osmpbf.Node
 }
 
-func unmarshalNode(b []byte) (o *Node, err error) {
+func UnmarshalNode(b []byte) (o *Node, err error) {
 	err = msgpack.Unmarshal(b, &o)
 	return
 }
@@ -91,7 +95,7 @@ func (o *Way) IsAddressable() bool {
 	return o.Valid() && (o.Tags[AddrStreet] != "" || o.Tags["highway"] == "residential")
 }
 
-func unmarshalWay(b []byte) (o *Way, err error) {
+func UnmarshalWay(b []byte) (o *Way, err error) {
 	err = msgpack.Unmarshal(b, &o)
 	return
 }
@@ -124,6 +128,11 @@ type Relation struct {
 	*osmpbf.Relation
 }
 
+func UnmarshalRelation(b []byte) (o *Relation, err error) {
+	err = msgpack.Unmarshal(b, &o)
+	return
+}
+
 func (o *Relation) IsSubregionBoundary() bool {
 	return o.Tags[AdminLevel] == "6" && o.Tags[Boundary] == "administrative"
 }
@@ -152,6 +161,12 @@ func (o *Relation) Valid() bool {
 	return o.Info.Visible
 }
 
-func marshalID(id int64) ([]byte, error) {
+func MarshalID(id int64) ([]byte, error) {
 	return msgpack.Marshal(id)
 }
+
+var (
+	NodeType     = osmpbf.NodeType
+	WayType      = osmpbf.WayType
+	RelationType = osmpbf.RelationType
+)

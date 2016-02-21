@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"github.com/buckhx/diglet/util"
 	"github.com/tylertreat/boomfilters"
+	"sync"
 )
 
 const (
@@ -12,6 +13,7 @@ const (
 
 type OsmFilter struct {
 	filter boom.Filter
+	sync.RWMutex
 	//filter *boom.CuckooFilter
 }
 
@@ -26,11 +28,15 @@ func NewOsmFilter(filesize int64) (o *OsmFilter) {
 }
 
 func (o *OsmFilter) Add(k []byte) *OsmFilter {
+	o.Lock()
+	defer o.Unlock()
 	o.filter.Add(k)
 	return o
 }
 
 func (o *OsmFilter) Has(k []byte) bool {
+	o.RLock()
+	defer o.RUnlock()
 	return o.filter.Test(k)
 }
 

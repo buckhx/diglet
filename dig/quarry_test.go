@@ -7,6 +7,14 @@ import (
 	"testing"
 )
 
+const (
+	NY_PBF = "/vagrant/us_ny.osm.pbf"
+	HI_PBF = "/vagrant/us_hi.pbf"
+	NY_DIG = "US_NY.dig"
+	HI_DIG = "US_HI.dig"
+	GNPOST = "/vagrant/postcodes/allCountries.txt"
+)
+
 func TestQuarryExcavate(t *testing.T) {
 	qdb, err := dig.NewQuarry(NY_DIG)
 	if err != nil {

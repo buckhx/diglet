@@ -1,4 +1,4 @@
-package dig
+package osm
 
 import (
 	"github.com/buckhx/diglet/util"

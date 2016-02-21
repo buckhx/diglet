@@ -3,14 +3,35 @@ package dig
 import (
 	"bytes"
 	"github.com/antzucaro/matchr"
+	"github.com/buckhx/diglet/geo"
 	"github.com/buckhx/diglet/util"
 	"github.com/deckarep/golang-set"
+	"github.com/kpawlik/geojson"
 	"github.com/reiver/go-porterstemmer"
 	_ "math/rand"
 	"regexp"
 	"strconv"
 	"strings"
 )
+
+func printGeojson(regions map[int64]*geo.Feature) {
+	features := make([]*geojson.Feature, len(regions))
+	i := 0
+	for id, region := range regions {
+		line := make([]geojson.Coordinate, len(region.Geometry[0].Coordinates))
+		for i, c := range region.Geometry[0].Coordinates {
+			line[i] = geojson.Coordinate{geojson.Coord(c.Lat), geojson.Coord(c.Lon)}
+		}
+		polygon := geojson.NewPolygon(geojson.MultiLine([]geojson.Coordinates{line}))
+		feature := geojson.NewFeature(polygon, region.Properties, id)
+		features[i] = feature
+		i++
+	}
+	coll := geojson.NewFeatureCollection(features)
+	s, err := geojson.Marshal(coll)
+	util.Check(err)
+	util.Info("%s", s)
+}
 
 func editDist(from_st, from_hn, to_st, to_hn string) float64 {
 	qterm := expand(clean(from_st))

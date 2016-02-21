@@ -1,6 +1,7 @@
 package dig
 
 import (
+	"github.com/buckhx/diglet/geo/osm"
 	"strings"
 )
 
@@ -17,10 +18,10 @@ type Address struct {
 	Tags        map[string]string
 }
 
-func NodeAddress(node *Node) Address {
-	hn := node.Tags[AddrHouseNum]
-	st := node.Tags[AddrStreet]
-	pc := node.Tags[AddrPostcode]
+func NodeAddress(node *osm.Node) Address {
+	hn := node.Tags[osm.AddrHouseNum]
+	st := node.Tags[osm.AddrStreet]
+	pc := node.Tags[osm.AddrPostcode]
 	tags := node.Tags
 	return Address{HouseNumber: hn, Street: st, Postcode: pc, Tags: tags}
 }
