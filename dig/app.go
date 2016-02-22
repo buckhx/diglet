@@ -25,108 +25,14 @@ func Excavate(q *Quarry, pbf, postcodes string) (err error) {
 func loadSubregions(q *Quarry) map[int64]*geo.Feature {
 	subregions := make(map[int64]*geo.Feature) //, 88)
 	for rel := range q.Relations() {
-		if rel.ID != 1837989 {
-			continue
-		}
-		feature := relationFeature(q, rel)
 		/*
-			feature := geo.NewPolygonFeature()
-			feature.Properties = make(map[string]interface{}, len(rel.Tags))
-			for k, v := range rel.Tags {
-				feature.Properties[k] = v
+			if rel.ID != 1427734 {
+				continue
 			}
-			cur := geo.NewShape()
-			shapes := make([]*geo.Shape, len(rel.Members))
-			shapes := relationShapes(rel)
-			for i, m := range rel.Members {
-				if m.Type != osm.WayType {
-					// not going to deal with rel->rel & rel->node
-					shapes[i] = geo.NewShape()
-					continue
-				}
-				shapes[i] = wayShape(q, m.ID)
-					if shp.Length() == 0 {
-						util.Info("%d length 0, skipping", m.ID)
-					} else if cur.Length() == 0 || cur.Tail() == shp.Head() {
-						cur.Append(shp)
-					} else if cur.Tail() == shp.Tail() {
-						shp.Reverse()
-						cur.Append(shp)
-					} else {
-						if cur.IsClosed() {
-							switch m.Role {
-							// outer rings -> clockwise
-							// inner rings -> anti-clockwise
-							case osm.RoleOuter:
-								if !cur.IsClockwise() {
-									cur.Reverse()
-								}
-							case osm.RoleInner:
-								if cur.IsClockwise() {
-									cur.Reverse()
-								}
-							}
-						} else {
-							//util.Info("Warning: Relation %d %q is not closed", rel.ID, rel.Tags["name"])
-						}
-						cur = shp
-						feature.AddShape(cur)
-					}
-			}
-			//TODO find bug in winding/reversing
-			// Get the start and end shapes that have coordinates
-			s := 0
-			for i := 0; shapes[s].Length() == 0 && i < len(shapes); i++ {
-				s = i
-			}
-			e := len(shapes) - 1
-			for i := e; shapes[e].Length() == 0 && i > 0; i-- {
-				e = i
-			}
-			// Flip the start if incorrectly wound
-			if shapes[s].Tail() == shapes[e].Tail() || shapes[s].Tail() == shapes[e].Head() {
-				shapes[s].Reverse()
-			}
-			cur = shapes[s]
-			for i, shp := range shapes[s+1 : e+1] {
-				c := s + i
-				_ = c
-				if shp.Length() == 0 {
-					continue
-				}
-				if cur.Tail() == shp.Head() {
-					cur.Add(shp.Coordinates[1:]...)
-				} else if cur.Tail() == shp.Tail() {
-					shp.Reverse()
-					cur.Add(shp.Coordinates[1:]...)
-				} else if shp.IsClosed() {
-					feature.AddShape(cur)
-					cur = shp
-				} else {
-					// there's a whole
-					//util.Info("\tRelation %d has hole at %d", rel.ID, rel.Members[c].ID)
-					cur.Add(shp.Coordinates[1:]...)
-				}
-			}
-			feature.AddShape(cur)
-			util.Info("Relation %d Geometry - %s", rel.ID, feature.Tags("wikipedia"))
-			for i, shp := range feature.Geometry {
-				if !shp.IsClosed() {
-					util.Info("\tRelation %d not closed, explicitly closing", rel.ID)
-					//shp.Add(shp.Head())
-				}
-				util.Info("\t%d - %d - %t", i, shp.Length(), shp.IsClosed())
-			}
-				if len(feature.Geometry) == 0 {
-					util.Info("Relation %d has nil geometry", rel.ID)
-				} else {
-					util.Info("%q IsClosed() -> %t", feature.Tags["name"], feature.Geometry[0].IsClosed())
-				}
-				if !feature.Geometry[len(feature.Geometry)-1].IsClosed() {
-					util.Info("feature is not closed", feature.Tags["name"])
-				}
 		*/
-		subregions[rel.ID] = feature
+		if feature := relationFeature(q, rel); feature != nil {
+			subregions[rel.ID] = feature
+		}
 	}
 	return subregions
 }
@@ -278,8 +184,6 @@ func relationFeature(q *Quarry, rel *osm.Relation) (feature *geo.Feature) {
 		feature.Properties[k] = v
 	}
 	ways := make(map[int64]*osm.Way, len(rel.Members))
-	heads := make(map[int64]int64, len(rel.Members))
-	tails := make(map[int64]int64, len(rel.Members))
 	nodes := make(map[int64]geo.Coordinate, 3*len(rel.Members))
 	for _, m := range rel.Members {
 		if m.Type != osm.WayType {
@@ -291,24 +195,23 @@ func relationFeature(q *Quarry, rel *osm.Relation) (feature *geo.Feature) {
 			continue
 		}
 		ways[way.ID] = way
-		h := way.NodeIDs[0]
-		t := way.NodeIDs[len(way.NodeIDs)-1]
-		if heads[h] != 0 || tails[t] != 0 {
-			// head or tail already exists, let's flip
-			reverse(way.NodeIDs)
-			h, t = t, h
-		}
-		heads[h] = way.ID
-		tails[t] = way.ID
 		for _, node := range nds {
 			c := geo.Coordinate{Lat: node.Lat, Lon: node.Lon}
 			nodes[node.ID] = c
 		}
 	}
+	mems := rel.Members
+	w0 := ways[mems[0].ID]
+	w1 := ways[mems[1].ID]
+	if w0 != nil && w1 != nil && w0.NodeIDs[0] == w1.NodeIDs[len(w1.NodeIDs)-1] {
+		// hint at winding by reversing members
+		for i, j := 0, len(mems)-1; i < j; i, j = i+1, j-1 {
+			mems[i], mems[j] = mems[j], mems[i]
+		}
+	}
 	popWay := func(ways map[int64]*osm.Way) (way *osm.Way) {
 		for _, m := range rel.Members {
-			mid := m.ID
-			way = ways[mid]
+			way = ways[m.ID]
 			if way != nil {
 				delete(ways, way.ID)
 				return
@@ -323,54 +226,38 @@ func relationFeature(q *Quarry, rel *osm.Relation) (feature *geo.Feature) {
 		}
 		return
 	}
-	extendShape := func(shp *geo.Shape, tid int64) int64 {
-		if wid, ok := heads[tid]; ok && ways[wid] != nil {
-			way := ways[wid]
-			delete(ways, way.ID)
-			shp.Append(wayShape(way))
-			util.Info("%d:\t%v\t-> %v", way.ID, way.NodeIDs[0], way.NodeIDs[len(way.NodeIDs)-1])
-			return way.NodeIDs[len(way.NodeIDs)-1]
-		}
-		if wid, ok := tails[tid]; ok && ways[wid] != nil {
-			way := ways[wid]
-			delete(ways, way.ID)
-			nxt := wayShape(way)
-			nxt.Reverse()
-			shp.Append(nxt)
-			util.Info("%d:\t%v\t-> %v", way.ID, way.NodeIDs[len(way.NodeIDs)-1], way.NodeIDs[0])
-			return way.NodeIDs[0]
-		}
-		return 0
-	}
-	/*
+	nextWay := func(cur *osm.Way) *osm.Way {
+		//head := way.NodeIDs[0]
+		tail := cur.NodeIDs[len(cur.NodeIDs)-1]
 		for _, way := range ways {
-			util.Info("%d:\t%v\t-> %v", way.ID, way.NodeIDs[0], way.NodeIDs[len(way.NodeIDs)-1])
+			if tail == way.NodeIDs[0] {
+				delete(ways, way.ID)
+				return way
+			} else if tail == way.NodeIDs[len(way.NodeIDs)-1] {
+				reverse(way.NodeIDs)
+				delete(ways, way.ID)
+				return way
+			}
 		}
-	*/
+		return nil
+	}
+	var shp *geo.Shape
 	for len(ways) > 0 {
 		way := popWay(ways)
-		shp := wayShape(way)
-		feature.AddShape(shp)
-		tid := way.NodeIDs[len(way.NodeIDs)-1]
-		util.Info("----- New Shape -----")
-		if _, ok := heads[tid]; !ok {
-			util.Info("%d:\t%v\t-> %v", way.ID, way.NodeIDs[len(way.NodeIDs)-1], way.NodeIDs[0])
-			// first way needs to be flipped
-			shp.Reverse()
-			tid = way.NodeIDs[0]
-		} else {
-			util.Info("%d:\t%v\t-> %v", way.ID, way.NodeIDs[0], way.NodeIDs[len(way.NodeIDs)-1])
+		if shp == nil || shp.IsClosed() {
+			//util.Info("----- New Shape -----")
+			shp = geo.NewShape()
+			feature.AddShape(shp)
 		}
-		for tid > 0 {
-			//util.Info("tid: %d", tid)
-			tid = extendShape(shp, tid)
+		for way != nil {
+			//util.Info("%d:\t%v\t-> %v", way.ID, way.NodeIDs[0], way.NodeIDs[len(way.NodeIDs)-1])
+			shp.Append(wayShape(way))
+			way = nextWay(way)
 		}
-		/*
-			if !shp.IsClosed() {
-				shp.Add(shp.Head())
-			}
-		*/
 	}
-	util.Info("geom len: %d", len(feature.Geometry))
+	if !shp.IsClosed() {
+		//return nil
+		shp.Add(shp.Head())
+	}
 	return
 }
