@@ -191,37 +191,27 @@ func (q *Quarry) NodeIDs(ids ...int64) <-chan *osm.Node {
 	return nodes
 }
 
-func (q *Quarry) WayNodes(wid int64) (<-chan *osm.Node, <-chan int64) {
-	nodes := make(chan *osm.Node, 1<<10)
-	warns := make(chan int64)
-	go func() {
-		defer close(nodes)
-		defer close(warns)
-		err := q.db.View(func(tx *bolt.Tx) error {
-			//util.Info("\t%d", wid)
-			k, _ := osm.MarshalID(wid)
-			w := tx.Bucket(WayBucket).Get(k)
-			way, err := osm.UnmarshalWay(w)
-			if err != nil {
-				warns <- wid
-				return err
-			}
-			b := tx.Bucket(NodeBucket)
-			for _, nid := range way.NodeIDs {
-				//util.Info("\t\t%d", nid)
-				k, _ := osm.MarshalID(nid)
-				v := b.Get(k)
-				node, err := osm.UnmarshalNode(v)
-				if err != nil {
-					warns <- nid
-				}
-				nodes <- node
-			}
-			return nil
-		})
-		_ = err
-	}()
-	return nodes, warns
+func (q *Quarry) WayNodes(wid int64) (way *osm.Way, nodes []*osm.Node) {
+	q.db.View(func(tx *bolt.Tx) error {
+		//util.Info("\t%d", wid)
+		k, _ := osm.MarshalID(wid)
+		w := tx.Bucket(WayBucket).Get(k)
+		var err error
+		if way, err = osm.UnmarshalWay(w); err != nil {
+			return err
+		}
+		b := tx.Bucket(NodeBucket)
+		nodes = make([]*osm.Node, len(way.NodeIDs))
+		for i, nid := range way.NodeIDs {
+			//util.Info("\t\t%d", nid)
+			k, _ := osm.MarshalID(nid)
+			v := b.Get(k)
+			node, _ := osm.UnmarshalNode(v)
+			nodes[i] = node
+		}
+		return nil
+	})
+	return
 }
 
 func (q *Quarry) indexAddresses() error {

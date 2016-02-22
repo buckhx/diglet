@@ -14,13 +14,19 @@ import (
 	"strings"
 )
 
+func reverse(ids []int64) {
+	for i, j := 0, len(ids)-1; i < j; i, j = i+1, j-1 {
+		ids[i], ids[j] = ids[j], ids[i]
+	}
+}
+
 func printGeojson(regions map[int64]*geo.Feature) {
 	features := make([]*geojson.Feature, len(regions))
 	i := 0
 	for id, region := range regions {
 		line := make([]geojson.Coordinate, len(region.Geometry[0].Coordinates))
 		for i, c := range region.Geometry[0].Coordinates {
-			line[i] = geojson.Coordinate{geojson.Coord(c.Lat), geojson.Coord(c.Lon)}
+			line[i] = geojson.Coordinate{geojson.Coord(c.Lon), geojson.Coord(c.Lat)}
 		}
 		polygon := geojson.NewPolygon(geojson.MultiLine([]geojson.Coordinates{line}))
 		feature := geojson.NewFeature(polygon, region.Properties, id)
