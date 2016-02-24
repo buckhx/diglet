@@ -24,6 +24,27 @@ func (s *Shape) Add(c ...Coordinate) {
 	s.Coordinates = append(s.Coordinates, c...)
 }
 
+func (s *Shape) BoundingBox() Box {
+	h := s.Head()
+	min, max := h, h
+	for _, c := range s.Coordinates {
+		if c.Lat < min.Lat {
+			min.Lat = c.Lat
+		}
+		if c.Lat > max.Lat {
+			max.Lat = c.Lat
+		}
+		if c.Lon < min.Lon {
+			min.Lon = c.Lon
+		}
+		if c.Lon > max.Lon {
+			max.Lon = c.Lon
+		}
+	}
+	box, _ := NewBox(min, max)
+	return box
+}
+
 func (s *Shape) Head() Coordinate {
 	return s.Coordinates[0]
 }
@@ -67,3 +88,32 @@ func (s *Shape) IsClockwise() bool {
 	}
 	return sum > 0
 }
+
+type Box struct {
+	min, max Coordinate
+}
+
+func NewBox(min, max Coordinate) (box Box, err error) {
+	if min.Lat > max.Lat || min.Lon > max.Lon {
+		err = util.Errorf("Min %v > Max %v", min, max)
+	} else {
+		box = Box{min: min, max: max}
+	}
+	return
+}
+
+func (b Box) Contains(coords ...Coordinate) (in bool) {
+	for _, c := range coords {
+		in = in || (b.min.strictCmp(c) < 0 && b.max.strictCmp(c) > 0)
+		if in {
+			return
+		}
+	}
+	return
+}
+
+//TODO implement this
+/*
+func (b *Box) Intersect(o *Box) *Box {
+}
+*/

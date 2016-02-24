@@ -17,8 +17,17 @@ func Excavate(q *Quarry, pbf, postcodes string) (err error) {
 	//wg.Wait()
 	subregions := loadSubregions(q)
 	//util.Info("%s", subregions)
-	printGeojson(subregions)
-	util.Info("%d", len(subregions))
+	//printGeojson(subregions)
+	rtree := geo.NewRtree()
+	for _, feature := range subregions {
+		for _, shp := range feature.Geometry {
+			rtree.Insert(shp, feature)
+		}
+	}
+	c := geo.Coordinate{Lat: 40.7399597, Lon: -74.0069096}
+	for _, rnode := range rtree.Contains(c) {
+		util.Info("%d", rnode.Feature().Tags("name"))
+	}
 	return
 }
 
