@@ -5,7 +5,7 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/buckhx/diglet/geo/osm"
 	"github.com/buckhx/diglet/util"
-	"syscall"
+	"strconv"
 )
 
 var (
@@ -30,8 +30,8 @@ type Quarry struct {
 
 func NewQuarry(path string) (quarry *Quarry, err error) {
 	util.DEBUG = true
-	opts := &bolt.Options{}                //MmapFlags: syscall.MAP_POPULATE}
-	db, err := bolt.Open(path, 0600, opts) //&bolt.Options{Timeout: 5 * time.Second})
+	//opts := nil                            //&bolt.Options{}                //MmapFlags: syscall.MAP_POPULATE}
+	db, err := bolt.Open(path, 0600, nil) //opts) //&bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
 		return
 	}
@@ -196,6 +196,55 @@ func (q *Quarry) NodeIDs(ids ...int64) <-chan *osm.Node {
 	return nodes
 }
 
+func (q *Quarry) AddressableNodes() <-chan *osm.Node {
+	addrs := make(chan *osm.Node)
+	go func() {
+		defer close(addrs)
+		err := q.db.View(func(tx *bolt.Tx) error {
+			nb := tx.Bucket(NodeBucket)
+			wb := tx.Bucket(WayBucket)
+			err := nb.ForEach(func(k, v []byte) error {
+				node, err := osm.UnmarshalNode(v)
+				if err != nil {
+					return err
+				}
+				if node.IsAddressable() {
+					addrs <- node
+				}
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+			err = wb.ForEach(func(k, v []byte) error {
+				way, err := osm.UnmarshalWay(v)
+				if err != nil {
+					return err
+				}
+				if way.IsAddressable() {
+					nid, err := osm.MarshalID(way.NodeIDs[0])
+					if err != nil {
+						return err
+					}
+					v := nb.Get(nid)
+					node, err := osm.UnmarshalNode(v)
+					if err != nil {
+						return err
+					}
+					node.Tags = way.Tags
+					node.Tags["way_id"] = strconv.FormatInt(way.ID, 10)
+					addrs <- node
+				}
+				return nil
+			})
+			return err
+		})
+		util.Check(err)
+
+	}()
+	return addrs
+}
+
 func (q *Quarry) WayNodes(wid int64) (way *osm.Way, nodes []*osm.Node) {
 	q.db.View(func(tx *bolt.Tx) error {
 		//util.Info("\t%d", wid)
@@ -244,10 +293,10 @@ func (q *Quarry) indexAddresses() error {
 	i := 0
 	batchSize := 1 << 16
 	indexes := make(map[string][]int64, batchSize)
-	for node := range q.Nodes(osm.AddrStreet) {
+	for node := range q.AddressableNodes() {
 		addr := NodeAddress(node)
 		for idx := range addr.Indexes() {
-			indexes[idx] = append(indexes[idx], node.ID) //TODO unique
+			indexes[idx] = append(indexes[idx], addr.ID) //TODO unique
 		}
 		if i%batchSize == 0 && i > 0 {
 			err := flushIndexes(indexes)

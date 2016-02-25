@@ -6,6 +6,7 @@ import (
 )
 
 type Address struct {
+	ID          int64
 	Latitude    float64
 	Longitude   float64
 	Street      string
@@ -21,9 +22,12 @@ type Address struct {
 func NodeAddress(node *osm.Node) Address {
 	hn := node.Tags[osm.AddrHouseNum]
 	st := node.Tags[osm.AddrStreet]
+	if st == "" {
+		st = node.Tags["name"]
+	}
 	pc := node.Tags[osm.AddrPostcode]
 	tags := node.Tags
-	return Address{HouseNumber: hn, Street: st, Postcode: pc, Tags: tags}
+	return Address{ID: node.ID, HouseNumber: hn, Street: st, Postcode: pc, Tags: tags}
 }
 
 func QueryAddress(query string) Address {
