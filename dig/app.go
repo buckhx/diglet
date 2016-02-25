@@ -9,12 +9,14 @@ import (
 
 func Excavate(q *Quarry, pbf, postcodes string) (err error) {
 	util.Info("Excavating...")
-	//wg := &sync.WaitGroup{}
-	//wg.Add(1)
-	//wg.Add(2)
-	//go survey(q, postcodes, wg)
-	//excavate(q, pbf, 8, wg)
-	//wg.Wait()
+	/*
+		wg := &sync.WaitGroup{}
+		//wg.Add(1)
+		wg.Add(2)
+		go survey(q, postcodes, wg)
+		excavate(q, pbf, 8, wg)
+		wg.Wait()
+	*/
 	subregions := loadSubregions(q)
 	//util.Info("%s", subregions)
 	//printGeojson(subregions)
@@ -24,10 +26,38 @@ func Excavate(q *Quarry, pbf, postcodes string) (err error) {
 			rtree.Insert(shp, feature)
 		}
 	}
-	c := geo.Coordinate{Lat: 40.7399597, Lon: -74.0069096}
-	for _, rnode := range rtree.Contains(c) {
-		util.Info("%d", rnode.Feature().Tags("name"))
+	//g := &sync.WaitGroup{}
+	//for i := 0; i < 4; i++ {
+	//g.Add(1)
+	//go func() {
+	//defer g.Done()
+	counts := make(map[string]int, 88)
+	for node := range q.Nodes() {
+		c := geo.Coordinate{Lat: node.Lat, Lon: node.Lon}
+		ins := rtree.Contains(c)
+		if len(ins) == 0 {
+			counts["No Relation"]++
+			//util.Info("WARN: Node %d not contained", node.ID)
+		} else {
+			for _, rnode := range ins {
+				feature := rnode.Feature()
+				for _, shp := range feature.Geometry {
+					if shp.Contains(c) {
+						counts[feature.Tags("name")]++
+					}
+				}
+			}
+		}
 	}
+	//}()
+	//}
+	//g.Wait()
+	total := 0
+	for k, v := range counts {
+		util.Info("%s: %d", k, v)
+		total += v
+	}
+	util.Info("TOTAL: %d", total)
 	return
 }
 
@@ -83,8 +113,8 @@ func excavate(q *Quarry, pbf string, workers int, wg *sync.WaitGroup) {
 			defer close(ways)
 			for way := range feed {
 				if way.IsAddressable() {
-					//addrFilter.AddInt64(way.ID)
-					//addrFilter.AddInt64(way.NodeIDs[0])
+					addrFilter.AddInt64(way.ID)
+					addrFilter.AddInt64(way.NodeIDs[0])
 				}
 				if addrFilter.HasInt64(way.ID) {
 					for _, nid := range way.NodeIDs {
@@ -99,7 +129,7 @@ func excavate(q *Quarry, pbf string, workers int, wg *sync.WaitGroup) {
 	ex.NodeCourier = func(feed <-chan *osm.Node) {
 		for node := range feed {
 			if node.IsAddressable() {
-				//addrFilter.AddInt64(node.ID)
+				addrFilter.AddInt64(node.ID)
 			}
 		}
 	}
@@ -123,75 +153,13 @@ func excavate(q *Quarry, pbf string, workers int, wg *sync.WaitGroup) {
 	util.Check(err)
 }
 
-/*
-	var wayc uint64 = 0
-	var nidc uint64 = 0
-	rels := cmap.New()
-	ways := cmap.New()
-	nods := cmap.New()
-	addrFilter := NewOsmFilter(1 << 27)
-	collectRelations := func(feed <-chan *Relation) {
-		for rel := range feed {
-			if rel.IsSubregionBoundary() {
-				rels.Set(rel.Key(), rel)
-			}
-		}
-	}
-	collectWays := func(feed <-chan *Way) {
-		for way := range feed {
-			if way.IsSubregionBoundary() {
-				ways.Set(way.Key(), way)
-				for _, nid := range way.NodeIDs {
-					nods.Set(strconv.FormatInt(nid, 10), nil)
-				}
-				nids := uint64(len(way.NodeIDs))
-				atomic.AddUint64(&nidc, nids)
-			}
-			if way.IsAddressable() {
-				atomic.AddUint64(&wayc, 1)
-				addrFilter.AddInt64(way.ID)
-				addrFilter.AddInt64(way.NodeIDs[0])
-			}
-		}
-	}
-
-func wayShape(q *Quarry, wid int64) (shp *geo.Shape) {
-	nodes, warns := q.WayNodes(wid)
-	shp = geo.NewShape()
-	util.Info("\t%d", wid)
-	for {
-		select {
-		case node, ok := <-nodes:
-			if ok {
-				c := geo.Coordinate{Lat: node.Lat, Lon: node.Lon}
-				util.Info("\t\t%d\t%s", node.ID, c)
-				shp.Add(c)
-			} else {
-				return
-			}
-		case warn, ok := <-warns:
-			if ok {
-				_ = warn
-					msg := "Incomplete relation %d %q, missing %d "
-					if warn == m.ID {
-						msg += "way"
-					}
-					util.Info(msg, rel.ID, rel.Tags["name"], warn)
-			} else {
-				//break nodeLoop
-			}
-		}
-	}
-	return
-}
-*/
-
 func relationFeature(q *Quarry, rel *osm.Relation) (feature *geo.Feature) {
 	feature = geo.NewPolygonFeature()
 	feature.Properties = make(map[string]interface{}, len(rel.Tags))
 	for k, v := range rel.Tags {
 		feature.Properties[k] = v
 	}
+	//feature.Propertes["id"] = feature.ID
 	ways := make(map[int64]*osm.Way, len(rel.Members))
 	nodes := make(map[int64]geo.Coordinate, 3*len(rel.Members))
 	for _, m := range rel.Members {

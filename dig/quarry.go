@@ -5,6 +5,7 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/buckhx/diglet/geo/osm"
 	"github.com/buckhx/diglet/util"
+	"syscall"
 )
 
 var (
@@ -29,7 +30,8 @@ type Quarry struct {
 
 func NewQuarry(path string) (quarry *Quarry, err error) {
 	util.DEBUG = true
-	db, err := bolt.Open(path, 0600, nil) //&bolt.Options{Timeout: 5 * time.Second})
+	opts := &bolt.Options{MmapFlags: syscall.MAP_POPULATE}
+	db, err := bolt.Open(path, 0600, opts) //&bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
 		return
 	}
@@ -111,6 +113,9 @@ func (q *Quarry) Nodes(tags ...string) <-chan *osm.Node {
 				node, err := osm.UnmarshalNode(v)
 				if err != nil {
 					return err
+				}
+				if len(tags) == 0 { //no filter
+					nodes <- node
 				}
 				for _, tag := range tags {
 					if _, ok := node.Tags[tag]; ok {

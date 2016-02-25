@@ -45,6 +45,10 @@ func (s *Shape) BoundingBox() Box {
 	return box
 }
 
+func (s *Shape) Contains(c Coordinate) bool {
+	return s.windingNumber(c) != 0
+}
+
 func (s *Shape) Head() Coordinate {
 	return s.Coordinates[0]
 }
@@ -72,6 +76,20 @@ func (s *Shape) Reverse() {
 	}
 }
 
+func (s *Shape) Edges() <-chan []Coordinate {
+	edges := make(chan []Coordinate)
+	go func() {
+		defer close(edges)
+		cur := s.Head()
+		for _, c := range s.Coordinates[1:] {
+			edge := []Coordinate{cur, c}
+			cur = c
+			edges <- edge
+		}
+	}()
+	return edges
+}
+
 // Number of coordinates
 func (s *Shape) Length() int {
 	return len(s.Coordinates)
@@ -87,6 +105,26 @@ func (s *Shape) IsClockwise() bool {
 		util.Info("Shape edge sum == 0, defaulting to clockwise == true")
 	}
 	return sum > 0
+}
+
+// winding number algorithm as described in http://geomalgorithms.com/a03-_inclusion.html
+func (s *Shape) windingNumber(q Coordinate) (wn int) {
+	cds := s.Coordinates
+	for i := range cds[:s.Length()-1] {
+		if cds[i].Y() <= q.Y() {
+			if cds[i+1].Y() > q.Y() && isLeft(cds[i], cds[i+1], q) > 0 {
+				wn++
+			}
+		} else if cds[i+1].Y() <= q.Y() && isLeft(cds[i], cds[i+1], q) < 0 {
+			wn--
+		}
+	}
+	return
+}
+
+// >0 left, =0 on, <0 right
+func isLeft(h, t, q Coordinate) float64 {
+	return ((t.X() - h.X()) * (q.Y() - h.Y())) - ((q.X() - h.X()) * (t.Y() - h.Y()))
 }
 
 type Box struct {
