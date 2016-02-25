@@ -30,7 +30,7 @@ type Quarry struct {
 
 func NewQuarry(path string) (quarry *Quarry, err error) {
 	util.DEBUG = true
-	opts := &bolt.Options{MmapFlags: syscall.MAP_POPULATE}
+	opts := &bolt.Options{}                //MmapFlags: syscall.MAP_POPULATE}
 	db, err := bolt.Open(path, 0600, opts) //&bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
 		return
