@@ -57,6 +57,6 @@ func (a Address) dist(to Address) float64 {
 }
 
 func (a Address) String() string {
-	addr := []string{a.HouseNumber, a.Street, a.City, a.Region, a.Country, a.Iso2, a.Postcode}
+	addr := []string{a.HouseNumber, a.Street, a.City, a.Postcode, a.Region, a.Country}
 	return strings.Join(addr, ", ")
 }
