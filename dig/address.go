@@ -1,14 +1,14 @@
 package dig
 
 import (
+	"github.com/buckhx/diglet/geo"
 	"github.com/buckhx/diglet/geo/osm"
 	"strings"
 )
 
 type Address struct {
 	ID          int64
-	Latitude    float64
-	Longitude   float64
+	Location    geo.Coordinate
 	Street      string
 	HouseNumber string
 	Postcode    string
@@ -27,7 +27,8 @@ func NodeAddress(node *osm.Node) Address {
 	}
 	pc := node.Tags[osm.AddrPostcode]
 	tags := node.Tags
-	return Address{ID: node.ID, HouseNumber: hn, Street: st, Postcode: pc, Tags: tags}
+	loc := geo.Coordinate{Lat: node.Lat, Lon: node.Lon}
+	return Address{ID: node.ID, HouseNumber: hn, Street: st, Postcode: pc, Tags: tags, Location: loc}
 }
 
 func QueryAddress(query string) Address {
@@ -41,22 +42,18 @@ func QueryAddress(query string) Address {
 }
 
 func (a Address) Indexes() <-chan string {
-	keys := make(chan string)
-	post := a.Postcode
-	if len(post) > 5 {
-		post = post[:5] // only get first 5 chars of postcode
-	}
-	go func() {
-		defer close(keys)
-		for mphone := range mphones(a.Street) {
-			keys <- strings.Join([]string{post, mphone}, ":")
-		}
-	}()
-	return keys
+	return mphones(a.Street)
 }
 
-func (a Address) edist(to Address) float64 {
-	return editDist(a.Street, a.HouseNumber, to.Street, to.HouseNumber)
+func (a Address) dist(to Address) float64 {
+	e := editDist(a.Street, a.HouseNumber, to.Street, to.HouseNumber)
+	rad := 100000.0 //100km
+	d := (rad - a.Location.Distance(to.Location)) / rad
+	if d < 0 {
+		d = 0
+	}
+	e += d
+	return e
 }
 
 func (a Address) String() string {

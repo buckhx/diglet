@@ -15,17 +15,34 @@ const (
 	GNPOST = "/vagrant/postcodes/allCountries.txt"
 )
 
-func TestQuarryExcavate(t *testing.T) {
-	qdb, err := dig.NewQuarry(NY_DIG)
+func testQuarryExcavate(t *testing.T) {
+	q, err := dig.OpenQuarry(NY_DIG)
 	if err != nil {
 		t.Error(err)
 	}
+	_ = q
 	//qdb.Survey(GNPOST)
-	dig.Excavate(qdb, NY_PBF, GNPOST)
+	//dig.Excavate(qdb, NY_PBF, GNPOST)
 
 	//qdb.Excavate(NY_PBF)
 	//qdb.PrintStats()
 	//addr := dig.Address{HouseNumber: "72", Street: "N 4th Street", Postcode: "11249"}
 	//qdb.Dig(addr)
 	//qdb.Dig("11", "west 42nd Street", "")
+}
+
+func TestDig(t *testing.T) {
+	q, err := dig.OpenQuarry(NY_DIG)
+	if err != nil {
+		t.Error(err)
+	}
+	addr := dig.Address{
+		HouseNumber: "2154",
+		Street:      "hazard hill road",
+		City:        "Brooklyn",
+		Region:      "New York",
+		Country:     "US",
+		Postcode:    "13903"}
+	match := q.Dig(addr)
+	t.Errorf("MATCH: %v", match)
 }

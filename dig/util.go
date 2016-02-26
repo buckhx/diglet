@@ -39,6 +39,10 @@ func printGeojson(regions map[int64]*geo.Feature) {
 	util.Info("%s", s)
 }
 
+func editDistance(s, o string) float64 {
+	return matchr.JaroWinkler(s, o, true)
+}
+
 func editDist(from_st, from_hn, to_st, to_hn string) float64 {
 	qterm := expand(clean(from_st))
 	nterm := expand(clean(to_st))

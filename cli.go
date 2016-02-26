@@ -197,10 +197,10 @@ func client(args []string) {
 				db := args[0]
 				pbf := c.String("pbf")
 				q := c.String("query")
-				quarry, _ := dig.NewQuarry(db)
+				quarry, _ := dig.OpenQuarry(db)
 				if pbf != "" {
 					//err := quarry.Excavate(pbf)
-					err := dig.Excavate(quarry, pbf, "")
+					err := quarry.Excavate(pbf, "")
 					util.Check(err)
 				} else if q != "" {
 					addr := dig.QueryAddress(q)

@@ -25,22 +25,22 @@ type Postcode struct {
 	TownCode      string
 	Center        geo.Coordinate
 	Accuracy      uint8
+	RelationKey   string
 }
 
 func (p *Postcode) Key() string {
 	return strings.Join([]string{p.CountryCode, p.PostCode}, ":")
 }
 
+/*
 func (p *Postcode) String() string {
 	return util.Sprintf("%v", p)
 }
+*/
 
 func (p *Postcode) Keyed() (k, v []byte) {
-	k, err := msgpack.Marshal(p.Key())
-	if err != nil {
-		return
-	}
-	v, err = msgpack.Marshal(p)
+	k = []byte(p.Key())
+	v, err := msgpack.Marshal(p)
 	if err != nil {
 		k = nil
 	}

@@ -4,19 +4,20 @@ import (
 	"github.com/buckhx/diglet/geo"
 	"github.com/buckhx/diglet/geo/osm"
 	"github.com/buckhx/diglet/util"
+	"strconv"
 )
 
 type rIndex struct {
 	rtree *geo.Rtree
 }
 
-func (rdx *rIndex) getRelationKey(node *osm.Node) (key string) {
-	c := geo.Coordinate{Lat: node.Lat, Lon: node.Lon}
+func (rdx *rIndex) getRelation(c geo.Coordinate) (key string) {
 	ins := rdx.rtree.Contains(c)
 	l := len(ins)
 	switch {
 	case l == 1:
-		key = ins[0].Feature().Tags("id")
+		feature := ins[0].Feature()
+		key = feature.Tags("id")
 	case l > 1:
 		for _, rnode := range ins {
 			feature := rnode.Feature()
@@ -30,8 +31,13 @@ func (rdx *rIndex) getRelationKey(node *osm.Node) (key string) {
 	return
 }
 
+func (rdx *rIndex) getNodeRelation(node *osm.Node) (key string) {
+	c := geo.Coordinate{Lat: node.Lat, Lon: node.Lon}
+	return rdx.getRelation(c)
+}
+
 //Load the regions from the db into a queryable index
-func loadRIndex(q *Quarry) *rIndex {
+func loadRIndex(q *Qdb) *rIndex {
 	rdx := &rIndex{rtree: geo.NewRtree()}
 	for rel := range q.Relations() {
 		if feature := relationFeature(q, rel); feature != nil {
@@ -44,13 +50,13 @@ func loadRIndex(q *Quarry) *rIndex {
 }
 
 //Given an OSM relation, generate feature
-func relationFeature(q *Quarry, rel *osm.Relation) (feature *geo.Feature) {
+func relationFeature(q *Qdb, rel *osm.Relation) (feature *geo.Feature) {
 	feature = geo.NewPolygonFeature()
 	feature.Properties = make(map[string]interface{}, len(rel.Tags))
 	for k, v := range rel.Tags {
 		feature.Properties[k] = v
 	}
-	//feature.Propertes["id"] = feature.ID
+	feature.Properties["id"] = strconv.FormatInt(rel.ID, 10)
 	ways := make(map[int64]*osm.Way, len(rel.Members))
 	nodes := make(map[int64]geo.Coordinate, 3*len(rel.Members))
 	for _, m := range rel.Members {
@@ -59,7 +65,7 @@ func relationFeature(q *Quarry, rel *osm.Relation) (feature *geo.Feature) {
 		}
 		way, nds := q.WayNodes(m.ID)
 		if way == nil || len(nds) == 0 {
-			util.Info("Missing member %d", m.ID)
+			util.Debug("Missing member %d", m.ID)
 			continue
 		}
 		ways[way.ID] = way

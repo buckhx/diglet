@@ -72,3 +72,12 @@ func TestContains(t *testing.T) {
 func cd(x, y float64) Coordinate {
 	return Coordinate{x, y}
 }
+
+func TestDistance(t *testing.T) {
+	x := Coordinate{Lat: 36.12, Lon: -86.67}
+	y := Coordinate{Lat: 33.94, Lon: -118.40}
+	d := int(x.Distance(y))
+	if d != 2887259 {
+		t.Errorf("Bad distance %s.Distance(%s) != %f", x, y, d)
+	}
+}
