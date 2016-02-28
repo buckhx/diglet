@@ -12,6 +12,12 @@ type Quarry struct {
 	rdx *rIndex
 }
 
+type Match struct {
+	Query  Address
+	Result Address
+	Meta   map[string]string
+}
+
 func OpenQuarry(path string) (q *Quarry, err error) {
 	db, err := OpenQdb(path)
 	if err != nil {
@@ -25,28 +31,48 @@ func OpenQuarry(path string) (q *Quarry, err error) {
 	return
 }
 
-func (q *Quarry) Dig(query Address) (match Address) {
-	query = q.db.enrichPostcode(query)
+func (q *Quarry) Dig(query Address) (m Match) {
+	m.Query = q.db.enrichPostcode(query)
 	maxdist := 0.0
-	for addr := range q.db.Search(query) {
-		d := query.dist(addr)
+	for addr := range q.db.Search(m.Query) {
+		d := m.Query.dist(addr)
 		if d > maxdist {
 			maxdist = d
-			match = addr
+			m.Result = addr
 		}
-		util.Info("%s: %f", addr, d)
+		//util.Info("%s: %f", addr, d)
 	}
 	if maxdist == 0 {
-		match = query
-		match.HouseNumber = ""
-		match.Street = ""
+		m.Result = query
+		m.Result.HouseNumber = ""
+		m.Result.Street = ""
 	} else {
-		match.City = query.City
-		match.Region = query.Region
-		match.Country = query.Country
-		match.Postcode = query.Postcode
+		m.Result.City = m.Query.City
+		m.Result.Region = m.Query.Region
+		m.Result.Country = m.Query.Country
+		m.Result.Postcode = m.Query.Postcode
 	}
-	return match
+	return m
+}
+
+func (q *Quarry) DigFeed(feed <-chan Address) <-chan Match {
+	matchs := make(chan Match)
+	w := 4
+	wg := &sync.WaitGroup{}
+	wg.Add(w)
+	for i := 0; i < w; i++ {
+		go func() {
+			defer wg.Done()
+			for addr := range feed {
+				matchs <- q.Dig(addr)
+			}
+		}()
+	}
+	go func() {
+		wg.Wait()
+		close(matchs)
+	}()
+	return matchs
 }
 
 func (q *Quarry) Excavate(pbf, postcodes string) (err error) {

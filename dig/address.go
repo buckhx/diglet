@@ -28,7 +28,14 @@ func NodeAddress(node *osm.Node) Address {
 	pc := node.Tags[osm.AddrPostcode]
 	tags := node.Tags
 	loc := geo.Coordinate{Lat: node.Lat, Lon: node.Lon}
-	return Address{ID: node.ID, HouseNumber: hn, Street: st, Postcode: pc, Tags: tags, Location: loc}
+	return Address{
+		ID:          node.ID,
+		HouseNumber: hn,
+		Street:      st,
+		Postcode:    pc,
+		Tags:        tags,
+		Location:    loc,
+	}
 }
 
 func QueryAddress(query string) Address {
@@ -38,7 +45,15 @@ func QueryAddress(query string) Address {
 		kv := strings.Split(param, "=")
 		tags[kv[0]] = kv[1]
 	}
-	return Address{HouseNumber: tags["house"], Street: tags["street"], Postcode: tags["postcode"], Tags: tags}
+	return Address{
+		HouseNumber: tags["house"],
+		Street:      tags["street"],
+		City:        tags["city"],
+		Region:      tags["region"],
+		Postcode:    tags["postcode"],
+		Country:     tags["country"],
+		Tags:        tags,
+	}
 }
 
 func (a Address) Indexes() <-chan string {

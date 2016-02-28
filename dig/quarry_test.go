@@ -8,11 +8,12 @@ import (
 )
 
 const (
-	NY_PBF = "/vagrant/us_ny.osm.pbf"
-	HI_PBF = "/vagrant/us_hi.pbf"
-	NY_DIG = "US_NY.dig"
-	HI_DIG = "US_HI.dig"
-	GNPOST = "/vagrant/postcodes/allCountries.txt"
+	NY_PBF  = "/vagrant/us_ny.osm.pbf"
+	HI_PBF  = "/vagrant/us_hi.pbf"
+	NY_ADDR = "/vagrant/ny_addresses.csv"
+	NY_DIG  = "US_NY.dig"
+	HI_DIG  = "US_HI.dig"
+	GNPOST  = "/vagrant/postcodes/allCountries.txt"
 )
 
 func testQuarryExcavate(t *testing.T) {
@@ -31,7 +32,7 @@ func testQuarryExcavate(t *testing.T) {
 	//qdb.Dig("11", "west 42nd Street", "")
 }
 
-func TestDig(t *testing.T) {
+func testDig(t *testing.T) {
 	q, err := dig.OpenQuarry(NY_DIG)
 	if err != nil {
 		t.Error(err)
@@ -45,4 +46,10 @@ func TestDig(t *testing.T) {
 		Postcode:    "13903"}
 	match := q.Dig(addr)
 	t.Errorf("MATCH: %v", match)
+}
+
+func TestCsvFeed(t *testing.T) {
+
+	dig.CsvFeed(NY_ADDR, dig.Address{}, ',')
+
 }

@@ -66,14 +66,14 @@ func (q *Qdb) Search(query Address) <-chan Address {
 			for rkey := range addressRelations(q, query) {
 				for idx := range indexes {
 					idx := util.Sprintf("%s:%s", rkey, idx)
-					util.Info("idx: %s", idx)
+					//util.Info("idx: %s", idx)
 					c := ab.Cursor()
 					pre := []byte(idx)
 					for k, v := c.Seek(pre); bytes.HasPrefix(k, pre); k, v = c.Next() {
 						nids := osm.UnmarshalNids(v)
 						for _, nid := range nids {
 							var node *osm.Node
-							util.Info("%d", nid)
+							//util.Info("%d", nid)
 							if nid < 0 {
 								wid, _ := osm.MarshalID(-1 * nid)
 								way, _ := osm.UnmarshalWay(wb.Get(wid))
@@ -370,6 +370,9 @@ func (q *Qdb) enrichPostcode(addr Address) Address {
 	var pc *Postcode
 	for p := range q.Postcodes(addr.Country, addr.Postcode) {
 		pc = p
+	}
+	if pc == nil {
+		return addr
 	}
 	addr.City = pc.PlaceName
 	addr.Region = pc.RegionCode
