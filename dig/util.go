@@ -10,9 +10,16 @@ import (
 	"github.com/reiver/go-porterstemmer"
 	_ "math/rand"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 )
+
+func workers() int {
+	w := runtime.GOMAXPROCS(0)
+	util.Info("Dispatching %d workers", w)
+	return w
+}
 
 func reverse(ids []int64) {
 	for i, j := 0, len(ids)-1; i < j; i, j = i+1, j-1 {

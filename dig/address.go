@@ -3,6 +3,7 @@ package dig
 import (
 	"github.com/buckhx/diglet/geo"
 	"github.com/buckhx/diglet/geo/osm"
+	"github.com/buckhx/diglet/util"
 	"strings"
 )
 
@@ -56,6 +57,32 @@ func QueryAddress(query string) Address {
 	}
 }
 
+// Expects comma seperated
+// house_num,street,city,state,country,zip
+func StringAddress(raw string) Address {
+	terms := strings.Split(raw, ",")
+	addr := Address{}
+	for i, v := range terms {
+		switch i {
+		case 0:
+			addr.HouseNumber = v
+		case 1:
+			addr.Street = v
+		case 2:
+			addr.City = v
+		case 3:
+			addr.Region = v
+		case 4:
+			addr.Country = v
+		case 5:
+			addr.Postcode = v
+		default:
+			util.Info("Malformed address %q", raw)
+		}
+	}
+	return addr
+}
+
 func (a Address) Indexes() <-chan string {
 	return mphones(a.Street)
 }
@@ -72,6 +99,6 @@ func (a Address) dist(to Address) float64 {
 }
 
 func (a Address) String() string {
-	addr := []string{a.HouseNumber, a.Street, a.City, a.Postcode, a.Region, a.Country}
-	return strings.Join(addr, ", ")
+	addr := []string{a.HouseNumber, a.Street, a.City, a.Region, a.Country, a.Postcode}
+	return strings.Join(addr, ",")
 }

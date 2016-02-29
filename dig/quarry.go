@@ -1,7 +1,7 @@
 package dig
 
 import (
-	_ "github.com/buckhx/diglet/geo"
+	"github.com/buckhx/diglet/geo"
 	"github.com/buckhx/diglet/geo/osm"
 	"github.com/buckhx/diglet/util"
 	"sync"
@@ -16,6 +16,15 @@ type Match struct {
 	Query  Address
 	Result Address
 	Meta   map[string]string
+}
+
+func (m Match) String() string {
+	qry := m.Query.String()
+	res := m.Result.String()
+	lat := m.Result.Location.Lat
+	lon := m.Result.Location.Lon
+	qkey := geo.QuadKey(m.Result.Location, 23)
+	return util.Sprintf("%q,%q,\"%f\",\"%f\",%q", qry, res, lat, lon, qkey)
 }
 
 func OpenQuarry(path string) (q *Quarry, err error) {
@@ -43,7 +52,7 @@ func (q *Quarry) Dig(query Address) (m Match) {
 		//util.Info("%s: %f", addr, d)
 	}
 	if maxdist == 0 {
-		m.Result = query
+		m.Result = m.Query
 		m.Result.HouseNumber = ""
 		m.Result.Street = ""
 	} else {
@@ -57,10 +66,9 @@ func (q *Quarry) Dig(query Address) (m Match) {
 
 func (q *Quarry) DigFeed(feed <-chan Address) <-chan Match {
 	matchs := make(chan Match)
-	w := 4
 	wg := &sync.WaitGroup{}
-	wg.Add(w)
-	for i := 0; i < w; i++ {
+	for i := 0; i < workers(); i++ {
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for addr := range feed {
@@ -79,7 +87,7 @@ func (q *Quarry) CsvFeed(path string) {
 	queries := csvFeed(path, Address{}, ',')
 	matchs := q.DigFeed(queries)
 	for match := range matchs {
-		util.Info("%s", match)
+		util.Println(match.String())
 	}
 }
 
@@ -88,7 +96,7 @@ func (q *Quarry) Excavate(pbf, postcodes string) (err error) {
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
 	go q.survey(postcodes, wg)
-	go q.excavate(pbf, 8, wg)
+	go q.excavate(pbf, workers(), wg)
 	wg.Wait()
 	q.index()
 	return

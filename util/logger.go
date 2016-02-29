@@ -49,6 +49,10 @@ func Printf(format string, vals ...interface{}) {
 	fmt.Printf(format, vals...)
 }
 
+func Println(s string) {
+	fmt.Println(s)
+}
+
 func Sprintf(format string, vals ...interface{}) string {
 	return fmt.Sprintf(format, vals...)
 }

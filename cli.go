@@ -197,13 +197,15 @@ func client(args []string) {
 				db := args[0]
 				pbf := c.String("pbf")
 				csv := c.String("csv")
+				d := c.String("csv-delimiter")
 				q := c.String("query")
 				quarry, _ := dig.OpenQuarry(db)
 				if pbf != "" {
 					err := quarry.Excavate(pbf, "")
 					util.Check(err)
 				} else if csv != "" {
-					quarry.CsvFeed(csv)
+					addr := dig.QueryAddress(q)
+					quarry.CsvFeed(csv, addr, d)
 				} else if q != "" {
 					addr := dig.QueryAddress(q)
 					match := quarry.Dig(addr)
@@ -221,7 +223,11 @@ func client(args []string) {
 				},
 				cli.StringFlag{
 					Name:  "csv",
-					Usage: "Path to csv to geocode",
+					Usage: "Path to csv to geocode. Use with -q to set headers",
+				},
+				cli.StringFlag{
+					Name:  "csv-delimiter",
+					Value: ",",
 				},
 			},
 		},
