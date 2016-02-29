@@ -49,7 +49,9 @@ func testDig(t *testing.T) {
 }
 
 func TestCsvFeed(t *testing.T) {
-
-	dig.CsvFeed(NY_ADDR, dig.Address{}, ',')
-
+	q, err := dig.OpenQuarry(NY_DIG)
+	if err != nil {
+		t.Error(err)
+	}
+	q.CsvFeed(NY_ADDR)
 }

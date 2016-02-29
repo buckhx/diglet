@@ -75,6 +75,14 @@ func (q *Quarry) DigFeed(feed <-chan Address) <-chan Match {
 	return matchs
 }
 
+func (q *Quarry) CsvFeed(path string) {
+	queries := csvFeed(path, Address{}, ',')
+	matchs := q.DigFeed(queries)
+	for match := range matchs {
+		util.Info("%s", match)
+	}
+}
+
 func (q *Quarry) Excavate(pbf, postcodes string) (err error) {
 	util.Info("Excavating...")
 	wg := &sync.WaitGroup{}

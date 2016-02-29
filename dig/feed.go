@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func CsvFeed(path string, headers Address, delim rune) {
+func csvFeed(path string, headers Address, delim rune) <-chan Address {
 	f, err := os.Open(path)
 	util.Check(err)
 	reader := csv.NewReader(f)
@@ -48,12 +48,7 @@ func CsvFeed(path string, headers Address, delim rune) {
 			queries <- q
 		}
 	}()
-	quarry, err := OpenQuarry("US_NY.dig")
-	util.Check(err)
-	matchs := quarry.DigFeed(queries)
-	for match := range matchs {
-		util.Info("%s", match)
-	}
+	return queries
 }
 
 func headerIndexes(reader *csv.Reader) map[string]int {

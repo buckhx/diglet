@@ -196,12 +196,14 @@ func client(args []string) {
 				defer util.Info("Done!")
 				db := args[0]
 				pbf := c.String("pbf")
+				csv := c.String("csv")
 				q := c.String("query")
 				quarry, _ := dig.OpenQuarry(db)
 				if pbf != "" {
-					//err := quarry.Excavate(pbf)
 					err := quarry.Excavate(pbf, "")
 					util.Check(err)
+				} else if csv != "" {
+					quarry.CsvFeed(csv)
 				} else if q != "" {
 					addr := dig.QueryAddress(q)
 					match := quarry.Dig(addr)
@@ -216,6 +218,10 @@ func client(args []string) {
 				cli.StringFlag{
 					Name:  "query, q",
 					Usage: "Address to geocode, if db is being served, this will block",
+				},
+				cli.StringFlag{
+					Name:  "csv",
+					Usage: "Path to csv to geocode",
 				},
 			},
 		},

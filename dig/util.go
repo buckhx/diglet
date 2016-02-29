@@ -126,8 +126,9 @@ func joinStrings(vals []interface{}) string {
 
 func expand(s string) string {
 	s = util.Sprintf(" %s ", s)
-	for i, o := range expansions {
-		s = strings.Replace(s, i, o, -1)
+	for i, k := range exkeys {
+		v := exvals[i]
+		s = strings.Replace(s, k, v, -1)
 	}
 	s = strings.Replace(s, "  ", " ", -1)
 	s = strings.Trim(s, " ")
@@ -171,6 +172,21 @@ var expansions = map[string]string{
 	"fourth": "four ",
 	"fifth":  "five ",
 	// more?
+}
+
+// slice iteration is much fater than map
+var exkeys, exvals = expandmap(expansions)
+
+func expandmap(expansions map[string]string) (keys, vals []string) {
+	keys = make([]string, len(expansions))
+	vals = make([]string, len(expansions))
+	i := 0
+	for k, v := range expansions {
+		keys[i] = k
+		vals[i] = v
+		i++
+	}
+	return
 }
 
 var stopwords = map[string]bool{

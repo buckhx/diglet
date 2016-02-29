@@ -30,3 +30,6 @@ _testmain.go
 *.test
 *.prof
 *.swp
+*.pid
+*.out
+*.log
