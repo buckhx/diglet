@@ -83,18 +83,40 @@ func StringAddress(raw string) Address {
 	return addr
 }
 
+//Strictly equals hn,st,city,region,country,post
+func (a Address) Equals(o Address) bool {
+	switch {
+	case a.HouseNumber != o.HouseNumber:
+		return false
+	case a.Street != o.Street:
+		return false
+	case a.City != o.City:
+		return false
+	case a.Region != o.Region:
+		return false
+	case a.Country != o.Country:
+		return false
+	case a.Postcode != o.Postcode:
+		return false
+	default:
+		return true
+	}
+}
+
 func (a Address) Indexes() <-chan string {
 	return mphones(a.Street)
 }
 
 func (a Address) dist(to Address) float64 {
+	// TODO break these out into discrete vectors
 	e := editDist(a.Street, a.HouseNumber, to.Street, to.HouseNumber)
 	rad := 100000.0 //100km
-	d := (rad - a.Location.Distance(to.Location)) / rad
+	d := 3 * (rad - a.Location.Distance(to.Location)) / rad
 	if d < 0 {
 		d = 0
 	}
 	e += d
+	e /= 9 //normatlize to 0..1
 	return e
 }
 

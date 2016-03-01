@@ -2,12 +2,12 @@ package dig
 
 import (
 	"bytes"
-	"github.com/antzucaro/matchr"
+	"github.com/blevesearch/go-porterstemmer" //reiver fork
 	"github.com/buckhx/diglet/geo"
 	"github.com/buckhx/diglet/util"
+	"github.com/buckhx/matchr"
 	"github.com/deckarep/golang-set"
 	"github.com/kpawlik/geojson"
-	"github.com/reiver/go-porterstemmer"
 	_ "math/rand"
 	"regexp"
 	"runtime"
@@ -76,9 +76,7 @@ func mphones(value string) <-chan string {
 		defer close(indexes)
 		terms := mapset.NewSet()
 		terms.Add("")
-		//util.Info(value)
 		value = expand(clean(value))
-		//util.Info(value)
 		words := strings.Split(value, " ")
 		for _, word := range words {
 			if _, ok := stopwords[word]; ok {

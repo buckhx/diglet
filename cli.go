@@ -204,8 +204,7 @@ func client(args []string) {
 					err := quarry.Excavate(pbf, "")
 					util.Check(err)
 				} else if csv != "" {
-					addr := dig.QueryAddress(q)
-					quarry.CsvFeed(csv, addr, d)
+					quarry.CsvFeed(csv, q, rune(d[0]))
 				} else if q != "" {
 					addr := dig.QueryAddress(q)
 					match := quarry.Dig(addr)
@@ -223,7 +222,7 @@ func client(args []string) {
 				},
 				cli.StringFlag{
 					Name:  "csv",
-					Usage: "Path to csv to geocode. Use with -q to set headers",
+					Usage: "Path to csv to geocode. Use with -q to select Address column.",
 				},
 				cli.StringFlag{
 					Name:  "csv-delimiter",

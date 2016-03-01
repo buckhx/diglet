@@ -24,7 +24,12 @@ func (m Match) String() string {
 	lat := m.Result.Location.Lat
 	lon := m.Result.Location.Lon
 	qkey := geo.QuadKey(m.Result.Location, 23)
-	return util.Sprintf("%q,%q,\"%f\",\"%f\",%q", qry, res, lat, lon, qkey)
+	return util.Sprintf("%q,%q,\"%f\",\"%f\",%q,\"%f\"", qry, res, lat, lon, qkey, m.Edist())
+}
+
+// Edit distance between query and result
+func (m Match) Edist() float64 {
+	return m.Query.dist(m.Result)
 }
 
 func OpenQuarry(path string) (q *Quarry, err error) {
@@ -83,8 +88,8 @@ func (q *Quarry) DigFeed(feed <-chan Address) <-chan Match {
 	return matchs
 }
 
-func (q *Quarry) CsvFeed(path string) {
-	queries := csvFeed(path, Address{}, ',')
+func (q *Quarry) CsvFeed(path, col string, delim rune) {
+	queries := csvFeed(path, col, ',')
 	matchs := q.DigFeed(queries)
 	for match := range matchs {
 		util.Println(match.String())

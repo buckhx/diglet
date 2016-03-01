@@ -2,7 +2,7 @@ package dig
 
 import "testing"
 
-func TestMphoneIndex(t *testing.T) {
+func testMphoneIndex(t *testing.T) {
 	addrs := []string{
 		"42nd Street",
 		"N 4th Street",
@@ -16,7 +16,7 @@ func TestMphoneIndex(t *testing.T) {
 	}
 }
 
-func TestExpand(t *testing.T) {
+func testExpand(t *testing.T) {
 	addrs := []string{
 		"72 n forth st",
 		"72 n. forth st",

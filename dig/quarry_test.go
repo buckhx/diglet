@@ -48,10 +48,10 @@ func testDig(t *testing.T) {
 	t.Errorf("MATCH: %v", match)
 }
 
-func TestCsvFeed(t *testing.T) {
+func testCsvFeed(t *testing.T) {
 	q, err := dig.OpenQuarry(NY_DIG)
 	if err != nil {
 		t.Error(err)
 	}
-	q.CsvFeed(NY_ADDR)
+	q.CsvFeed(NY_ADDR, "test_col", ',')
 }

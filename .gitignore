@@ -33,3 +33,5 @@ _testmain.go
 *.pid
 *.out
 *.log
+*.csv
+*.txt
