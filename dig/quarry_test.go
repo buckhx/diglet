@@ -21,18 +21,12 @@ func testQuarryExcavate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	_ = q
-	//qdb.Survey(GNPOST)
-	//dig.Excavate(qdb, NY_PBF, GNPOST)
-
-	//qdb.Excavate(NY_PBF)
-	//qdb.PrintStats()
-	//addr := dig.Address{HouseNumber: "72", Street: "N 4th Street", Postcode: "11249"}
-	//qdb.Dig(addr)
-	//qdb.Dig("11", "west 42nd Street", "")
+	q.Excavate(NY_PBF, GNPOST)
+	addr := dig.Address{HouseNumber: "72", Street: "N 4th Street", Postcode: "11249"}
+	q.Dig(addr)
 }
 
-func testDig(t *testing.T) {
+func TestDig(t *testing.T) {
 	q, err := dig.OpenQuarry(NY_DIG)
 	if err != nil {
 		t.Error(err)

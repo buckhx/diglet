@@ -196,12 +196,13 @@ func client(args []string) {
 				defer util.Info("Done!")
 				db := args[0]
 				pbf := c.String("pbf")
+				gn := c.String("geonames")
 				csv := c.String("csv")
 				d := c.String("csv-delimiter")
 				q := c.String("query")
 				quarry, _ := dig.OpenQuarry(db)
 				if pbf != "" {
-					err := quarry.Excavate(pbf, "")
+					err := quarry.Excavate(pbf, gn)
 					util.Check(err)
 				} else if csv != "" {
 					quarry.CsvFeed(csv, q, rune(d[0]))
@@ -215,6 +216,10 @@ func client(args []string) {
 				cli.StringFlag{
 					Name:  "pbf",
 					Usage: "Translate this osm pbf into the db",
+				},
+				cli.StringFlag{
+					Name:  "geonames, gn",
+					Usage: "Needed for enriching pbf with postcode",
 				},
 				cli.StringFlag{
 					Name:  "query, q",

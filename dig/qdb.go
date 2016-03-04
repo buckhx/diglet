@@ -66,7 +66,6 @@ func (q *Qdb) Search(query Address) <-chan Address {
 			for rkey := range addressRelations(q, query) {
 				for idx := range indexes {
 					idx := util.Sprintf("%s:%s", rkey, idx)
-					//util.Info("idx: %s", idx)
 					c := ab.Cursor()
 					pre := []byte(idx)
 					for k, v := c.Seek(pre); bytes.HasPrefix(k, pre); k, v = c.Next() {
@@ -353,6 +352,7 @@ func (q *Qdb) Postcodes(countrycode, postcode string) <-chan *Postcode {
 		defer close(posts)
 		q.db.View(func(tx *bolt.Tx) error {
 			key := []byte(util.Sprintf("%s:%s", countrycode, postcode))
+			util.Info(string(key))
 			c := tx.Bucket(PostcodeBucket).Cursor()
 			for k, v := c.Seek(key); bytes.HasPrefix(k, key); k, v = c.Next() {
 				pc, err := unmarshalPostcode(v)

@@ -128,9 +128,17 @@ func (q *Quarry) survey(postcode_path string, wg *sync.WaitGroup) {
 
 func (q *Quarry) excavate(pbf string, workers int, wg *sync.WaitGroup) {
 	defer wg.Done()
+	filter := NewOsmFilter(1 << 27)
+	q.readRelations(pbf, filter, workers)
+	q.markNodes(pbf, filter, workers)
+	q.addNodes(pbf, filter, 1) //Nodes need to be added sequentially
+}
+
+func (q *Quarry) readRelations(pbf string, addrFilter *OsmFilter, workers int) {
+	util.Info("Reading Relations...")
+	defer util.Info("Done Reading Relations")
 	ex, err := osm.NewExcavator(pbf)
 	util.Check(err)
-	addrFilter := NewOsmFilter(1 << 27)
 	ex.RelationCourier = func(feed <-chan *osm.Relation) {
 		rels := make(chan QdbRecord)
 		go func() {
@@ -150,7 +158,12 @@ func (q *Quarry) excavate(pbf string, workers int, wg *sync.WaitGroup) {
 	}
 	err = ex.Start(workers)
 	util.Check(err)
-	ex, err = osm.NewExcavator(pbf)
+}
+
+func (q *Quarry) markNodes(pbf string, addrFilter *OsmFilter, workers int) {
+	util.Info("Marking Nodes...")
+	defer util.Info("Done Marking Nodes")
+	ex, err := osm.NewExcavator(pbf)
 	util.Check(err)
 	ex.WayCourier = func(feed <-chan *osm.Way) {
 		ways := make(chan QdbRecord)
@@ -180,7 +193,13 @@ func (q *Quarry) excavate(pbf string, workers int, wg *sync.WaitGroup) {
 	}
 	err = ex.Start(workers)
 	util.Check(err)
-	ex, err = osm.NewExcavator(pbf)
+}
+
+// Workers should be set to 1. Qdb wants sequential IDs
+func (q *Quarry) addNodes(pbf string, addrFilter *OsmFilter, workers int) {
+	util.Info("Adding Nodes...")
+	util.Info("Done Adding Nodes")
+	ex, err := osm.NewExcavator(pbf)
 	util.Check(err)
 	ex.NodeCourier = func(feed <-chan *osm.Node) {
 		nodes := make(chan QdbRecord)
@@ -194,7 +213,7 @@ func (q *Quarry) excavate(pbf string, workers int, wg *sync.WaitGroup) {
 		}()
 		q.db.addRecords(NodeBucket, nodes)
 	}
-	err = ex.Start(1)
+	err = ex.Start(workers)
 	util.Check(err)
 }
 
