@@ -34,6 +34,7 @@ func Fatal(format string, vals ...interface{}) {
 
 func Check(err error) {
 	if err != nil {
+		panic(err)
 		Fatal("%s", err)
 	}
 }
@@ -42,6 +43,14 @@ func Checks(errs ...error) {
 	for _, err := range errs {
 		Check(err)
 	}
+}
+
+func Printf(format string, vals ...interface{}) {
+	fmt.Printf(format, vals...)
+}
+
+func Println(s string) {
+	fmt.Println(s)
 }
 
 func Sprintf(format string, vals ...interface{}) string {
