@@ -35,3 +35,4 @@ _testmain.go
 *.log
 *.csv
 *.txt
+*.gz
