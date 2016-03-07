@@ -140,6 +140,14 @@ func NewBox(min, max Coordinate) (box Box, err error) {
 	return
 }
 
+func (b Box) SouthWest() Coordinate {
+	return b.min
+}
+
+func (b Box) NorthEast() Coordinate {
+	return b.max
+}
+
 func (b Box) Contains(coords ...Coordinate) (in bool) {
 	for _, c := range coords {
 		in = in || (b.min.strictCmp(c) < 0 && b.max.strictCmp(c) > 0)

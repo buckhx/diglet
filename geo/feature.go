@@ -2,6 +2,7 @@ package geo
 
 import (
 	_ "github.com/buckhx/diglet/util"
+	"strings"
 )
 
 const (
@@ -17,6 +18,7 @@ type Feature struct {
 }
 
 func NewFeature(geometryType string, geometry ...*Shape) *Feature {
+	geometryType = strings.ToLower(geometryType)
 	return &Feature{Geometry: geometry, Type: geometryType}
 }
 
@@ -57,4 +59,10 @@ func (f *Feature) Center() (avg Coordinate) {
 	avg.Lat /= div
 	avg.Lon /= div
 	return
+}
+
+//Only checks exterior ring
+//TODO account for interior rings
+func (f *Feature) Contains(c Coordinate) bool {
+	return len(f.Geometry) > 0 && f.Geometry[0].Contains(c)
 }

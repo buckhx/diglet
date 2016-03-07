@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/buckhx/diglet/dig"
+	"github.com/buckhx/diglet/fence"
 	"github.com/buckhx/diglet/mbt"
 	"github.com/buckhx/diglet/resources"
 	"github.com/buckhx/diglet/util"
@@ -24,6 +25,7 @@ func client(args []string) {
 		wms.Cmd,
 		mbt.Cmd,
 		dig.Cmd,
+		fence.Cmd,
 	}
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
