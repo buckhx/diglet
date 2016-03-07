@@ -44,7 +44,7 @@ func (t Tiles) Build(layerName string, zmin, zmax uint) (err error) {
 	for zoom := zmax; zoom >= zmin; zoom-- {
 		//TODO goroutine per level
 		util.Info("Generating tiles for zoom level: %d", zoom)
-		features, err := t.source.Publish()
+		features, err := t.source.Publish(4) //TODO cores
 		if err != nil {
 			return err
 		}

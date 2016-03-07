@@ -10,7 +10,7 @@ import (
 )
 
 type FeatureSource interface {
-	Publish() (chan *Feature, error)
+	Publish(workers int) (chan *Feature, error)
 }
 
 type GeoFields map[string]string
@@ -47,21 +47,28 @@ func NewCsvSource(path string, filter []string, delimiter string, fields GeoFiel
 	}
 }
 
-func (c *CsvSource) Publish() (features chan *Feature, err error) {
+func (c *CsvSource) Publish(workers int) (features chan *Feature, err error) {
 	lines, err := c.publishLines()
 	if err != nil {
 		return
 	}
+	wg := util.WaitGroup(workers)
 	features = make(chan *Feature, 1000)
-	go func() {
-		defer close(features)
-		for line := range lines {
-			if feature, err := c.featureAdapter(line); err != nil {
-				util.Warn(err, "feature adapter")
-			} else {
-				features <- feature
+	for i := 0; i < workers; i++ {
+		go func() {
+			defer wg.Done()
+			for line := range lines {
+				if feature, err := c.featureAdapter(line); err != nil {
+					util.Warn(err, "feature adapter")
+				} else {
+					features <- feature
+				}
 			}
-		}
+		}()
+	}
+	go func() {
+		wg.Wait()
+		defer close(features)
 	}()
 	return
 }

@@ -2,12 +2,10 @@
 package mbt
 
 import (
+	"github.com/buckhx/diglet/util"
+	"github.com/codegangsta/cli"
 	"os"
 	"strings"
-
-	"github.com/buckhx/diglet/util"
-
-	"github.com/codegangsta/cli"
 )
 
 var Cmd = cli.Command{
@@ -32,7 +30,7 @@ var Cmd = cli.Command{
 			util.Die(c, "--in & --out required")
 		}
 		if zmax < zmin || zmin < 0 || zmax > 23 {
-			util.Die(c, "--max > --min, --min > 9 --max < 24 not satisfied")
+			util.Die(c, "--max > --min, --min > 0 --max < 24 not satisfied")
 		}
 		force := c.Bool("force")
 		if force {
@@ -103,12 +101,12 @@ var Cmd = cli.Command{
 		cli.IntFlag{
 			Name:  "max, max-zoom",
 			Value: 10,
-			Usage: "Maximum zoom level to build tiles for. Not Implemented.",
+			Usage: "Maximum zoom level to build tiles for",
 		},
 		cli.IntFlag{
 			Name:  "min, min-zoom",
 			Value: 5,
-			Usage: "Minimum zoom level to build tiles from. Not Implemented.",
+			Usage: "Minimum zoom level to build tiles from",
 		},
 		cli.StringFlag{
 			Name: "filter",
