@@ -11,7 +11,7 @@ import (
 	"sync"
 )
 
-var fences = []string{RtreeFence, BruteForceFence, QuadTreeFence}
+var fences = []string{RtreeFence, BruteForceFence, QuadTreeFence, QuadRtreeFence}
 
 var Cmd = cli.Command{
 	Name:        "fence",

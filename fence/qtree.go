@@ -38,6 +38,7 @@ func (q *Qfence) Get(c geo.Coordinate) (matchs []*geo.Feature) {
 }
 
 func shapeQkeys(shp *geo.Shape, zoom int) (keys []string) {
+	//TODO move this to geo package shp.QuadKeys
 	// bbox could be trimmed
 	bbox := shp.BoundingBox()
 	ne := bbox.NorthEast().ToTile(zoom)

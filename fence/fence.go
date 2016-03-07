@@ -26,10 +26,8 @@ func GetFence(fenceType string) (fence GeoFence, err error) {
 		fence = NewBruteFence()
 	case QuadTreeFence:
 		fence = NewQfence(13) //using zoom==14 for neighborhood
-		/*
-			case QuadRtreeFence:
-				fence = NewQrfence()
-		*/
+	case QuadRtreeFence:
+		fence = NewQrfence(10)
 	default:
 		err = util.Errorf("Bad fence type: %s", fenceType)
 	}
