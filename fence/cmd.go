@@ -2,6 +2,7 @@ package fence
 
 import (
 	"bufio"
+	"encoding/json"
 	"github.com/buckhx/diglet/geo"
 	"github.com/buckhx/diglet/util"
 	"github.com/codegangsta/cli"
@@ -63,24 +64,30 @@ var Cmd = cli.Command{
 		}()
 		workers := c.Int("c")
 		wg := &sync.WaitGroup{}
-		matchs := make(chan *geo.Feature)
+		results := make(chan *geo.Feature)
 		for i := 0; i < workers; i++ {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				for query := range queries {
-					for _, match := range fence.Get(query.Geometry[0].Head()) {
-						matchs <- match
+					matchs := fence.Get(query.Geometry[0].Head())
+					fences := make([]map[string]interface{}, len(matchs))
+					for i, match := range matchs {
+						fences[i] = match.Properties
 					}
+					query.Properties["fences"] = fences
+					results <- query
 				}
 			}()
 		}
 		go func() {
 			wg.Wait()
-			close(matchs)
+			close(results)
 		}()
-		for match := range matchs {
-			util.Printf("%s\n", match.Properties["neighborhood"])
+		for res := range results {
+			out, err := json.Marshal(res)
+			util.Check(err)
+			util.Printf("%s\n", out)
 			//util.Info("%+v", match.Properties["neighborhood"])
 		}
 	},
