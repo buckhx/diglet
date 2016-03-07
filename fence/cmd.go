@@ -29,13 +29,18 @@ var Cmd = cli.Command{
 			Value: runtime.GOMAXPROCS(0),
 			Usage: "Concurrency factor, defaults to number of cores",
 		},
+		cli.IntFlag{
+			Name:  "zoom, z",
+			Value: 14,
+			Usage: "Some fences require a zoom level",
+		},
 	},
 	Action: func(c *cli.Context) {
 		args := c.Args()
 		if len(args) < 1 || args[0] == "" {
 			util.Die(c, "fence_file required")
 		}
-		fence, err := GetFence(c.String("fence"))
+		fence, err := GetFence(c.String("fence"), c.Int("z"))
 		if err != nil {
 			util.Die(c, err.Error())
 		}
@@ -75,7 +80,8 @@ var Cmd = cli.Command{
 			close(matchs)
 		}()
 		for match := range matchs {
-			util.Info("%+v", match.Properties["neighborhood"])
+			util.Printf("%s\n", match.Properties["neighborhood"])
+			//util.Info("%+v", match.Properties["neighborhood"])
 		}
 	},
 }

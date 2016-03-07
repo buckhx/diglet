@@ -20,11 +20,13 @@ func (r *Rfence) Add(f *geo.Feature) {
 	}
 }
 
-func (r *Rfence) Get(c geo.Coordinate) []*geo.Feature {
+func (r *Rfence) Get(c geo.Coordinate) (matchs []*geo.Feature) {
 	nodes := r.rtree.Contains(c)
-	features := make([]*geo.Feature, len(nodes))
-	for i, n := range nodes {
-		features[i] = n.Feature()
+	for _, n := range nodes {
+		feature := n.Feature()
+		if feature.Contains(c) {
+			matchs = append(matchs, feature)
+		}
 	}
-	return features
+	return
 }

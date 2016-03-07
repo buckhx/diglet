@@ -2,7 +2,6 @@ package fence
 
 import (
 	"github.com/buckhx/diglet/geo"
-	"github.com/buckhx/diglet/util"
 )
 
 type Qfence struct {
@@ -20,7 +19,6 @@ func NewQfence(zoom int) *Qfence {
 func (q *Qfence) Add(f *geo.Feature) {
 	for _, shp := range f.Geometry {
 		qkeys := shapeQkeys(shp, q.zoom)
-		util.Info("%v", qkeys)
 		for _, key := range qkeys {
 			q.qtree[key] = append(q.qtree[key], f)
 		}
