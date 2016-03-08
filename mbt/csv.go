@@ -100,7 +100,6 @@ func (c *CsvSource) publishLines() (lines chan []string, err error) {
 				break
 			}
 			if err != nil {
-				panic(err)
 				util.Warn(err, "line reading")
 			} else if line[c.headers[c.fields["lat"]]] == "" || line[c.headers[c.fields["geometry"]]] == "" {
 				continue
@@ -137,7 +136,7 @@ func (c *CsvSource) featureAdapter(line []string) (feature *Feature, err error) 
 		g := line[c.headers[c.fields["shape"]]]
 		shp, err := ShapeFromString(g)
 		if err != nil {
-			return nil, err
+			return nil, util.Errorf("Invalid shape format %+v", g)
 		}
 		switch {
 		case len(shp.Coordinates) == 0:

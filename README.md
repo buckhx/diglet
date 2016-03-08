@@ -6,6 +6,10 @@ A simple tool for solving common geospatial workflows.
 
 * wms: Web Mapping Server (tile server)
 * mbt: Tile builder for vector tiles into the mbtiles spec
+* fence: A geofence utility
+* dig: A geocoder based on OSM data
+
+This project is under heavy development and APIs/CLIs are subject to change until further notice.
 
 # wms
 
@@ -92,12 +96,12 @@ OPTIONS:
    --layer-name "features"				Name of the layer for the features to be added to
    --desc, --description "Generated from Diglet"	Value inserted into the description entry of the mbtiles
    --extent "4096"					Extent of tiles to be built. Default is 4096
-   --max, --max-zoom "10"				Maximum zoom level to build tiles for. Not Implemented.
-   --min, --min-zoom "5"				Minimum zoom level to build tiles from. Not Implemented.
+   --max, --max-zoom "10"				Maximum zoom level to build tiles for
+   --min, --min-zoom "5"				Minimum zoom level to build tiles from
    --filter 						Only include fields keys in this comma delimited list.	EXAMPLE --filter name,date,case_number,id	NOTE all fields are lowercased and non-word chars replaced with '_'
-   --csv-lat "latitude"					
-   --csv-lon "longitude"				
-   --csv-geometry "geometry"				Column containing geometry in geojson-like 'coordinates' form
+   --csv-lat						Column containing latitude					
+   --csv-lon						Column containint longitude
+   --csv-shape						Column containing geometry in geojson-like 'coordinates' form
    --csv-delimiter ","	
 ```
 

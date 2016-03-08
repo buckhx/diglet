@@ -2,12 +2,13 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Diglet - 311 Calls</title>
+  <title>Diglet Gallery</title>
   <!-- <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet.css" /> -->
   <link rel="stylesheet" href="/static/css/leaflet.css" />
 </head>
 <body>
   <h1>A wild diglet was encountered!</h1>
+  <h3>Inspecting {{tileset}}</h3>
   <div id="map" style="height:75vh"></div>
   <h3 id="featureProperties">Click on a feature!</h3>
 </body>
@@ -17,7 +18,7 @@
   <script src="/static/js/Leaflet.MapboxVectorTile.js"></script>
   <script src="/static/js/vector-tile.js"></script>
   <script src="/static/js/pbf.js"></script>
-  <script src="/static/js/Leaflet.Diglet.js"></script>
+  <!-- <script src="/static/js/Leaflet.Diglet.js"></script> -->
   <script>
 	function convertHex(hex,opacity){
 	    hex = hex.replace('#','');
@@ -30,70 +31,40 @@
 	var baselayer = L.tileLayer('http://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',{
 	  attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
 	});
-	var agencyColors = {
-		'HPD':	'#139CCA',		//blue
-		'NYPD': '#003366',		//nypd blue 
-		'DOT': 	'#E87600',		//safety orange
-		'DEP':	'#009D55',		//leaf green
-		'DSNY':	'#E9D66B',		//acrylite yellow
-		'DOB':	'#BCD4E6',		//bluish-greyish-blue
-		'DPR':	'#88C659',		//bug green
-		'DOHMH':'#CCCCFF',		//lavender
-		'DOF':	'#FFD700',		//betty white gold
-		'HRA':	'#FF69B4',		//neon pink
-		'TLC':	'#FFFF00',		//taxi yellow
-		'DCAS':	'#F89F59',		//consumer affair peach
-		'CHALL':'#6F00FF',		//indigo
-		'FDNY':	'#BE0712',		//fire red
-		'DHS':	'#38EEFF',		//cyber teal
-		'OTHER':'#E3FF00',		//lemon-lime
-	}
-        var prospectPark = [40.66, -73.97]
-	var map = L.map('map', {
-	    center: prospectPark,
-	    zoom: 13,
-	    maxZoom: 15,
-	    minZoom: 10,
-	});
+	var map = L.map('map', {center:[{{lon}},{{lat}}], zoom:{{zoom}}});
 	document.getElementById('map').style.cursor = 'crosshair';
 	map.addLayer(baselayer);
 	var opts = {
-		url: "/tileset/311-calls/{z}/{x}/{y}",
+		url: "/tileset/{{tileset}}/{z}/{x}/{y}",
 		mutexToggle: true,
 		getIDForLayerFeature: function(feature) {
-			return feature.properties.unique_key;
+			return feature._id;
 		},
 		onClick: function(e) {
 			feature = e.feature;
 			if (feature) {
 				if (feature.selected) {
-					var props = [feature.properties.complaint_type, 
-						     feature.properties.descriptor,
-						     feature.properties.agency, 
-						     feature.properties.unique_key,
-						     feature.properties.created_date];
-					document.getElementById("featureProperties").innerHTML = props.join(' | ');
+					document.getElementById("featureProperties").innerHTML = feature.properties;
 				} else {
-					// remove from table
 				}
 				console.log(feature);
 			}
 		},
 		style: function (feature) {
-			var style = {};
+			console.log(feature)
+			var style = {
+				color:  convertHex("#139CCA", 100),
+				lineWidth: 2,
+				radius: 3,
+				selected: {
+					color: convertHex("#BE0712", 100), 
+					radius: 10,
+					strokeStyle: '#CCC'
+				}
+			};
 			var type = feature.type;
 			switch (type) {
 				case 1: //'Point'
-					var agency = feature.properties.agency;
-					var color = agencyColors[agency] || agencyColors['OTHER'];
-					style.color = convertHex(color, 25)
-					style.radius = function(zoom) {return Math.floor(zoom/13) + 1;}
-					style.selected = {
-						color: convertHex(color, 100), 
-						radius: 10,
-						lineWidth: 2,
-						strokeStyle: '#CCC'
-					};
 					break;
 				case 2: //'LineString'
 			      		break;
@@ -107,7 +78,6 @@
 		}
 	}
 	var calls = new L.TileLayer.MVTSource(opts)
-	//var calls = new L.TileLayer.DigletMVTSource("ws://192.168.33.10:8080/tileset/io", "311-calls", opts)
 	map.addLayer(calls)
   </script>
 </html>
