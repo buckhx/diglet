@@ -5,7 +5,14 @@ import (
 	"github.com/buckhx/diglet/util"
 	"github.com/codegangsta/cli"
 	"os"
+	"path/filepath"
 	"strings"
+)
+
+var (
+	CsvExt     = "csv"
+	GeojsonExt = "geojson"
+	exts       = []string{CsvExt, GeojsonExt}
 )
 
 var Cmd = cli.Command{
@@ -14,56 +21,39 @@ var Cmd = cli.Command{
 	Usage:       "Builds an mbtiles database from the input data source",
 	Description: "Builds an mbtiles database from the given format",
 	ArgsUsage:   "input_source",
-	Action: func(c *cli.Context) {
+	Action: func(c *cli.Context) { //TODO break out into functions
+		// get kwargs & vars
 		out := c.String("output")
 		desc := c.String("desc")
 		layer := c.String("layer-name")
 		zmin := uint(c.Int("min"))
 		zmax := uint(c.Int("max"))
 		extent := uint(c.Int("extent"))
-		args := c.Args()
-		if len(args) < 1 {
-			util.Die(c, "an input data source is required")
-		}
-		in := args[0]
-		if in == "" || out == "" {
-			util.Die(c, "--in & --out required")
-		}
-		if zmax < zmin || zmin < 0 || zmax > 23 {
+		upsert := c.Bool("upsert")
+		force := c.Bool("force")
+		// validate
+		if len(c.Args()) == 0 || out == "" {
+			util.Die(c, "input_source & --out required")
+		} else if zmax < zmin || zmin < 0 || zmax > 23 {
 			util.Die(c, "--max > --min, --min > 0 --max < 24 not satisfied")
 		}
-		force := c.Bool("force")
+		// execute
+		source, err := getSource(c)
+		util.Check(err)
 		if force {
 			os.Remove(out)
 		}
-		/*
-				lat := c.String("csv-lat")
-				lon := c.String("csv-lon")
-				delim := c.String("csv-delimiter")
-				source := mbt.CsvTiles(in, delim, lat, lon)
-			source := mbt.GeojsonTiles(in)
-			mbt.BuildTileset(ts, source, zmin, zmax)
-		*/
-		upsert := c.Bool("upsert")
-		var filter []string
-		if len(c.String("filter")) > 0 {
-			filter = strings.Split(c.String("filter"), ",")
-		}
-		if tiles, err := InitTiles(in, out, upsert, filter, desc, extent); err != nil {
-			util.Fatal(err.Error())
-		} else {
-			err = tiles.Build(layer, zmin, zmax)
-			if err != nil {
-				util.Fatal(err.Error())
-			} else {
-				file, _ := os.Open(out)
-				defer file.Close()
-				stat, _ := file.Stat()
-				exp := float64(stat.Size()) / float64(1<<20)
-				util.Info("%s was successfully caught!", out)
-				util.Info("Diglet gained %f MB of EXP!", exp)
-			}
-		}
+		tiles, err := InitTiles(out, upsert, desc, extent)
+		util.Check(err)
+		err = tiles.Build(source, layer, zmin, zmax)
+		util.Check(err)
+		// finalize
+		file, _ := os.Open(out)
+		defer file.Close()
+		stat, _ := file.Stat()
+		exp := float64(stat.Size()) / float64(1<<20)
+		util.Info("%s was successfully caught!", out)
+		util.Info("Diglet gained %f MB of EXP!", exp)
 	},
 	Flags: []cli.Flag{
 		cli.StringFlag{
@@ -116,20 +106,44 @@ var Cmd = cli.Command{
 		},
 		cli.StringFlag{
 			Name:  "csv-lat",
-			Value: "latitude",
+			Usage: "Column containing a single longitude point",
 		},
 		cli.StringFlag{
 			Name:  "csv-lon",
-			Value: "longitude",
+			Usage: "Column containing a single longitude point",
 		},
 		cli.StringFlag{
-			Name:  "csv-geometry",
-			Value: "geometry",
-			Usage: "Column containing geometry in geojson-like 'coordinates' form",
+			Name: "csv-shape",
+			Usage: "Column containing shape in geojson-like 'coordinates' form.\t" +
+				"Does not support multi-geometries",
 		},
 		cli.StringFlag{
 			Name:  "csv-delimiter",
 			Value: ",",
 		},
 	},
+}
+
+func getSource(c *cli.Context) (source FeatureSource, err error) {
+	path := c.Args()[0]
+	var filter []string
+	if len(c.String("filter")) > 0 {
+		filter = strings.Split(c.String("filter"), ",")
+	}
+	ext := filepath.Ext(path)[1:]
+	switch ext {
+	case CsvExt:
+		delim := c.String("csv-delimiter")
+		fields := GeoFields{"lat": c.String("csv-lat"), "lon": c.String("csv-lon"), "shape": c.String("csv-shape")}
+		if !fields.Validate() {
+			err = util.Errorf("csv-lat/csv-lon or csv-shape required")
+			break
+		}
+		source = NewCsvSource(path, filter, delim, fields)
+	case GeojsonExt:
+		source = NewGeojsonSource(path, filter)
+	default:
+		err = util.Errorf("Invalid source file extension %s %s", ext, strings.Join(exts, "|"))
+	}
+	return
 }

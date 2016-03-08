@@ -129,7 +129,6 @@ func geojsonFeatureAdapter(gj *geojson.Feature) (feature *Feature) {
 	}
 	return
 }
-
 func coordinatesAdapter(line geojson.Coordinates) (shape *Shape) {
 	shape = MakeShape(len(line))
 	for i, point := range line {
