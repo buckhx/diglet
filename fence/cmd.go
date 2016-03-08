@@ -2,14 +2,13 @@ package fence
 
 import (
 	"bufio"
-	"encoding/json"
+	_ "encoding/json"
 	"github.com/buckhx/diglet/geo"
 	"github.com/buckhx/diglet/util"
 	"github.com/codegangsta/cli"
 	"os"
 	"runtime"
 	"strings"
-	"sync"
 )
 
 var fences = []string{RtreeFence, BruteForceFence, QuadTreeFence, QuadRtreeFence}
@@ -63,32 +62,37 @@ var Cmd = cli.Command{
 			}
 		}()
 		workers := c.Int("c")
-		wg := &sync.WaitGroup{}
 		results := make(chan *geo.Feature)
-		for i := 0; i < workers; i++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				for query := range queries {
-					matchs := fence.Get(query.Geometry[0].Head())
-					fences := make([]map[string]interface{}, len(matchs))
-					for i, match := range matchs {
-						fences[i] = match.Properties
-					}
-					query.Properties["fences"] = fences
-					results <- query
+		fencing := util.Work(func() {
+			for query := range queries {
+				matchs := fence.Get(query.Geometry[0].Head())
+				fences := make([]map[string]interface{}, len(matchs))
+				for i, match := range matchs {
+					fences[i] = match.Properties
 				}
-			}()
-		}
+				query.Properties["fences"] = fences
+				results <- query
+			}
+		}, workers)
 		go func() {
-			wg.Wait()
+			fencing.Wait()
 			close(results)
 		}()
 		for res := range results {
-			out, err := json.Marshal(res)
-			util.Check(err)
-			util.Printf("%s\n", out)
-			//util.Info("%+v", match.Properties["neighborhood"])
+			util.Printf("\n%s\n", res.Properties["text"])
+			for _, f := range res.Properties["fences"].([]map[string]interface{}) {
+				util.Printf("\t%+v\n", f["neighborhood"])
+			}
 		}
+		/*
+			marshaling := util.Work(func() {
+				for res := range results {
+						out, err := json.Marshal(res)
+						util.Check(err)
+						util.Printf("%s\n", out)
+				}
+			}, workers)
+			marshaling.Wait()
+		*/
 	},
 }
