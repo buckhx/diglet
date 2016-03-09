@@ -17,7 +17,7 @@ install:
   - go get ./...
 script:
   - go test -v ./...
-  - if [ "$TRAVIS_BRANCH" == "master" ]; then go build -ldflags '-extldflags "-static"' -o "diglet_${GOOS}_${GOARCH}${EXT}"; fi
+  - if [[ $TRAVIS_BRANCH == v* ]]; then go build -ldflags '-extldflags "-static"' -o "diglet_${GOOS}_${GOARCH}${EXT}"; fi
   - ls
 deploy:
   provider: releases
