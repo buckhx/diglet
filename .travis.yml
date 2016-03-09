@@ -13,8 +13,8 @@ env:
 install:
   - printenv
   - if [[ $TRAVIS_BRANCH == v* ]]; then cd $GOROOT/src && ./make.bash  && cd $GOPATH/src/github.com/buckhx/diglet; fi
-  - go get ./...
   - go generate
+  - go get ./...
 script:
   - go test -v ./...
   - if [[ $TRAVIS_BRANCH == v* ]]; then go build -ldflags '-extldflags "-static"' -o "diglet_${GOOS}_${GOARCH}${EXT}"; fi
