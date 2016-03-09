@@ -4,9 +4,9 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/buckhx/diglet/util"
 	"io"
 	"os"
+	"os/exec"
 	pathlib "path"
 	"regexp"
 	"strings"
@@ -27,7 +27,7 @@ func main() {
 		rsc := writeResource(name, string(contents.Bytes()))
 		logf("Created resource %s", rsc)
 	}
-	version := util.Version()
+	version := version()
 	writeResource("Version", version)
 	logf("Created resource for Version %s", version)
 }
@@ -77,4 +77,16 @@ func varSlugged(s string) (vslug string) {
 	vslug = strings.Trim(slugger.ReplaceAllString(s, "_"), "_")
 	vslug = strings.ToUpper(string(vslug[0])) + vslug[1:]
 	return
+}
+
+func version() string {
+	cmd := exec.Command("git", "describe", "--always")
+	var ver bytes.Buffer
+	cmd.Stdout = &ver
+	err := cmd.Run()
+	if err != nil {
+		panic(err)
+	}
+	return strings.TrimSpace(ver.String())
+	//TODO add a '{+n}' to version if git diff --numstat isn't empty
 }
