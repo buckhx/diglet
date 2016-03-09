@@ -28,9 +28,34 @@ func NewGeojsonSource(path string, filter []string) *GeojsonSource {
 	return &GeojsonSource{path, set}
 }
 
-func (gj *GeojsonSource) Publish() (features chan *Feature, err error) {
+func (gj *GeojsonSource) Publish(workers int) (features chan *Feature, err error) {
 	collection := readGeoJson(gj.path)
-	return publishFeatureCollection(collection), nil
+	f := make(chan *Feature, 10)
+	wg := util.Work(func() {
+		for _, feature := range collection.Features {
+			f <- geojsonFeatureAdapter(feature)
+		}
+	}, workers)
+	go func() {
+		wg.Wait()
+		close(features)
+	}()
+	features = f
+	/*
+		for i := 0; i < workers; i++ {
+			go func() {
+				defer wg.Done()
+				for _, feature := range collection.Features {
+					features <- geojsonFeatureAdapter(feature)
+				}
+			}()
+		}
+		go func() {
+			wg.Wait()
+			close(features)
+		}()
+	*/
+	return
 }
 
 // Flatten all the points of a feature into single list. This can hel in identifying which tiles are going to be
@@ -104,7 +129,6 @@ func geojsonFeatureAdapter(gj *geojson.Feature) (feature *Feature) {
 	}
 	return
 }
-
 func coordinatesAdapter(line geojson.Coordinates) (shape *Shape) {
 	shape = MakeShape(len(line))
 	for i, point := range line {

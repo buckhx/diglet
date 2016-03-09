@@ -10,13 +10,21 @@ import (
 )
 
 type FeatureSource interface {
-	Publish() (chan *Feature, error)
+	Publish(workers int) (chan *Feature, error)
 }
 
 type GeoFields map[string]string
 
-func (g GeoFields) Validate() error {
-	return nil
+func (g GeoFields) Validate() bool {
+	return g.HasCoordinates() != g.HasShape() //xor
+}
+
+func (g GeoFields) HasCoordinates() bool {
+	return g["lat"] != "" && g["lon"] != ""
+}
+
+func (g GeoFields) HasShape() bool {
+	return g["shape"] != ""
 }
 
 type CsvSource struct {
@@ -47,21 +55,28 @@ func NewCsvSource(path string, filter []string, delimiter string, fields GeoFiel
 	}
 }
 
-func (c *CsvSource) Publish() (features chan *Feature, err error) {
+func (c *CsvSource) Publish(workers int) (features chan *Feature, err error) {
 	lines, err := c.publishLines()
 	if err != nil {
 		return
 	}
+	wg := util.WaitGroup(workers)
 	features = make(chan *Feature, 1000)
-	go func() {
-		defer close(features)
-		for line := range lines {
-			if feature, err := c.featureAdapter(line); err != nil {
-				util.Warn(err, "feature adapter")
-			} else {
-				features <- feature
+	for i := 0; i < workers; i++ {
+		go func() {
+			defer wg.Done()
+			for line := range lines {
+				if feature, err := c.featureAdapter(line); err != nil {
+					util.Warn(err, "feature adapter")
+				} else {
+					features <- feature
+				}
 			}
-		}
+		}()
+	}
+	go func() {
+		wg.Wait()
+		defer close(features)
 	}()
 	return
 }
@@ -74,7 +89,6 @@ func (c *CsvSource) publishLines() (lines chan []string, err error) {
 	}
 	reader := csv.NewReader(f)
 	c.headers = readHeaders(reader, c.filter)
-	err = c.fields.Validate() //c.headers)
 	//TODO if err != nil
 	lines = make(chan []string, 100)
 	go func() {
@@ -86,9 +100,8 @@ func (c *CsvSource) publishLines() (lines chan []string, err error) {
 				break
 			}
 			if err != nil {
-				panic(err)
 				util.Warn(err, "line reading")
-			} else if line[c.headers[c.fields["lat"]]] == "" {
+			} else if line[c.headers[c.fields["lat"]]] == "" || line[c.headers[c.fields["geometry"]]] == "" {
 				continue
 				//err = util.Errorf("No coordinates %v", line)
 				//util.Warn(err, "no lat/lon")
@@ -101,24 +114,45 @@ func (c *CsvSource) publishLines() (lines chan []string, err error) {
 }
 
 func (c *CsvSource) featureAdapter(line []string) (feature *Feature, err error) {
-	feature = NewFeature("point")
-	props := make(map[string]interface{}) // TODO alloc correct amount
+	props := make(map[string]interface{}, len(c.headers)) //biggest malloc
 	for k, i := range c.headers {
-		// biggest mem allocation
 		props[k] = line[i]
 	}
-	feature.Properties = props
-	lat, err := strconv.ParseFloat(line[c.headers[c.fields["lat"]]], 64)
-	if err != nil {
-		util.Info("%v", line)
-		return nil, err
+	switch {
+	case c.fields.HasCoordinates():
+		feature = NewFeature("point")
+		feature.Properties = props
+		lat, err := strconv.ParseFloat(line[c.headers[c.fields["lat"]]], 64)
+		if err != nil {
+			return nil, err
+		}
+		lon, err := strconv.ParseFloat(line[c.headers[c.fields["lon"]]], 64)
+		if err != nil {
+			return nil, err
+		}
+		point := NewShape(Coordinate{Lat: lat, Lon: lon})
+		feature.AddShape(point)
+	case c.fields.HasShape():
+		g := line[c.headers[c.fields["shape"]]]
+		shp, err := ShapeFromString(g)
+		if err != nil {
+			return nil, util.Errorf("Invalid shape format %+v", g)
+		}
+		switch {
+		case len(shp.Coordinates) == 0:
+			feature = NewFeature("point")
+		case len(shp.Coordinates) == 1:
+			feature = NewFeature("point")
+		case shp.Coordinates[0] == shp.Coordinates[len(shp.Coordinates)-1]: //closed
+			feature = NewFeature("polygon")
+		default:
+			feature = NewFeature("linestring")
+		}
+		feature.Properties = props
+		feature.AddShape(shp)
+	default:
+		err = util.Errorf("Invalid line")
 	}
-	lon, err := strconv.ParseFloat(line[c.headers[c.fields["lon"]]], 64)
-	if err != nil {
-		return nil, err
-	}
-	point := NewShape(Coordinate{Lat: lat, Lon: lon})
-	feature.AddShape(point)
 	return
 }
 

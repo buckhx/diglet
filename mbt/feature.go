@@ -1,6 +1,7 @@
 package mbt
 
 import (
+	"encoding/json"
 	"github.com/buckhx/diglet/mbt/mvt"
 	ts "github.com/buckhx/diglet/mbt/tile_system"
 	"github.com/buckhx/diglet/util"
@@ -10,8 +11,41 @@ type Coordinate struct {
 	Lat, Lon float64
 }
 
+// [lon, lat]
+func CoordinateFromString(raw string) (c Coordinate, err error) {
+	var p []float64
+	err = json.Unmarshal([]byte(raw), &p)
+	if err != nil {
+		return
+	} else if len(p) != 2 {
+		err = util.Errorf("Coordinate string len != 2: " + raw)
+	} else {
+		c = Coordinate{Lat: p[1], Lon: p[0]}
+	}
+	return
+}
+
 type Shape struct {
 	Coordinates []Coordinate
+}
+
+// [[lon,lat]...]
+func ShapeFromString(raw string) (shp *Shape, err error) {
+	var points [][]float64
+	err = json.Unmarshal([]byte(raw), &points)
+	if err != nil {
+		return
+	}
+	shp = MakeShape(len(points))
+	for i, p := range points {
+		if len(p) != 2 {
+			shp = nil
+			err = util.Errorf("Coordinate string len != 2 @ %d %s", i, raw)
+			return
+		}
+		shp.Coordinates[i] = Coordinate{Lat: p[1], Lon: p[0]}
+	}
+	return
 }
 
 func MakeShape(length int) *Shape {

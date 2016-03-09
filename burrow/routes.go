@@ -179,6 +179,18 @@ type RequestContext struct {
 	Params     MethodParams
 }
 
+func (ctx *RequestContext) Render(template string) (string, error) {
+	params := ctx.HTTPReader.URL.Query()
+	vars := make(map[string]string, len(ctx.Params)+len(params))
+	for k, v := range ctx.Params {
+		vars[k] = v.GetString()
+	}
+	for k, v := range params {
+		vars[k] = v[0] //only take first
+	}
+	return RenderTemplate(template, vars)
+}
+
 func (r *RouteHandler) MountRoutes(methods []Method) {
 	dict := make(map[string]Method)
 	for _, method := range methods {

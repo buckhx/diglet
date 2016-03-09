@@ -30,13 +30,21 @@ func MBTServer(mbtPath string, port string) *dig.App {
 	app.Methods = []dig.Method{
 		{
 			Name:  "gallery",
-			Route: "/gallery",
+			Route: "/gallery/{tileset}",
+			Params: dig.MethodParams{
+				"tileset": {Validator: assertString, Help: "Tileset to query for metadata"},
+			},
 			Handler: func(ctx *dig.RequestContext) (t interface{}, err *dig.CodedError) {
+				template := resources.Static_html()
+				static, errp := ctx.Render(template)
+				warn(errp, "params?")
+				//panic(errp)
 				w := ctx.HTTPWriter
-				w.Write([]byte(resources.Static_html()))
+				w.Write([]byte(static))
 				return
 			},
-			Help: "A simple tile viewer gallery app",
+			Help: "A simple tile viewer gallery app.\n" +
+				"?lat={}&lon={}&zoom={} can be included to zoom tolocation",
 		},
 		{
 			Name: GetTile,

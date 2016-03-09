@@ -3,10 +3,15 @@ package burrow
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/cbroglie/mustache"
 	"log"
 	"strconv"
 	"strings"
 )
+
+func RenderTemplate(template string, vars ...interface{}) (string, error) {
+	return mustache.Render(template, vars...)
+}
 
 func info(format string, vals ...interface{}) {
 	log.Printf("Burrow info: "+format, vals...)
