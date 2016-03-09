@@ -22,7 +22,7 @@ If you don't have permission at /usr/local/bin, try something like this where yo
     BINDIR=~/diglet
     mkdir -p $BINDIR
     export PATH=$PATH:$BINDIR
-    curl -sSL https://raw.githubusercontent.com/buckhx/denv/master/scripts/install.py | python - $BINDIR
+    curl -sSL https://raw.githubusercontent.com/buckhx/diglet/master/scripts/install.py | python - $BINDIR
 
 If you just want the binary, the final arg to the install py is a directory to download into
 
