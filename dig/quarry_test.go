@@ -26,7 +26,7 @@ func testQuarryExcavate(t *testing.T) {
 	q.Dig(addr)
 }
 
-func TestDig(t *testing.T) {
+func testDig(t *testing.T) {
 	q, err := dig.OpenQuarry(NY_DIG)
 	if err != nil {
 		t.Error(err)
