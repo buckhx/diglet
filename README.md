@@ -1,6 +1,7 @@
 # diglet
 
 [![Build Status](https://travis-ci.org/buckhx/diglet.svg?branch=master)](https://travis-ci.org/buckhx/diglet)
+[![Go Report Card](https://goreportcard.com/badge/github.com/buckhx/diglet)](https://goreportcard.com/report/github.com/buckhx/diglet)
 
 A simple tool for solving common geospatial workflows.
 
