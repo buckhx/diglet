@@ -10,10 +10,10 @@ import (
 // https://github.com/mapbox/vector-tile-spec/tree/master/2.0#435-example-geometry-encodings
 func TestReadPoints(t *testing.T) {
 	tests := []geomTest{
-		geomTest{[]uint32{9, 50, 34}, []*command{
+		{[]uint32{9, 50, 34}, []*command{
 			newCmd(MoveTo, 25, 17),
 		}},
-		geomTest{[]uint32{17, 10, 14, 3, 9}, []*command{
+		{[]uint32{17, 10, 14, 3, 9}, []*command{
 			newCmd(MoveTo, 5, 7),
 			newCmd(MoveTo, -2, -5),
 		}},
@@ -23,12 +23,12 @@ func TestReadPoints(t *testing.T) {
 
 func TestReadLine(t *testing.T) {
 	tests := []geomTest{
-		geomTest{[]uint32{9, 4, 4, 18, 0, 16, 16, 0}, []*command{
+		{[]uint32{9, 4, 4, 18, 0, 16, 16, 0}, []*command{
 			newCmd(MoveTo, 2, 2),
 			newCmd(LineTo, 0, 8),
 			newCmd(LineTo, 8, 0),
 		}},
-		geomTest{[]uint32{9, 4, 4, 18, 0, 16, 16, 0, 9, 17, 17, 10, 4, 8}, []*command{
+		{[]uint32{9, 4, 4, 18, 0, 16, 16, 0, 9, 17, 17, 10, 4, 8}, []*command{
 			newCmd(MoveTo, 2, 2),
 			newCmd(LineTo, 0, 8),
 			newCmd(LineTo, 8, 0),
@@ -41,7 +41,7 @@ func TestReadLine(t *testing.T) {
 
 func TestReadPolygons(t *testing.T) {
 	tests := []geomTest{
-		geomTest{[]uint32{9, 6, 12, 18, 10, 12, 24, 44, 15}, []*command{
+		{[]uint32{9, 6, 12, 18, 10, 12, 24, 44, 15}, []*command{
 			newCmd(MoveTo, 3, 6),
 			newCmd(LineTo, 5, 6),
 			newCmd(LineTo, 12, 22),
@@ -87,21 +87,21 @@ type shapeTest struct {
 
 func TestToShapes(t *testing.T) {
 	tests := []shapeTest{
-		shapeTest{[]uint32{9, 50, 34}, []*Shape{
+		{[]uint32{9, 50, 34}, []*Shape{
 			NewPointShape(Point{25, 17}),
 		}},
-		shapeTest{[]uint32{17, 10, 14, 3, 9}, []*Shape{
+		{[]uint32{17, 10, 14, 3, 9}, []*Shape{
 			NewPointShape(Point{5, 7}),
 			NewPointShape(Point{3, 2}),
 		}},
-		shapeTest{[]uint32{9, 4, 4, 18, 0, 16, 16, 0}, []*Shape{
+		{[]uint32{9, 4, 4, 18, 0, 16, 16, 0}, []*Shape{
 			NewLine(Point{2, 2}, Point{2, 10}, Point{10, 10}),
 		}},
-		shapeTest{[]uint32{9, 4, 4, 18, 0, 16, 16, 0, 9, 17, 17, 10, 4, 8}, []*Shape{
+		{[]uint32{9, 4, 4, 18, 0, 16, 16, 0, 9, 17, 17, 10, 4, 8}, []*Shape{
 			NewLine(Point{2, 2}, Point{2, 10}, Point{10, 10}),
 			NewLine(Point{1, 1}, Point{3, 5}),
 		}},
-		shapeTest{[]uint32{9, 6, 12, 18, 10, 12, 24, 44, 15}, []*Shape{
+		{[]uint32{9, 6, 12, 18, 10, 12, 24, 44, 15}, []*Shape{
 			NewPolygon(Point{3, 6}, Point{8, 12}, Point{20, 34}),
 		}},
 	}

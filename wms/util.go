@@ -51,14 +51,14 @@ type header struct {
 }
 
 var formatEncoding = map[mbtiles.Format][]header{
-	mbtiles.PNG:     []header{header{"Content-Type", "image/png"}},
-	mbtiles.JPG:     []header{header{"Content-Type", "image/jpeg"}},
-	mbtiles.GIF:     []header{header{"Content-Type", "image/gif"}},
-	mbtiles.WEBP:    []header{header{"Content-Type", "image/webp"}},
-	mbtiles.PBF_GZ:  []header{header{"Content-Type", "application/x-protobuf"}, header{"Content-Encoding", "gzip"}},
-	mbtiles.PBF_DF:  []header{header{"Content-Type", "application/x-protobuf"}, header{"Content-Encoding", "deflate"}},
-	mbtiles.UNKNOWN: []header{header{"Content-Type", "application/octet-stream"}},
-	mbtiles.EMPTY:   []header{header{"Content-Type", "application/octet-stream"}},
+	mbtiles.PNG:     {{"Content-Type", "image/png"}},
+	mbtiles.JPG:     {{"Content-Type", "image/jpeg"}},
+	mbtiles.GIF:     {{"Content-Type", "image/gif"}},
+	mbtiles.WEBP:    {{"Content-Type", "image/webp"}},
+	mbtiles.PBF_GZ:  {{"Content-Type", "application/x-protobuf"}, {"Content-Encoding", "gzip"}},
+	mbtiles.PBF_DF:  {{"Content-Type", "application/x-protobuf"}, {"Content-Encoding", "deflate"}},
+	mbtiles.UNKNOWN: {{"Content-Type", "application/octet-stream"}},
+	mbtiles.EMPTY:   {{"Content-Type", "application/octet-stream"}},
 }
 
 func sprintSizeOf(v interface{}) string {

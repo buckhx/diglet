@@ -119,7 +119,7 @@ func (tsi *TilesetIndex) readTileset(path string) (ts *mbtiles.Tileset) {
 func (tsi *TilesetIndex) watchMbtilesDir() {
 	opBuf := newOpBuffer()
 	go func() {
-		for _ = range opBuf.ticker.C {
+		for range opBuf.ticker.C {
 			for _, op := range opBuf.flush() {
 				info("fsnotify opbuffer flushed %s %d", op.String(), time.Now().UnixNano())
 				var event TsEvent

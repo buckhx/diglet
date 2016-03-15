@@ -5,6 +5,12 @@ function header {
     echo "${repeat// /*} $1 ${repeat// /*}"
 }
 
+header "go generate"
+go generate
+
+header "go fmt"
+gofmt -s -w -d ./
+
 header "go get"
 go get github.com/fzipp/gocyclo
 go get github.com/client9/misspell/cmd/misspell

@@ -1,7 +1,5 @@
 package geo
 
-import ()
-
 type Fence interface {
 	Add(f *Feature)
 	GetFeatures(f *Feature) []*Feature

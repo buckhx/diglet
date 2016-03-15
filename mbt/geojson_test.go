@@ -18,7 +18,7 @@ func TestSplitFeatures(t *testing.T) {
 	})
 	got := mapset.NewSet()
 	tiles := splitFeatures(features, zoom)
-	for tile, _ := range tiles {
+	for tile := range tiles {
 		got.Add(tile)
 	}
 	if !want.Equal(got) {

@@ -116,7 +116,7 @@ func NewHub(tilesets *TilesetIndex) (h *IoHub) {
 		tilesets: tilesets,
 		topics:   make(map[string]*TilesetTopic),
 	}
-	for slug, _ := range h.tilesets.Tilesets {
+	for slug := range h.tilesets.Tilesets {
 		h.topics[slug] = newTilesetTopic(slug)
 	}
 	return

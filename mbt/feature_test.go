@@ -20,11 +20,11 @@ func TestReverseShape(t *testing.T) {
 
 func TestClockwise(t *testing.T) {
 	antiwise := []Coordinate{
-		Coordinate{39.7435437641, -105.003612041},
-		Coordinate{39.7427848013, -105.003011227},
-		Coordinate{39.7431642838, -105.002217293},
-		Coordinate{39.7439067434, -105.002839565},
-		Coordinate{39.7435437641, -105.003612041},
+		{39.7435437641, -105.003612041},
+		{39.7427848013, -105.003011227},
+		{39.7431642838, -105.002217293},
+		{39.7439067434, -105.002839565},
+		{39.7435437641, -105.003612041},
 	}
 	shape := NewShape(antiwise...)
 	if shape.IsClockwise() {
