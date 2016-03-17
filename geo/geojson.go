@@ -33,10 +33,12 @@ func (gj *GeojsonSource) Publish() (features chan *Feature, err error) {
 
 // Flatten all the points of a feature into single list. This can hel in identifying which tiles are going to be
 // created
-func GeojsonFeatureAdapter(gj *geojson.Feature) (feature *Feature) {
+func GeojsonFeatureAdapter(gj *geojson.Feature) (feature *Feature, err error) {
 	// TODO: This sucks... I just want to switch on Coordinates.(type)
 	igeom, err := gj.GetGeometry()
-	util.Check(err)
+	if err != nil {
+		return
+	}
 	feature = NewFeature(igeom.GetType())
 	//TODO filter properties
 	feature.Properties = gj.Properties
@@ -95,7 +97,9 @@ func GeojsonFeatureAdapter(gj *geojson.Feature) (feature *Feature) {
 			}
 		}
 	default:
-		panic("Invalid Coordinate Type in GeoJson Feature") // + feature.String())
+		feature = nil
+
+		err = util.Errorf("Invalid Coordinate Type in GeoJson %q", geom)
 	}
 	return
 }
@@ -132,7 +136,9 @@ func publishFeatureCollection(collection *geojson.FeatureCollection) (features c
 	go func() {
 		defer close(features)
 		for _, feature := range collection.Features {
-			features <- GeojsonFeatureAdapter(feature)
+			f, err := GeojsonFeatureAdapter(feature)
+			util.Warn(err, "feature publishing")
+			features <- f
 		}
 	}()
 	return
