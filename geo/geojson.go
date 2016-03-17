@@ -36,7 +36,8 @@ func (gj *GeojsonSource) Publish() (features chan *Feature, err error) {
 func GeojsonFeatureAdapter(gj *geojson.Feature) (feature *Feature, err error) {
 	// TODO: This sucks... I just want to switch on Coordinates.(type)
 	igeom, err := gj.GetGeometry()
-	if err != nil {
+	if igeom == nil || err != nil {
+		err = util.Errorf("Invalid geojson feature %q", gj)
 		return
 	}
 	feature = NewFeature(igeom.GetType())
