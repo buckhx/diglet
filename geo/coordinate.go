@@ -1,6 +1,7 @@
 package geo
 
 import (
+	"github.com/buckhx/diglet/geo/tile_system"
 	"github.com/buckhx/diglet/util"
 	"math"
 )
@@ -47,20 +48,24 @@ func (c Coordinate) ToRad() Coordinate {
 	return Coordinate{Lat: c.Lat * DegToRad, Lon: c.Lon * DegToRad}
 }
 
+func (c Coordinate) ToTile(zoom int) (tile tile_system.Tile) {
+	tile, _ = tile_system.CoordinateToTile(c.Lat, c.Lon, uint(zoom))
+	return
+}
+
 // Both coordinates are less than or equal
 func (c Coordinate) strictCmp(o Coordinate) int {
 	switch {
-	case c.Lat < o.Lat && c.Lon < c.Lon:
+	case c.Lat < o.Lat && c.Lon < o.Lon:
 		return less
-	case c.Lat > o.Lat && c.Lon > c.Lat:
+	case c.Lat > o.Lat && c.Lon > o.Lon:
 		return more
-	case c.Lat <= o.Lat && c.Lon <= c.Lon:
+	case c.Lat <= o.Lat && c.Lon <= o.Lon:
 		return lessOrEq
-	case c.Lat >= o.Lat && c.Lon >= c.Lat:
+	case c.Lat >= o.Lat && c.Lon >= o.Lon:
 		return moreOrEq
 	default:
 		return 0
-
 	}
 }
 
