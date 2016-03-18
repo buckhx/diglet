@@ -43,7 +43,9 @@ func GeojsonFeatureAdapter(gj *geojson.Feature) (feature *Feature, err error) {
 	feature = NewFeature(igeom.GetType())
 	//TODO filter properties
 	feature.Properties = gj.Properties
-	feature.Properties["id"] = gj.Id
+	if feature.Properties != nil {
+		feature.Properties["id"] = gj.Id
+	}
 	//TODO if id == nil assign a fake one
 	feature.Type = igeom.GetType()
 	switch geom := igeom.(type) {
