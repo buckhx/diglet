@@ -2,15 +2,17 @@ package mbt
 
 import (
 	"encoding/csv"
-	"github.com/buckhx/diglet/util"
-	"github.com/deckarep/golang-set"
 	"io"
 	"os"
 	"strconv"
+
+	"github.com/buckhx/diglet/geo"
+	"github.com/buckhx/diglet/util"
+	"github.com/deckarep/golang-set"
 )
 
 type FeatureSource interface {
-	Publish(workers int) (chan *Feature, error)
+	Publish(workers int) (chan *geo.Feature, error)
 }
 
 type GeoFields map[string]string
@@ -55,13 +57,13 @@ func NewCsvSource(path string, filter []string, delimiter string, fields GeoFiel
 	}
 }
 
-func (c *CsvSource) Publish(workers int) (features chan *Feature, err error) {
+func (c *CsvSource) Publish(workers int) (features chan *geo.Feature, err error) {
 	lines, err := c.publishLines()
 	if err != nil {
 		return
 	}
 	wg := util.WaitGroup(workers)
-	features = make(chan *Feature, 1000)
+	features = make(chan *geo.Feature, 1000)
 	for i := 0; i < workers; i++ {
 		go func() {
 			defer wg.Done()
@@ -113,14 +115,14 @@ func (c *CsvSource) publishLines() (lines chan []string, err error) {
 	return
 }
 
-func (c *CsvSource) featureAdapter(line []string) (feature *Feature, err error) {
+func (c *CsvSource) featureAdapter(line []string) (feature *geo.Feature, err error) {
 	props := make(map[string]interface{}, len(c.headers)) //biggest malloc
 	for k, i := range c.headers {
 		props[k] = line[i]
 	}
 	switch {
 	case c.fields.HasCoordinates():
-		feature = NewFeature("point")
+		feature = geo.NewPointFeature()
 		feature.Properties = props
 		lat, err := strconv.ParseFloat(line[c.headers[c.fields["lat"]]], 64)
 		if err != nil {
@@ -130,23 +132,23 @@ func (c *CsvSource) featureAdapter(line []string) (feature *Feature, err error) 
 		if err != nil {
 			return nil, err
 		}
-		point := NewShape(Coordinate{Lat: lat, Lon: lon})
+		point := geo.NewShape(geo.Coordinate{Lat: lat, Lon: lon})
 		feature.AddShape(point)
 	case c.fields.HasShape():
 		g := line[c.headers[c.fields["shape"]]]
-		shp, err := ShapeFromString(g)
+		shp, err := geo.ShapeFromString(g)
 		if err != nil {
 			return nil, util.Errorf("Invalid shape format %+v", g)
 		}
 		switch {
 		case len(shp.Coordinates) == 0:
-			feature = NewFeature("point")
+			feature = geo.NewPointFeature()
 		case len(shp.Coordinates) == 1:
-			feature = NewFeature("point")
+			feature = geo.NewPointFeature()
 		case shp.Coordinates[0] == shp.Coordinates[len(shp.Coordinates)-1]: //closed
-			feature = NewFeature("polygon")
+			feature = geo.NewPolygonFeature()
 		default:
-			feature = NewFeature("linestring")
+			feature = geo.NewLineFeature()
 		}
 		feature.Properties = props
 		feature.AddShape(shp)

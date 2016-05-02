@@ -2,10 +2,12 @@ package mbt
 
 import (
 	"encoding/json"
+	"io/ioutil"
+
+	"github.com/buckhx/diglet/geo"
 	"github.com/buckhx/diglet/util"
 	"github.com/deckarep/golang-set"
 	"github.com/kpawlik/geojson"
-	"io/ioutil"
 	//"github.com/buckhx/diglet/mbt/mvt"
 	//"github.com/buckhx/diglet/mbt/mvt/vector_tile"
 )
@@ -28,9 +30,9 @@ func NewGeojsonSource(path string, filter []string) *GeojsonSource {
 	return &GeojsonSource{path, set}
 }
 
-func (gj *GeojsonSource) Publish(workers int) (features chan *Feature, err error) {
+func (gj *GeojsonSource) Publish(workers int) (features chan *geo.Feature, err error) {
 	collection := readGeoJson(gj.path)
-	f := make(chan *Feature, 10)
+	f := make(chan *geo.Feature, 10)
 	wg := util.Work(func() {
 		for _, feature := range collection.Features {
 			f <- geojsonFeatureAdapter(feature)
@@ -60,17 +62,16 @@ func (gj *GeojsonSource) Publish(workers int) (features chan *Feature, err error
 
 // Flatten all the points of a feature into single list. This can hel in identifying which tiles are going to be
 // created
-func geojsonFeatureAdapter(gj *geojson.Feature) (feature *Feature) {
+func geojsonFeatureAdapter(gj *geojson.Feature) (feature *geo.Feature) {
 	// TODO: This sucks... I just want to switch on Coordinates.(type)
 	igeom, err := gj.GetGeometry()
 	util.Check(err)
-	feature = NewFeature(igeom.GetType())
-	if gj.Id != nil {
-		fid := gj.Id.(float64)
-		feature.SetF64Id(fid)
-	}
+	feature = geo.NewFeature(igeom.GetType())
 	//TODO filter properties
 	feature.Properties = gj.Properties
+	if gj.Id != nil {
+		feature.SetID(gj.Id)
+	}
 	//TODO if id == nil assign a fake one
 	feature.Type = igeom.GetType()
 	switch geom := igeom.(type) {
@@ -129,12 +130,12 @@ func geojsonFeatureAdapter(gj *geojson.Feature) (feature *Feature) {
 	}
 	return
 }
-func coordinatesAdapter(line geojson.Coordinates) (shape *Shape) {
-	shape = MakeShape(len(line))
+func coordinatesAdapter(line geojson.Coordinates) (shape *geo.Shape) {
+	shape = geo.MakeShape(len(line))
 	for i, point := range line {
 		lat := float64(point[1])
 		lon := float64(point[0])
-		coord := Coordinate{Lat: lat, Lon: lon}
+		coord := geo.Coordinate{Lat: lat, Lon: lon}
 		shape.Coordinates[i] = coord
 	}
 	return
@@ -151,8 +152,8 @@ func readGeoJson(path string) (features *geojson.FeatureCollection) {
 	return features
 }
 
-func publishFeatureCollection(collection *geojson.FeatureCollection) (features chan *Feature) {
-	features = make(chan *Feature, 10)
+func publishFeatureCollection(collection *geojson.FeatureCollection) (features chan *geo.Feature) {
+	features = make(chan *geo.Feature, 10)
 	go func() {
 		defer close(features)
 		for _, feature := range collection.Features {

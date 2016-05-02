@@ -1,6 +1,8 @@
 package mbt
 
 import (
+	"fmt"
+
 	"github.com/buckhx/diglet/mbt/mvt"
 	"github.com/buckhx/diglet/mbt/tile_system"
 	"github.com/buckhx/diglet/util"
@@ -38,7 +40,7 @@ func (t Tiles) Build(source FeatureSource, layerName string, zmin, zmax uint) (e
 	for zoom := zmax; zoom >= zmin; zoom-- {
 		//TODO goroutine per level
 		util.Info("Generating tiles for zoom level: %d", zoom)
-		features, err := source.Publish(4) //TODO cores
+		features, err := source.Publish(1) //TODO cores
 		if err != nil {
 			return err //shadowed
 		}
@@ -47,7 +49,8 @@ func (t Tiles) Build(source FeatureSource, layerName string, zmin, zmax uint) (e
 			aTile := mvt.NewTileAdapter(tile.X, tile.Y, tile.Z)
 			aLayer := aTile.NewLayer(layerName, tile_system.TileSize)
 			for _, feature := range features {
-				aFeature := feature.ToMvtAdapter(tile)
+				fmt.Println(feature, "\n", tile, "\n")
+				aFeature := MvtAdapter(feature, tile)
 				aLayer.AddFeature(aFeature)
 			}
 			gz, err := aTile.GetTileGz()
