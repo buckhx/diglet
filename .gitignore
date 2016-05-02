@@ -1,5 +1,6 @@
 # Binaries
 /diglet*
+/dist
 /resources/*.go
 !/resources/stub.go
 *.sh

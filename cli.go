@@ -6,7 +6,6 @@ import (
 
 	//"github.com/buckhx/diglet/dig"
 	"github.com/buckhx/diglet/mbt"
-	"github.com/buckhx/diglet/resources"
 	"github.com/buckhx/diglet/util"
 	"github.com/buckhx/diglet/wms"
 
@@ -14,12 +13,14 @@ import (
 	"github.com/davecheney/profile"
 )
 
+var Version string
+
 //go:generate go run scripts/include.go static/static.html
 func client(args []string) {
 	app := cli.NewApp()
 	app.Name = "diglet"
 	app.Usage = "Your friend in the tile business"
-	app.Version = resources.Version()
+	app.Version = Version
 	app.Commands = []cli.Command{
 		wms.Cmd,
 		mbt.Cmd,

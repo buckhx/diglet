@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	pathlib "path"
 	"regexp"
 	"strings"
@@ -15,7 +14,6 @@ import (
 const ResourceDir = "resources"
 
 // Takes the files from args and creates resources for them in resources/{file}.go
-// Also creates a resources/version.go
 func main() {
 	resources := os.Args[1:]
 	os.MkdirAll(ResourceDir, 0777)
@@ -27,9 +25,6 @@ func main() {
 		rsc := writeResource(name, string(contents.Bytes()))
 		logf("Created resource %s", rsc)
 	}
-	version := version()
-	writeResource("Version", version)
-	logf("Created resource for Version %s", version)
 }
 
 func writeResource(name, contents string) (path string) {
@@ -77,16 +72,4 @@ func varSlugged(s string) (vslug string) {
 	vslug = strings.Trim(slugger.ReplaceAllString(s, "_"), "_")
 	vslug = strings.ToUpper(string(vslug[0])) + vslug[1:]
 	return
-}
-
-func version() string {
-	cmd := exec.Command("git", "describe", "--always")
-	var ver bytes.Buffer
-	cmd.Stdout = &ver
-	err := cmd.Run()
-	if err != nil {
-		panic(err)
-	}
-	return strings.TrimSpace(ver.String())
-	//TODO add a '{+n}' to version if git diff --numstat isn't empty
 }
