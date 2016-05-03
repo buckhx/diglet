@@ -45,6 +45,7 @@ run:
 	./dist/$(BINARY)
 
 test:
+	go generate
 	go test -v $(PACKAGES)
 
 clean:

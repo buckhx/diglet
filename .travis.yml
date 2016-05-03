@@ -14,13 +14,12 @@ env:
 install:
   - printenv
   - go env
-  - if [[ $TRAVIS_BRANCH == v* ]]; then cd $GOROOT/src && ./make.bash  && cd $GOPATH/src/github.com/buckhx/diglet; fi
+  # - if [[ $TRAVIS_BRANCH == v* ]]; then cd $GOROOT/src && ./make.bash  && cd $GOPATH/src/github.com/buckhx/diglet; fi
   - make vendor_list
-  - go generate
   # - go get ./...
 script:
   - make test
-  - if [[ $TRAVIS_BRANCH == v* ]]; then go build -ldflags '-extldflags "-static" -X "main.version=`git describe --always` --tags"' -o "diglet_${GOOS}_${GOARCH}${EXT}"; fi
+  - if [[ $TRAVIS_BRANCH == v* ]]; then make build && mv ./dist/diglet "diglet_${GOOS}_${GOARCH}${EXT}"; fi
   - ls
 deploy:
   provider: releases
