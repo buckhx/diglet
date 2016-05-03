@@ -2,10 +2,38 @@ package mbt
 
 import (
 	"github.com/buckhx/diglet/geo"
+	ts "github.com/buckhx/diglet/geo/tile_system"
 	"github.com/buckhx/diglet/mbt/mvt"
-	ts "github.com/buckhx/diglet/mbt/tile_system"
 	"github.com/deckarep/golang-set"
 )
+
+// CoverZoom sets the zoom level for flat coverings
+// This is a global b/c it could go away if a dynamic cover is implemented
+var CoverZoom = 15
+
+// FeatureTiles returns a list of tiles that cover the feature at CoverZoom level
+// Dups are not checked for, so they can exist
+func FeatureTiles(f *geo.Feature) (tiles []ts.Tile) {
+	for _, s := range f.Geometry {
+		tiles = append(tiles, ShapeTiles(s)...)
+	}
+	return
+}
+
+// Shape tiles returns a list of tiles that cover a shape at CoverZoom level
+func ShapeTiles(shp *geo.Shape) (tiles []ts.Tile) {
+	bb := shp.BoundingBox()
+	ne := bb.NorthEast().ToTile(CoverZoom)
+	sw := bb.SouthWest().ToTile(CoverZoom)
+	cur := sw
+	for x := sw.X; x <= ne.X; x++ {
+		for y := sw.Y; y >= ne.Y; y-- { //origin is NW
+			cur.X, cur.Y = x, y
+			tiles = append(tiles, cur)
+		}
+	}
+	return
+}
 
 // Split features up by their tile coordinates. This is intended to be done at the deepest desired zoom level
 // If a feature has any point in a tile, it will bind to that tile. A feature can be in multiple tiles
@@ -33,7 +61,16 @@ func MvtAdapter(f *geo.Feature, t ts.Tile) (a *mvt.Feature) {
 	if g == geo.LineFeature {
 		g = "linestring"
 	}
-	a = mvt.NewFeatureAdapter(f.GetUint64ID(), g, f.Properties)
+	var id uint64
+	switch v := f.ID.(type) {
+	case uint, uint32, uint64:
+		id = v.(uint64)
+	case int, int32, int64:
+		id = uint64(v.(int64))
+	default:
+		// stay nil
+	}
+	a = mvt.NewFeatureAdapter(&id, g, f.Properties)
 	shps := tiledShapes(f, t)
 	a.AddShape(shps...)
 	return

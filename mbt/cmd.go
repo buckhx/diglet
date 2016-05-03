@@ -2,11 +2,12 @@
 package mbt
 
 import (
-	"github.com/buckhx/diglet/util"
-	"github.com/codegangsta/cli"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/buckhx/diglet/util"
+	"github.com/codegangsta/cli"
 )
 
 var (
@@ -26,8 +27,8 @@ var Cmd = cli.Command{
 		out := c.String("output")
 		desc := c.String("desc")
 		layer := c.String("layer-name")
-		zmin := uint(c.Int("min"))
-		zmax := uint(c.Int("max"))
+		zmin := c.Int("min")
+		zmax := c.Int("max")
 		extent := uint(c.Int("extent"))
 		upsert := c.Bool("upsert")
 		force := c.Bool("force")

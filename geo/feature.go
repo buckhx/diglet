@@ -12,10 +12,8 @@ const (
 	PointFeature   = "point"
 )
 
-//IDField is reserved for the features ID in Properities
-var IDField = "_id"
-
 type Feature struct {
+	ID         interface{}
 	Geometry   []*Shape
 	Type       string
 	Properties map[string]interface{}
@@ -74,22 +72,4 @@ func (f *Feature) Contains(c Coordinate) bool {
 		}
 	}
 	return false
-}
-
-func (f *Feature) SetID(id interface{}) {
-	//TODO create properties map?
-	// also could return an "ok" bool
-	f.Properties[IDField] = id
-}
-
-func (f *Feature) GetIntID() int {
-	return f.Properties[IDField].(int)
-}
-
-func (f *Feature) GetUint64ID() *uint64 {
-	if id := f.Properties[IDField]; id != nil {
-		return id.(*uint64)
-	} else {
-		return nil
-	}
 }

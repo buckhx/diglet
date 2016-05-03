@@ -1,9 +1,10 @@
 package mbt
 
 import (
-	"github.com/buckhx/diglet/mbt/tile_system"
-	"github.com/deckarep/golang-set"
 	"testing"
+
+	"github.com/buckhx/diglet/geo/tile_system"
+	"github.com/deckarep/golang-set"
 )
 
 func TestSplitFeatures(t *testing.T) {

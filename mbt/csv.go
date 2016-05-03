@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"sync/atomic"
 
 	"github.com/buckhx/diglet/geo"
 	"github.com/buckhx/diglet/util"
@@ -62,6 +63,8 @@ func (c *CsvSource) Publish(workers int) (features chan *geo.Feature, err error)
 	if err != nil {
 		return
 	}
+	//TODO read ID from csv
+	var id uint64 = 0
 	wg := util.WaitGroup(workers)
 	features = make(chan *geo.Feature, 1000)
 	for i := 0; i < workers; i++ {
@@ -71,6 +74,8 @@ func (c *CsvSource) Publish(workers int) (features chan *geo.Feature, err error)
 				if feature, err := c.featureAdapter(line); err != nil {
 					util.Warn(err, "feature adapter")
 				} else {
+					atomic.AddUint64(&id, 1)
+					feature.ID = id
 					features <- feature
 				}
 			}

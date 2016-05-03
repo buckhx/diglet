@@ -19,6 +19,7 @@ list:
 build:	
 	# go build -ldflags "-X 'main.version=`git describe --always` --tags' -extldflags '-static'" -o fence
 	mkdir -p ./dist
+	go generate
 	go build -v ${LDFLAGS} -o ./dist/$(BINARY)
 	chmod +x ./dist/$(BINARY)
 
@@ -49,6 +50,7 @@ test:
 
 clean:
 	rm -rf ./dist
+	rm -rf ./resources
 
 # get and vendor update
 # go get -u github.com/kardianos/govendor

@@ -69,9 +69,7 @@ func geojsonFeatureAdapter(gj *geojson.Feature) (feature *geo.Feature) {
 	feature = geo.NewFeature(igeom.GetType())
 	//TODO filter properties
 	feature.Properties = gj.Properties
-	if gj.Id != nil {
-		feature.SetID(gj.Id)
-	}
+	feature.ID = gj.Id
 	//TODO if id == nil assign a fake one
 	feature.Type = igeom.GetType()
 	switch geom := igeom.(type) {
