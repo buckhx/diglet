@@ -9,7 +9,7 @@ import (
 
 // CoverZoom sets the zoom level for flat coverings
 // This is a global b/c it could go away if a dynamic cover is implemented
-var CoverZoom = 15
+var CoverZoom = 18
 
 // FeatureTiles returns a list of tiles that cover the feature at CoverZoom level
 // Dups are not checked for, so they can exist
