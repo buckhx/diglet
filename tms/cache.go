@@ -1,12 +1,13 @@
-package wms
+package tms
 
 import (
 	"bytes"
 	"encoding/gob"
-	"github.com/boltdb/bolt"
-	"github.com/buckhx/mbtiles"
 	"os"
 	"time"
+
+	"github.com/boltdb/bolt"
+	"github.com/buckhx/mbtiles"
 )
 
 type TileCache struct {

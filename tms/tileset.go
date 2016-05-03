@@ -1,4 +1,4 @@
-package wms
+package tms
 
 import (
 	"encoding/json"
@@ -40,12 +40,16 @@ type TilesetIndex struct {
 }
 
 // NewTilesetIndex creates a new tileset index, but does not read the tile tilesets from disk
-func NewTilesetIndex(mbtilesDir string) (tsi *TilesetIndex) {
+func NewTilesetIndex(mbtilesDir string) (tsi *TilesetIndex, err error) {
 	watcher, err := fsnotify.NewWatcher()
-	check(err)
+	if err != nil {
+		return
+	}
 	watcher.Add(mbtilesDir)
-	cache, err := InitTileCache(mbtilesDir + "/" + CacheName)
-	check(err)
+	cache, err := InitTileCache(filepath.Join(mbtilesDir, CacheName))
+	if err != nil {
+		return
+	}
 	tsi = &TilesetIndex{
 		Path:     mbtilesDir,
 		Tilesets: make(map[string]*mbtiles.Tileset),
@@ -58,10 +62,16 @@ func NewTilesetIndex(mbtilesDir string) (tsi *TilesetIndex) {
 
 // ReadTilesets create a new tilesetindex and read the tilesets contents from disk
 // It spawns goroutine that will refresh Tilesets from disk on changes
-func ReadTilesets(mbtilesDir string) (tsi *TilesetIndex) {
-	tsi = NewTilesetIndex(mbtilesDir)
+func ReadTilesets(mbtilesDir string) (tsi *TilesetIndex, err error) {
+	tsi, err = NewTilesetIndex(mbtilesDir)
+	if err != nil {
+		return
+	}
 	mbtPaths, err := filepath.Glob(filepath.Join(mbtilesDir, "*.mbt*")) //match .mbtiles and mbt
-	check(err)
+	if err != nil {
+		tsi = nil
+		return
+	}
 	for _, path := range mbtPaths {
 		if ts := tsi.readTileset(path); ts != nil {
 			name := cleanTilesetName(path)

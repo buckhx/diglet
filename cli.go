@@ -6,8 +6,8 @@ import (
 
 	//"github.com/buckhx/diglet/dig"
 	"github.com/buckhx/diglet/mbt"
+	"github.com/buckhx/diglet/tms"
 	"github.com/buckhx/diglet/util"
-	"github.com/buckhx/diglet/wms"
 
 	"github.com/codegangsta/cli"
 	"github.com/davecheney/profile"
@@ -22,9 +22,8 @@ func client(args []string) {
 	app.Usage = "Your friend in the tile business"
 	app.Version = Version
 	app.Commands = []cli.Command{
-		wms.Cmd,
+		tms.Cmd,
 		mbt.Cmd,
-		//dig.Cmd,
 	}
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{

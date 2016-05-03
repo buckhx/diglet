@@ -1,6 +1,6 @@
-// Package diglet/wms is an HTTP Tile Server that also support JSON-RPC & WebSocket requests. Tile subscriptions
+// Package diglet/tms is an HTTP Tile Server that also support JSON-RPC & WebSocket requests. Tile subscriptions
 // are also available to support real-time map applications with large feature sets.
-package wms
+package tms
 
 import (
 	dig "github.com/buckhx/diglet/burrow"
@@ -19,12 +19,15 @@ const (
 	UnsubscribeTile string = "unsubscribe_tile"
 )
 
-func MBTServer(mbtPath string, port string) *dig.App {
-	tilesets = ReadTilesets(mbtPath)
+func MBTServer(mbtPath string, port string) (app *dig.App, err error) {
+	tilesets, err = ReadTilesets(mbtPath)
+	if err != nil {
+		return
+	}
 	info("Serving tiles from %s", mbtPath)
 	hub = NewHub(tilesets)
 	go hub.listen()
-	app := dig.NewApp("Diglet")
+	app = dig.NewApp("Diglet")
 	app.Port = port
 	app.Prefix = "/tileset"
 	app.Methods = []dig.Method{
@@ -181,7 +184,7 @@ func MBTServer(mbtPath string, port string) *dig.App {
 			Help: "Gets a tile and only writes it's raw contents. Used for hosting static tiles.",
 		},
 	}
-	return app
+	return
 }
 
 // This is pulled out so that get_tile & get_raw_tile endpoitn can use the same code

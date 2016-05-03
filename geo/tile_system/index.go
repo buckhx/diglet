@@ -3,23 +3,30 @@ package tile_system
 import (
 	"sort"
 	"strings"
+	"sync"
 )
 
-// TileIndex IS NOT thread safe
+// TileIndex stores indexes values by tile. If a deep level of tile is added and a shallower
+// one is requested, the values are aggregated up.
+// TileIndex is thread safe
 // implementation uses a sorted keyset, trie would be better
 type TileIndex struct {
 	sorted bool
 	keys   []qkey
 	values []interface{}
+	sync.RWMutex
 }
 
 // TileRange returns a channel of all tiles in the index in the zoom range
 // If zmax is greater than the deepest tile level, the deepest tile level returns
+// Acquires a readlock for duration of returned channel being open
 func (idx *TileIndex) TileRange(zmin, zmax int) <-chan Tile {
 	idx.sort()
 	tiles := make(chan Tile, 1<<10)
 	go func() {
 		defer close(tiles)
+		idx.RLock()
+		defer idx.RUnlock()
 		for i := 0; i < len(idx.keys)-1; i++ {
 			q := idx.keys[i].qk
 			n := idx.keys[i+1].qk
@@ -40,6 +47,8 @@ func (idx *TileIndex) TileRange(zmin, zmax int) <-chan Tile {
 // Values returns a list of values aggregated under the requested tile
 func (idx *TileIndex) Values(t Tile) (vals []interface{}) {
 	idx.sort()
+	idx.RLock()
+	defer idx.RUnlock()
 	qk := t.QuadKey()
 	i := idx.search(qk)
 	if i >= len(idx.keys) {
@@ -56,6 +65,8 @@ func (idx *TileIndex) Values(t Tile) (vals []interface{}) {
 
 // Add adds a value, but will not be indexed
 func (idx *TileIndex) Add(t Tile, val interface{}) {
+	idx.Lock()
+	defer idx.Unlock()
 	idx.values = append(idx.values, val)
 	qk := qkey{qk: t.QuadKey(), v: len(idx.values) - 1}
 	idx.keys = append(idx.keys, qk)
@@ -65,8 +76,10 @@ func (idx *TileIndex) Add(t Tile, val interface{}) {
 // sorts the tiles, nothing happens if the sorted flag is set
 func (idx *TileIndex) sort() {
 	if !idx.sorted {
+		idx.Lock()
 		sort.Sort(byQk(idx.keys))
 		idx.sorted = true
+		idx.Unlock()
 	}
 }
 

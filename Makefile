@@ -17,7 +17,6 @@ list:
 	@echo $(PACKAGES)
 
 build:	
-	# go build -ldflags "-X 'main.version=`git describe --always` --tags' -extldflags '-static'" -o fence
 	mkdir -p ./dist
 	go generate
 	go build -v ${LDFLAGS} -o ./dist/$(BINARY)

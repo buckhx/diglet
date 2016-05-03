@@ -1,8 +1,9 @@
-package wms
+package tms
 
 import (
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"github.com/buckhx/diglet/util"
@@ -10,10 +11,10 @@ import (
 )
 
 var Cmd = cli.Command{
-	Name:        "wms",
+	Name:        "tms",
 	Aliases:     []string{"serve"},
-	Usage:       "Starts the diglet Web Map Service",
-	Description: "Starts the diglet Web Map Service",
+	Usage:       "Starts the diglet Tile Map Service",
+	Description: "Starts the diglet Tile Map Service. Uses Slippy maps tilenames by default.",
 	ArgsUsage:   "mbtiles_directory",
 	Action: func(c *cli.Context) {
 		port := c.String("port")
@@ -27,7 +28,10 @@ var Cmd = cli.Command{
 		}
 		cert := c.String("cert")
 		key := c.String("key")
-		server := MBTServer(mbt, port)
+		server, err := MBTServer(mbt, port)
+		if err != nil {
+			util.Die(c, err.Error())
+		}
 		if (cert != "") && (key != "") {
 			server.RunTLS(&cert, &key)
 		} else if cert != "" || key != "" {
@@ -36,7 +40,7 @@ var Cmd = cli.Command{
 			sigs := make(chan os.Signal, 1)
 			done := make(chan bool, 1)
 			signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-			defer os.Remove(mbt + "/" + CacheName) //TODO make path.Join
+			defer os.Remove(filepath.Join(mbt, CacheName))
 			go func() {
 				err := server.Run()
 				util.Error(err)
@@ -65,7 +69,7 @@ var Cmd = cli.Command{
 		},
 		cli.BoolFlag{
 			Name:  "tms-origin",
-			Usage: "NOT IMPLEMENTED: Use TMS origin, SW origin w/ Y increasing North-wise",
+			Usage: "NOT IMPLEMENTED: Use TMS origin, SW origin w/ Y increasing North-wise. Default uses NW origin inscreasing South-wise (Slippy tilenames)",
 		},
 	},
 }
