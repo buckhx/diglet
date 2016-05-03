@@ -15,6 +15,7 @@ install:
   - printenv
   - go env
   - export BINARY="diglet_${GOOS}_${GOARCH}${EXT}"
+  - echo $BINARY
   # - if [[ $TRAVIS_BRANCH == v* ]]; then cd $GOROOT/src && ./make.bash  && cd $GOPATH/src/github.com/buckhx/diglet; fi
   - make vendor_list
   # - go get ./...
