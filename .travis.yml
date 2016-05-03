@@ -5,10 +5,8 @@ env:
   global: 
     - CGO_ENABLED=1
     - GO15VENDOREXPERIMENT=1
-    - GOOS=linux
-    - GOARCH=amd64
   matrix:
-    #- GOOS=linux GOARCH=amd64
+    - GOOS=linux GOARCH=amd64
     #- GOOS=linux GOARCH=386
     #- GOOS=linux GOARCH=arm CC=arm-linux-gnueabi-gcc
     #- GOOS=windows GOARCH=386 CC=386-w64-mingw32-gcc CGO_LDFLAGS="-lssp" EXT=.exe
@@ -16,19 +14,20 @@ env:
 install:
   - printenv
   - go env
+  - export BINARY="diglet_${GOOS}_${GOARCH}${EXT}"
   # - if [[ $TRAVIS_BRANCH == v* ]]; then cd $GOROOT/src && ./make.bash  && cd $GOPATH/src/github.com/buckhx/diglet; fi
   - make vendor_list
   # - go get ./...
 script:
   - make test
-  - if [[ $TRAVIS_BRANCH == v* ]]; then make build && mv ./dist/diglet "diglet_${GOOS}_${GOARCH}${EXT}"; fi
+  - if [[ $TRAVIS_BRANCH == v* ]]; then make build && mv ./dist/diglet $BINARY; fi
   - ls
 deploy:
   provider: releases
   api_key:
     secure: RSdgJIY0LlhMilzx7zXO+LBR4A/K6sgtCvOWZ+4sQ7xKm+eUT0i/sB0IPAge/9RT+KAXKvdeNrsJVGfXQIQAc39KOUXfplv1DGY4zNdbBRDySA2t7i+WsXbwZrR3wCSP0GrMs5ogT5LXA//17pdBk0bz94KSvn5MGNhNZIPmqrFINkfZnj1JX1Jh9WiX17e5VBsv0GRnCy+iTycm6LivtU6JFfZkJ3Bzksa90yXzMQnCjvewHHjzHmfTolmraPFUBwikwm4TkXriLJ6z4hbUPenLMvXEBW/wtGRjh/krAykc8OAPVDhup22WjBEClnDt1FNiCGP2i2IOYnCee9wr/08IkUcJ5Fslh3TgQ29q/BnDJA1IaJ5hFur2HOjPklktJw40PeKJcgYeaMm3fgZbzH5DFkGh2topXQ6N7pDkeeioXM5KP61qjD8Asb48ErU0Z2qqL0VfMHPPEmHttFlsbjAfKuBPtNDY2iBB393KWkeIaXbpuwK+TlxKbbZ7EBMRY2zNPC698ixQFyLeOhtAxfLtPGlRD3Smd0x0sDzk0ovIkd7GNhAUNAHvTxZSjxqK4gwDTaIM2gDgdWk4BM5617M+fYrUmYSzS0uSXk6fH+G+M9KqwHuy10ytZ6mPHi9nkNsI/onv/Og5gEEnDYoR7GtSyQgQ9tXOIyF8zUylqYg=
   file: 
-    - "diglet_${GOOS}_${GOARCH}${EXT}"
+    - $BINARY
   on:
     repo: buckhx/diglet
     tags: true
