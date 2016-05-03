@@ -47,14 +47,15 @@ func (idx *TileIndex) Values(t Tile) (vals []interface{}) {
 	}
 	n := idx.keys[i]
 	for i < len(idx.keys) && strings.HasPrefix(n.qk, qk) {
+		n = idx.keys[i]
 		vals = append(vals, idx.values[n.v])
 		i++
 	}
 	return
 }
 
-// Append adds a value, but will not be indexed
-func (idx *TileIndex) Append(t Tile, val interface{}) {
+// Add adds a value, but will not be indexed
+func (idx *TileIndex) Add(t Tile, val interface{}) {
 	idx.values = append(idx.values, val)
 	qk := qkey{qk: t.QuadKey(), v: len(idx.values) - 1}
 	idx.keys = append(idx.keys, qk)

@@ -1,7 +1,6 @@
 package mbt
 
 import (
-	"fmt"
 	"os"
 	"time"
 
@@ -55,7 +54,6 @@ func (c *featureIndex) tileFeatures(zmin, zmax int) <-chan tileFeatures {
 				tf := tileFeatures{t: t, f: make([]*geo.Feature, len(fids))}
 				for i, f := range fids {
 					k := f.(fID)
-					fmt.Println(t.QuadKey(), "\t", k)
 					v := b.Get(k)
 					err := msgpack.Unmarshal(v, &tf.f[i])
 					util.Check(err)
@@ -81,8 +79,7 @@ func (c *featureIndex) indexFeatures(features <-chan *geo.Feature) {
 			records <- f
 			//TODO parallelize
 			for _, t := range FeatureTiles(f) {
-				fmt.Println(t.QuadKey(), "\t", k)
-				c.idx.Append(t, k)
+				c.idx.Add(t, k)
 			}
 		}
 	}()
@@ -113,7 +110,7 @@ func (c *featureIndex) flush(bucket []byte, recs []*geo.Feature) error {
 		util.Info("Flushing empty batch, skipping")
 		return nil
 	}
-	util.Info("Flushing batch %s %s -> %s", bucket, recs[0].ID, recs[len(recs)-1].ID)
+	util.Info("Flushing batch %s %d -> %d", bucket, recs[0].ID, recs[len(recs)-1].ID)
 	return c.db.Batch(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucket)
 		for _, rec := range recs {
