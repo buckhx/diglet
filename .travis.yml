@@ -1,6 +1,6 @@
 language: go
 go:
-  - release
+  - tip
 env:
   global: 
     - CGO_ENABLED=1
