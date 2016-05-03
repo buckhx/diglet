@@ -20,11 +20,11 @@ func TestReverseShape(t *testing.T) {
 
 func TestClockwise(t *testing.T) {
 	antiwise := []Coordinate{
-		Coordinate{39.7435437641, -105.003612041},
-		Coordinate{39.7427848013, -105.003011227},
-		Coordinate{39.7431642838, -105.002217293},
-		Coordinate{39.7439067434, -105.002839565},
-		Coordinate{39.7435437641, -105.003612041},
+		{39.7435437641, -105.003612041},
+		{39.7427848013, -105.003011227},
+		{39.7431642838, -105.002217293},
+		{39.7439067434, -105.002839565},
+		{39.7435437641, -105.003612041},
 	}
 	shape := NewShape(antiwise...)
 	if shape.IsClockwise() {
@@ -38,10 +38,10 @@ func TestClockwise(t *testing.T) {
 
 func TestBBox(t *testing.T) {
 	boxes := []Box{
-		Box{min: cd(0, 0), max: cd(10, 10)},
+		{min: cd(0, 0), max: cd(10, 10)},
 	}
 	points := [][]Coordinate{
-		[]Coordinate{
+		{
 			cd(0, 5), cd(5, 0), cd(5, 10), cd(10, 5),
 		},
 	}
@@ -57,7 +57,7 @@ func TestBBox(t *testing.T) {
 func TestContains(t *testing.T) {
 	points := []Coordinate{cd(5, 5)}
 	shapes := [][]Coordinate{
-		[]Coordinate{
+		{
 			cd(0, 5), cd(5, 0), cd(5, 10), cd(10, 5),
 		},
 	}

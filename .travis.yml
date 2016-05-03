@@ -1,9 +1,10 @@
 language: go
 go:
-  - release
+  - tip
 env:
   global: 
     - CGO_ENABLED=1
+    - GO15VENDOREXPERIMENT=1
   matrix:
     - GOOS=linux GOARCH=amd64
     #- GOOS=linux GOARCH=386
@@ -12,12 +13,14 @@ env:
     #- GOOS=windows GOARCH=amd64 CC=x86_64-w64-mingw32-gcc CGO_LDFLAGS="-lssp" EXT=.exe
 install:
   - printenv
+  - go env
   - if [[ $TRAVIS_BRANCH == v* ]]; then cd $GOROOT/src && ./make.bash  && cd $GOPATH/src/github.com/buckhx/diglet; fi
+  - make vendor_list
   - go generate
-  - go get ./...
+  # - go get ./...
 script:
-  - go test -v ./...
-  - if [[ $TRAVIS_BRANCH == v* ]]; then go build -ldflags '-extldflags "-static"' -o "diglet_${GOOS}_${GOARCH}${EXT}"; fi
+  - make test
+  - if [[ $TRAVIS_BRANCH == v* ]]; then go build -ldflags '-extldflags "-static" -X "main.version=`git describe --always` --tags"' -o "diglet_${GOOS}_${GOARCH}${EXT}"; fi
   - ls
 deploy:
   provider: releases

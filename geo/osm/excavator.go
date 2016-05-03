@@ -47,15 +47,15 @@ func NewExcavator(pbfpath string) (ex *Excavator, err error) {
 		dredgers:  &sync.WaitGroup{},
 		couriers:  &sync.WaitGroup{},
 		NodeCourier: func(c <-chan *Node) {
-			for _ = range c {
+			for range c {
 			}
 		},
 		WayCourier: func(c <-chan *Way) {
-			for _ = range c {
+			for range c {
 			}
 		},
 		RelationCourier: func(c <-chan *Relation) {
-			for _ = range c {
+			for range c {
 			}
 		},
 	}

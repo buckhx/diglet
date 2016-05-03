@@ -1,10 +1,11 @@
 # diglet
 
 [![Build Status](https://travis-ci.org/buckhx/diglet.svg?branch=master)](https://travis-ci.org/buckhx/diglet)
+[![Go Report Card](https://goreportcard.com/badge/github.com/buckhx/diglet)](https://goreportcard.com/report/github.com/buckhx/diglet)
 
 A simple tool for solving common geospatial workflows.
 
-* [wms](#wms): Web Mapping Server (tile server)
+* [tms](#tms): Tile Map Server
 * [mbt](#mbt): Tile builder for vector tiles into the mbtiles spec
 * fence: A geofence utility
 * dig: A geocoder based on OSM data
@@ -31,11 +32,11 @@ Or do it manually by going to the releases page and download the diglet artifact
 Currently only building 64 bit linux for simplicity, but will build for more archs as things stabilize.
 Instructions for [building](#building)
 
-# wms
+# tms
 
-A real-time tile server in a single binary
+A tile server in a single binary
 
-Here are some neat things that diglet wms does
+Here are some neat things that diglet tms does
 
 * Read-through mmap LRU cache
 * Easy peasy-lemon squeezy HTTPS
@@ -44,20 +45,20 @@ Here are some neat things that diglet wms does
 
 Some things in the works
 
-* Backend changes are pushed to the front end in real time (via websockeys)
+* Backend changes are pushed to the front end in real time (via websockets)
 * Source specific hooks (on PostGIS insert -> build mbtiles)
 
 ## Usage
 
 ```
 NAME:
-   diglet wms - Starts the diglet Web Map Service
+   diglet tms - Starts the diglet Tile Map Service
 
 USAGE:
-   diglet wms [command options] mbtiles_directory
+   diglet tms [command options] mbtiles_directory
 
 DESCRIPTION:
-   Starts the diglet Web Map Service
+   Starts the diglet Tile Map Service
 
 OPTIONS:
    --port "8080"		Port to bind

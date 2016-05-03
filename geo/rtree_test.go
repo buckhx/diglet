@@ -7,10 +7,10 @@ import (
 
 func TestRtreeIntersection(t *testing.T) {
 	points := [][]geo.Coordinate{
-		[]geo.Coordinate{geo.Coordinate{0, 0}, geo.Coordinate{1, 1}},
-		[]geo.Coordinate{geo.Coordinate{-1, -1}, geo.Coordinate{0, 0}},
-		[]geo.Coordinate{geo.Coordinate{-1, -1}, geo.Coordinate{1, 1}},
-		[]geo.Coordinate{geo.Coordinate{5, 5}, geo.Coordinate{6, 6}},
+		{{0, 0}, {1, 1}},
+		{{-1, -1}, {0, 0}},
+		{{-1, -1}, {1, 1}},
+		{{5, 5}, {6, 6}},
 	}
 	rtree := geo.NewRtree()
 	for i, ps := range points {

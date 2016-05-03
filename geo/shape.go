@@ -1,6 +1,8 @@
 package geo
 
 import (
+	"encoding/json"
+
 	"github.com/buckhx/diglet/util"
 )
 
@@ -14,6 +16,25 @@ func MakeShape(length int) *Shape {
 
 func NewShape(coords ...Coordinate) *Shape {
 	return &Shape{Coordinates: coords}
+}
+
+// [[lon,lat]...]
+func ShapeFromString(raw string) (shp *Shape, err error) {
+	var points [][]float64
+	err = json.Unmarshal([]byte(raw), &points)
+	if err != nil {
+		return
+	}
+	shp = MakeShape(len(points))
+	for i, p := range points {
+		if len(p) != 2 {
+			shp = nil
+			err = util.Errorf("Coordinate string len != 2 @ %d %s", i, raw)
+			return
+		}
+		shp.Coordinates[i] = Coordinate{Lat: p[1], Lon: p[0]}
+	}
+	return
 }
 
 func (s *Shape) Append(o *Shape) {
@@ -41,7 +62,8 @@ func (s *Shape) BoundingBox() Box {
 			max.Lon = c.Lon
 		}
 	}
-	box, _ := NewBox(min, max)
+	box, err := NewBox(min, max)
+	util.Check(err)
 	return box
 }
 
@@ -140,10 +162,17 @@ func NewBox(min, max Coordinate) (box Box, err error) {
 	return
 }
 
+func (b Box) SouthWest() Coordinate {
+	return b.min
+}
+
+func (b Box) NorthEast() Coordinate {
+	return b.max
+}
+
 func (b Box) Contains(coords ...Coordinate) (in bool) {
 	for _, c := range coords {
-		in = in || (b.min.strictCmp(c) < 0 && b.max.strictCmp(c) > 0)
-		if in {
+		if in = (b.min.strictCmp(c) < 0 && b.max.strictCmp(c) > 0); in {
 			return
 		}
 	}
