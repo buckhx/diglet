@@ -2,8 +2,8 @@ package mbt
 
 import (
 	"github.com/buckhx/diglet/geo"
-	ts "github.com/buckhx/diglet/geo/tile_system"
 	"github.com/buckhx/diglet/mbt/mvt"
+	ts "github.com/buckhx/tiles"
 	"github.com/deckarep/golang-set"
 )
 
@@ -37,13 +37,13 @@ func ShapeTiles(shp *geo.Shape) (tiles []ts.Tile) {
 
 // Split features up by their tile coordinates. This is intended to be done at the deepest desired zoom level
 // If a feature has any point in a tile, it will bind to that tile. A feature can be in multiple tiles
-func splitFeatures(features <-chan *geo.Feature, zoom uint) (tiles map[ts.Tile][]*geo.Feature) {
+func splitFeatures(features <-chan *geo.Feature, zoom int) (tiles map[ts.Tile][]*geo.Feature) {
 	tiles = make(map[ts.Tile][]*geo.Feature)
 	for feature := range features {
 		feature_tiles := mapset.NewSet()
 		for _, shape := range feature.Geometry {
 			for _, c := range shape.Coordinates {
-				tile, _ := ts.CoordinateToTile(c.Lat, c.Lon, zoom)
+				tile := ts.FromCoordinate(c.Lat, c.Lon, zoom)
 				feature_tiles.Add(tile)
 			}
 		}

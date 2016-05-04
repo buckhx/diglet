@@ -21,6 +21,12 @@
 			"revisionTime": "2016-02-24T23:34:01Z"
 		},
 		{
+			"checksumSHA1": "73Gf4tnd9E9UNbnFw3137Y5M6hI=",
+			"path": "github.com/buckhx/tiles",
+			"revision": "cf9172de0c2bd352895a998edea2a462a5ad4702",
+			"revisionTime": "2016-05-04T21:11:37Z"
+		},
+		{
 			"checksumSHA1": "y2c82Vb6+0ImIT/a5GF7GxToJH4=",
 			"path": "github.com/cbroglie/mustache",
 			"revision": "cd74d13000a227efc4f500dec53f9d651de0256f",

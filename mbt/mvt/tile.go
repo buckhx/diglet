@@ -6,12 +6,12 @@ import (
 )
 
 type TileAdapter struct {
-	x, y, z uint
+	x, y, z int
 	tile    *vt.Tile
 	//layers  map[string]*layer
 }
 
-func NewTileAdapter(x, y, z uint) *TileAdapter {
+func NewTileAdapter(x, y, z int) *TileAdapter {
 	return &TileAdapter{
 		x:    x,
 		y:    y,
@@ -21,7 +21,7 @@ func NewTileAdapter(x, y, z uint) *TileAdapter {
 	}
 }
 
-func (t *TileAdapter) NewLayer(name string, extent uint) (layer *Layer) {
+func (t *TileAdapter) NewLayer(name string, extent int) (layer *Layer) {
 	layer = newLayer(name, extent)
 	t.tile.Layers = append(t.tile.Layers, layer.vt_layer)
 	return

@@ -3,18 +3,18 @@ package mbt
 import (
 	"testing"
 
-	"github.com/buckhx/diglet/geo/tile_system"
+	"github.com/buckhx/tiles"
 	"github.com/deckarep/golang-set"
 )
 
 func TestSplitFeatures(t *testing.T) {
-	var zoom uint = 13
+	var zoom = 13
 	collection := readGeoJson("test_data/denver_features.geojson")
 	features := publishFeatureCollection(collection)
 	want := mapset.NewSetFromSlice([]interface{}{
-		tile_system.Tile{X: 1707, Y: 3110, Z: 13},
-		tile_system.Tile{X: 1706, Y: 3108, Z: 13},
-		tile_system.Tile{X: 1706, Y: 3109, Z: 13},
+		tiles.Tile{X: 1707, Y: 3110, Z: 13},
+		tiles.Tile{X: 1706, Y: 3108, Z: 13},
+		tiles.Tile{X: 1706, Y: 3109, Z: 13},
 		//tile_system.Tile{X: 1706, Y: 3109, Z: 13},
 	})
 	got := mapset.NewSet()

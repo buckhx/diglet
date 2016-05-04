@@ -2,6 +2,7 @@ package mvt
 
 import (
 	"encoding/json"
+
 	vt "github.com/buckhx/diglet/mbt/mvt/vector_tile"
 	"github.com/buckhx/diglet/util"
 )
@@ -14,7 +15,7 @@ type Layer struct {
 	values   map[*vt.Tile_Value]uint32
 }
 
-func newLayer(name string, extent uint) *Layer {
+func newLayer(name string, extent int) *Layer {
 	var ver uint32 = VT_VERSION
 	var ext uint32 = uint32(extent)
 	vt_layer := &vt.Tile_Layer{

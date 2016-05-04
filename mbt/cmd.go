@@ -29,7 +29,7 @@ var Cmd = cli.Command{
 		layer := c.String("layer-name")
 		zmin := c.Int("min")
 		zmax := c.Int("max")
-		extent := uint(c.Int("extent"))
+		extent := c.Int("extent")
 		upsert := c.Bool("upsert")
 		force := c.Bool("force")
 		// validate

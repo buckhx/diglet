@@ -6,8 +6,8 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/buckhx/diglet/geo"
-	ts "github.com/buckhx/diglet/geo/tile_system"
 	"github.com/buckhx/diglet/util"
+	ts "github.com/buckhx/tiles"
 	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
@@ -24,7 +24,7 @@ type fID []byte
 type featureIndex struct {
 	path string
 	db   *bolt.DB
-	idx  *ts.TileIndex
+	idx  ts.TileIndex
 }
 
 func newFeatureCache(path string) (c *featureIndex, err error) {
@@ -39,7 +39,7 @@ func newFeatureCache(path string) (c *featureIndex, err error) {
 	}); err != nil {
 		return
 	}
-	c = &featureIndex{path: path, db: db, idx: &ts.TileIndex{}}
+	c = &featureIndex{path: path, db: db, idx: ts.NewTileIndex()}
 	return
 }
 

@@ -1,19 +1,19 @@
 package mbt
 
 import (
-	"github.com/buckhx/diglet/geo/tile_system"
 	"github.com/buckhx/diglet/mbt/mvt"
 	"github.com/buckhx/diglet/util"
 	"github.com/buckhx/mbtiles"
+	"github.com/buckhx/tiles"
 )
 
-type Tiles struct {
+type Tileset struct {
 	tileset *mbtiles.Tileset
 	args    map[string]string
 }
 
-func InitTiles(mbtpath string, upsert bool, desc string, extent uint) (tiles Tiles, err error) {
-	tile_system.TileSize = extent
+func InitTiles(mbtpath string, upsert bool, desc string, extent int) (t Tileset, err error) {
+	tiles.TileSize = extent
 	var ts *mbtiles.Tileset
 	if upsert {
 		ts, err = mbtiles.ReadTileset(mbtpath)
@@ -30,11 +30,11 @@ func InitTiles(mbtpath string, upsert bool, desc string, extent uint) (tiles Til
 	if err != nil {
 		return
 	}
-	tiles = Tiles{tileset: ts}
+	t = Tileset{tileset: ts}
 	return
 }
 
-func (t Tiles) Build(source FeatureSource, layerName string, zmin, zmax int) (err error) {
+func (t Tileset) Build(source FeatureSource, layerName string, zmin, zmax int) (err error) {
 	//TODO goroutine per level
 	features, err := source.Publish(1) //TODO cores
 	if err != nil {
@@ -50,7 +50,7 @@ func (t Tiles) Build(source FeatureSource, layerName string, zmin, zmax int) (er
 		tile := tf.t
 		features := tf.f
 		aTile := mvt.NewTileAdapter(tile.X, tile.Y, tile.Z)
-		aLayer := aTile.NewLayer(layerName, tile_system.TileSize)
+		aLayer := aTile.NewLayer(layerName, tiles.TileSize)
 		for _, feature := range features {
 			//fmt.Println(feature, "\n", tile, "\n")
 			aFeature := MvtAdapter(feature, tile)
@@ -61,7 +61,7 @@ func (t Tiles) Build(source FeatureSource, layerName string, zmin, zmax int) (er
 			return err //shadowed
 		}
 		//fmt.Println(tile, tile.QuadKey(), "\n")
-		t.tileset.WriteOSMTile(tile.IntX(), tile.IntY(), tile.IntZ(), gz)
+		t.tileset.WriteOSMTile(tile.X, tile.Y, tile.Z, gz)
 	}
 	return
 }

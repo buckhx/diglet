@@ -1,12 +1,9 @@
 package geo
 
 import (
-	"github.com/buckhx/diglet/geo/tile_system"
+	"github.com/buckhx/tiles"
 )
 
-func QuadKey(c Coordinate, zoom uint) string {
-	coord := tile_system.ClippedCoords(c.Lat, c.Lon)
-	pixel := coord.ToPixel(zoom)
-	tile, _ := pixel.ToTile()
-	return tile.QuadKey()
+func QuadKey(c Coordinate, zoom int) tiles.Quadkey {
+	return tiles.FromCoordinate(c.Lat, c.Lon, zoom).Quadkey()
 }

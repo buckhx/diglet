@@ -1,9 +1,10 @@
 package geo
 
 import (
-	"github.com/buckhx/diglet/geo/tile_system"
-	"github.com/buckhx/diglet/util"
 	"math"
+
+	"github.com/buckhx/diglet/util"
+	"github.com/buckhx/tiles"
 )
 
 const (
@@ -48,9 +49,8 @@ func (c Coordinate) ToRad() Coordinate {
 	return Coordinate{Lat: c.Lat * DegToRad, Lon: c.Lon * DegToRad}
 }
 
-func (c Coordinate) ToTile(zoom int) (tile tile_system.Tile) {
-	tile, _ = tile_system.CoordinateToTile(c.Lat, c.Lon, uint(zoom))
-	return
+func (c Coordinate) ToTile(zoom int) (tile tiles.Tile) {
+	return tiles.FromCoordinate(c.Lat, c.Lon, zoom)
 }
 
 // Both coordinates are less than or equal
