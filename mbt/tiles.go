@@ -45,10 +45,11 @@ func (t Tileset) Build(source FeatureSource, layerName string, zmin, zmax int) (
 		return err //shadowed
 	}
 	defer c.close()
-	c.indexFeatures(features)
+	c.indexFeatures(features, zmax)
 	for tf := range c.tileFeatures(zmin, zmax) {
 		tile := tf.t
 		features := tf.f
+		util.Info("Building tile %v with %d features", tile, len(features))
 		aTile := mvt.NewTileAdapter(tile.X, tile.Y, tile.Z)
 		aLayer := aTile.NewLayer(layerName, tiles.TileSize)
 		for _, feature := range features {

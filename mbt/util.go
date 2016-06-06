@@ -7,24 +7,20 @@ import (
 	"github.com/deckarep/golang-set"
 )
 
-// CoverZoom sets the zoom level for flat coverings
-// This is a global b/c it could go away if a dynamic cover is implemented
-var CoverZoom = 18
-
-// FeatureTiles returns a list of tiles that cover the feature at CoverZoom level
+// FeatureTiles returns a list of tiles that cover the feature at the given zoom level
 // Dups are not checked for, so they can exist
-func FeatureTiles(f *geo.Feature) (tiles []ts.Tile) {
+func FeatureTiles(f *geo.Feature, zoom int) (tiles []ts.Tile) {
 	for _, s := range f.Geometry {
-		tiles = append(tiles, ShapeTiles(s)...)
+		tiles = append(tiles, ShapeTiles(s, zoom)...)
 	}
 	return
 }
 
-// Shape tiles returns a list of tiles that cover a shape at CoverZoom level
-func ShapeTiles(shp *geo.Shape) (tiles []ts.Tile) {
+// Shape tiles returns a list of tiles that cover a shape at the given zoom level
+func ShapeTiles(shp *geo.Shape, zoom int) (tiles []ts.Tile) {
 	bb := shp.BoundingBox()
-	ne := bb.NorthEast().ToTile(CoverZoom)
-	sw := bb.SouthWest().ToTile(CoverZoom)
+	ne := bb.NorthEast().ToTile(zoom)
+	sw := bb.SouthWest().ToTile(zoom)
 	cur := sw
 	for x := sw.X; x <= ne.X; x++ {
 		for y := sw.Y; y >= ne.Y; y-- { //origin is NW

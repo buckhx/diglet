@@ -96,6 +96,8 @@ func getVtValue(val interface{}) (vt_val *vt.Tile_Value) {
 		vt_val.UintValue = &v
 	case bool:
 		vt_val.BoolValue = &v
+	case nil:
+		// nothing
 	default:
 		//TODO, flatten maps
 		err := util.Errorf("Bad interface{} for vt.Tile_Value  %v", val)

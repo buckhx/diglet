@@ -2,12 +2,14 @@ package mbt
 
 import (
 	"os"
+	"runtime"
+	"sync"
 	"time"
 
 	"github.com/boltdb/bolt"
 	"github.com/buckhx/diglet/geo"
 	"github.com/buckhx/diglet/util"
-	ts "github.com/buckhx/tiles"
+	"github.com/buckhx/tiles"
 	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
@@ -16,7 +18,7 @@ var (
 )
 
 type tileFeatures struct {
-	t ts.Tile
+	t tiles.Tile
 	f []*geo.Feature
 }
 type fID []byte
@@ -24,7 +26,7 @@ type fID []byte
 type featureIndex struct {
 	path string
 	db   *bolt.DB
-	idx  ts.TileIndex
+	idx  tiles.TileIndex
 }
 
 func newFeatureCache(path string) (c *featureIndex, err error) {
@@ -39,34 +41,51 @@ func newFeatureCache(path string) (c *featureIndex, err error) {
 	}); err != nil {
 		return
 	}
-	c = &featureIndex{path: path, db: db, idx: ts.NewTileIndex()}
+	c = &featureIndex{path: path, db: db, idx: tiles.NewSuffixIndex()}
 	return
 }
 
 func (c *featureIndex) tileFeatures(zmin, zmax int) <-chan tileFeatures {
 	tfs := make(chan tileFeatures, 1<<10)
+	rng := make(chan tiles.Tile, 1<<10)
 	go func() {
-		defer close(tfs)
+		//TileRange isn't threadsafe
+		defer close(rng)
 		for t := range c.idx.TileRange(zmin, zmax) {
-			fids := c.idx.Values(t)
-			c.db.View(func(tx *bolt.Tx) error {
-				b := tx.Bucket(featureBucket)
-				tf := tileFeatures{t: t, f: make([]*geo.Feature, len(fids))}
-				for i, f := range fids {
-					k := f.(fID)
-					v := b.Get(k)
-					err := msgpack.Unmarshal(v, &tf.f[i])
-					util.Check(err)
-				}
-				tfs <- tf
-				return nil
-			})
+			rng <- t
 		}
+	}()
+	p := runtime.GOMAXPROCS(0)
+	wg := &sync.WaitGroup{}
+	wg.Add(p)
+	for i := 0; i < p; i++ {
+		go func() {
+			defer wg.Done()
+			for t := range rng {
+				fids := c.idx.Values(t)
+				c.db.View(func(tx *bolt.Tx) error {
+					b := tx.Bucket(featureBucket)
+					tf := tileFeatures{t: t, f: make([]*geo.Feature, len(fids))}
+					for i, f := range fids {
+						k := f.(fID)
+						v := b.Get(k)
+						err := msgpack.Unmarshal(v, &tf.f[i])
+						util.Check(err)
+					}
+					tfs <- tf
+					return nil
+				})
+			}
+		}()
+	}
+	go func() {
+		wg.Wait()
+		close(tfs)
 	}()
 	return tfs
 }
 
-func (c *featureIndex) indexFeatures(features <-chan *geo.Feature) {
+func (c *featureIndex) indexFeatures(features <-chan *geo.Feature, zoom int) {
 	records := make(chan *geo.Feature, 1<<10)
 	go func() {
 		defer close(records)
@@ -78,7 +97,7 @@ func (c *featureIndex) indexFeatures(features <-chan *geo.Feature) {
 			}
 			records <- f
 			//TODO parallelize
-			for _, t := range FeatureTiles(f) {
+			for _, t := range FeatureTiles(f, zoom) {
 				c.idx.Add(t, k)
 			}
 		}
@@ -110,7 +129,7 @@ func (c *featureIndex) flush(bucket []byte, recs []*geo.Feature) error {
 		util.Info("Flushing empty batch, skipping")
 		return nil
 	}
-	util.Info("Flushing batch %s %d -> %d", bucket, recs[0].ID, recs[len(recs)-1].ID)
+	util.Info("Flushing batch %s %v -> %v", bucket, recs[0].ID, recs[len(recs)-1].ID)
 	return c.db.Batch(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucket)
 		for _, rec := range recs {
