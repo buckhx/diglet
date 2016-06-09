@@ -8,6 +8,9 @@ import (
 	"github.com/buckhx/tiles"
 )
 
+// ClipBuffer is the number of pixels to buffer a tile clipping
+var ClipBuffer = 10
+
 type Tileset struct {
 	tileset *mbtiles.Tileset
 	args    map[string]string
@@ -140,15 +143,19 @@ func tiledShapes(f *geo.Feature, t tiles.Tile) (shps []*mvt.Shape) {
 	return
 }
 
-func tiledShape(s *geo.Shape, t tiles.Tile) (shp *mvt.Shape) {
-	shp = mvt.MakeShape(len(s.Coordinates))
+func tiledShape(s *geo.Shape, t tiles.Tile) *mvt.Shape {
+	shp := make([]mvt.Point, len(s.Coordinates))
 	for i, c := range s.Coordinates {
 		pixel := tiles.ClippedCoords(c.Lat, c.Lon).ToPixel(t.Z)
 		x := int(pixel.X - t.ToPixel().X)
 		y := int(pixel.Y - t.ToPixel().Y)
-		point := mvt.Point{X: x, Y: y}
-		//TODO: clipping
-		shp.Insert(i, point)
+		p := mvt.Point{X: x, Y: y}
+		shp[i] = p
 	}
-	return
+	box, _ := bboxFromBounds(
+		mvt.Point{-1 * ClipBuffer, -1 * ClipBuffer},
+		mvt.Point{tiles.TileSize + ClipBuffer, tiles.TileSize + ClipBuffer},
+	)
+	shp, _ = box.clip(shp)
+	return mvt.NewPolygon(shp...)
 }
