@@ -6,16 +6,16 @@ import (
 )
 
 type TileAdapter struct {
-	x, y, z int
+	X, Y, Z int
 	tile    *vt.Tile
 	//layers  map[string]*layer
 }
 
 func NewTileAdapter(x, y, z int) *TileAdapter {
 	return &TileAdapter{
-		x:    x,
-		y:    y,
-		z:    z,
+		X:    x,
+		Y:    y,
+		Z:    z,
 		tile: &vt.Tile{},
 		//layers: make(map[string]*layer),
 	}

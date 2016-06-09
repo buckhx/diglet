@@ -1,5 +1,7 @@
 package mbt
 
+/*
+
 import (
 	"os"
 	"runtime"
@@ -23,13 +25,13 @@ type tileFeatures struct {
 }
 type fID []byte
 
-type featureIndex struct {
+type featureCache struct {
 	path string
 	db   *bolt.DB
 	idx  tiles.TileIndex
 }
 
-func newFeatureCache(path string) (c *featureIndex, err error) {
+func newFeatureCache(path string) (c *featureCache, err error) {
 	// TODO rm path first just to make sure we don't reuse any data
 	db, err := bolt.Open(path, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
@@ -41,11 +43,11 @@ func newFeatureCache(path string) (c *featureIndex, err error) {
 	}); err != nil {
 		return
 	}
-	c = &featureIndex{path: path, db: db, idx: tiles.NewSuffixIndex()}
+	c = &featureCache{path: path, db: db, idx: tiles.NewSuffixIndex()}
 	return
 }
 
-func (c *featureIndex) tileFeatures(zmin, zmax int) <-chan tileFeatures {
+func (c *featureCache) tileFeatures(zmin, zmax int) <-chan tileFeatures {
 	tfs := make(chan tileFeatures, 1<<10)
 	rng := make(chan tiles.Tile, 1<<10)
 	go func() {
@@ -85,7 +87,7 @@ func (c *featureIndex) tileFeatures(zmin, zmax int) <-chan tileFeatures {
 	return tfs
 }
 
-func (c *featureIndex) indexFeatures(features <-chan *geo.Feature, zoom int) {
+func (c *featureCache) indexFeatures(features <-chan *geo.Feature, zoom int) {
 	records := make(chan *geo.Feature, 1<<10)
 	go func() {
 		defer close(records)
@@ -105,7 +107,7 @@ func (c *featureIndex) indexFeatures(features <-chan *geo.Feature, zoom int) {
 	c.addRecords(featureBucket, records)
 }
 
-func (c *featureIndex) addRecords(bucket []byte, recs <-chan *geo.Feature) {
+func (c *featureCache) addRecords(bucket []byte, recs <-chan *geo.Feature) {
 	i := 0
 	capacity := 1 << 16 //BlockSize
 	batch := make([]*geo.Feature, capacity)
@@ -124,7 +126,7 @@ func (c *featureIndex) addRecords(bucket []byte, recs <-chan *geo.Feature) {
 }
 
 // Write an ordered key
-func (c *featureIndex) flush(bucket []byte, recs []*geo.Feature) error {
+func (c *featureCache) flush(bucket []byte, recs []*geo.Feature) error {
 	if len(recs) < 1 {
 		util.Info("Flushing empty batch, skipping")
 		return nil
@@ -143,7 +145,7 @@ func (c *featureIndex) flush(bucket []byte, recs []*geo.Feature) error {
 	})
 }
 
-func (c *featureIndex) close() {
+func (c *featureCache) close() {
 	c.db.Close()
 	os.Remove(c.path)
 }
@@ -164,3 +166,4 @@ func key(f *geo.Feature) (fID, error) {
 	k, err := msgpack.Marshal(f.ID)
 	return fID(k), err
 }
+*/

@@ -1,6 +1,7 @@
 package util
 
 import (
+	"runtime"
 	"sync"
 )
 
@@ -10,9 +11,15 @@ func WaitGroup(i int) *sync.WaitGroup {
 	return wg
 }
 
-func Work(fn func(), workers int) *sync.WaitGroup {
-	wg := WaitGroup(workers)
-	for i := 0; i < workers; i++ {
+// Work runs fn() with default parallelism
+func Work(fn func()) *sync.WaitGroup {
+	return NWork(fn, runtime.GOMAXPROCS(0))
+}
+
+// NWork runs fn() with parallelism p
+func NWork(fn func(), p int) *sync.WaitGroup {
+	wg := WaitGroup(p)
+	for i := 0; i < p; i++ {
 		go func() {
 			fn()
 			wg.Done()

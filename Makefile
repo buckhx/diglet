@@ -1,7 +1,8 @@
 BINARY=diglet
 VERSION=`git describe --always --tags`
 BUILD_TIME=`date +%FT%T%z`
-LDFLAGS=-ldflags "-extldflags '-static' -X main.Version=${VERSION}"
+LDFLAGS=-ldflags "-X main.Version=${VERSION}"
+#LDFLAGS=-ldflags "-extldflags '-static' -X main.Version=${VERSION}"
 PACKAGES=`go list ./... | grep -v /vendor/`
 
 #TODO make sure this export works correctly

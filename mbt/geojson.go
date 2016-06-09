@@ -33,7 +33,7 @@ func NewGeojsonSource(path string, filter []string) *GeojsonSource {
 func (gj *GeojsonSource) Publish(workers int) (features chan *geo.Feature, err error) {
 	collection := readGeoJson(gj.path)
 	f := make(chan *geo.Feature, 10)
-	wg := util.Work(func() {
+	wg := util.NWork(func() {
 		for _, feature := range collection.Features {
 			f <- geojsonFeatureAdapter(feature)
 		}

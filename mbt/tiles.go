@@ -1,6 +1,7 @@
 package mbt
 
 import (
+	"github.com/buckhx/diglet/geo"
 	"github.com/buckhx/diglet/mbt/mvt"
 	"github.com/buckhx/diglet/util"
 	"github.com/buckhx/mbtiles"
@@ -35,34 +36,119 @@ func InitTiles(mbtpath string, upsert bool, desc string, extent int) (t Tileset,
 }
 
 func (t Tileset) Build(source FeatureSource, layerName string, zmin, zmax int) (err error) {
-	//TODO goroutine per level
-	features, err := source.Publish(1) //TODO cores
+	features, err := source.Publish(1) //TODO rm cores
 	if err != nil {
-		return err //shadowed
+		return
 	}
-	c, err := newFeatureCache(".feature.cache")
-	if err != nil {
-		return err //shadowed
-	}
-	defer c.close()
+	c := newFeatureIndex()
 	c.indexFeatures(features, zmax)
-	for tf := range c.tileFeatures(zmin, zmax) {
-		tile := tf.t
-		features := tf.f
-		util.Info("Building tile %v with %d features", tile, len(features))
-		aTile := mvt.NewTileAdapter(tile.X, tile.Y, tile.Z)
-		aLayer := aTile.NewLayer(layerName, tiles.TileSize)
-		for _, feature := range features {
-			//fmt.Println(feature, "\n", tile, "\n")
-			aFeature := MvtAdapter(feature, tile)
-			aLayer.AddFeature(aFeature)
+	vts := make(chan *mvt.TileAdapter, 1<<10)
+	_ = util.NWork(func() {
+		defer close(vts)
+		for tf := range c.tileFeatures(zmin, zmax) {
+			vt := buildTile(layerName, tf)
+			vts <- vt
+			if err != nil {
+				return
+			}
 		}
-		gz, err := aTile.GetTileGz()
-		if err != nil {
-			return err //shadowed
+	}, 1)
+	wg := util.Work(func() {
+		for vt := range vts {
+			err := writeTile(t.tileset, vt)
+			if err != nil {
+				return
+			}
 		}
-		//fmt.Println(tile, tile.QuadKey(), "\n")
-		t.tileset.WriteOSMTile(tile.X, tile.Y, tile.Z, gz)
+	})
+	wg.Wait()
+	return
+}
+
+func buildTile(layer string, tf tileFeatures) *mvt.TileAdapter {
+	tile, features := tf.tileFeatures()
+	util.Info("Building tile %v with %d features", tile, len(features))
+	aTile := mvt.NewTileAdapter(tile.X, tile.Y, tile.Z)
+	aLayer := aTile.NewLayer(layer, tiles.TileSize)
+	for _, feature := range features {
+		aFeature := MvtAdapter(feature, tile)
+		aLayer.AddFeature(aFeature)
+	}
+	return aTile
+}
+
+func writeTile(tileset *mbtiles.Tileset, vt *mvt.TileAdapter) error {
+	gz, err := vt.GetTileGz()
+	if err != nil {
+		return err
+	}
+	tileset.WriteOSMTile(vt.X, vt.Y, vt.Z, gz)
+	return nil
+}
+
+// FeatureTiles returns a list of tiles that cover the feature at the given zoom level
+// Dups are not checked for, so they can exist
+func FeatureTiles(f *geo.Feature, zoom int) (tiles []tiles.Tile) {
+	for _, s := range f.Geometry {
+		tiles = append(tiles, ShapeTiles(s, zoom)...)
+	}
+	return
+}
+
+// Shape tiles returns a list of tiles that cover a shape at the given zoom level
+func ShapeTiles(shp *geo.Shape, zoom int) (tiles []tiles.Tile) {
+	bb := shp.BoundingBox()
+	ne := bb.NorthEast().ToTile(zoom)
+	sw := bb.SouthWest().ToTile(zoom)
+	cur := sw
+	for x := sw.X; x <= ne.X; x++ {
+		for y := sw.Y; y >= ne.Y; y-- { //origin is NW
+			cur.X, cur.Y = x, y
+			tiles = append(tiles, cur)
+		}
+	}
+	return
+}
+
+// MvtAdapter populates an mvt feature from a diglet geo feature
+func MvtAdapter(f *geo.Feature, t tiles.Tile) (a *mvt.Feature) {
+	g := f.Type
+	if g == geo.LineFeature {
+		g = "linestring"
+	}
+	var id uint64
+	switch v := f.ID.(type) {
+	case uint, uint32, uint64:
+		id = v.(uint64)
+	case int, int32, int64:
+		id = uint64(v.(int64))
+	default:
+		// stay nil
+	}
+	a = mvt.NewFeatureAdapter(&id, g, f.Properties)
+	shps := tiledShapes(f, t)
+	a.AddShape(shps...)
+	return
+}
+
+func tiledShapes(f *geo.Feature, t tiles.Tile) (shps []*mvt.Shape) {
+	shps = make([]*mvt.Shape, len(f.Geometry))
+	for i, s := range f.Geometry {
+		shp := tiledShape(s, t)
+		shps[i] = shp
+	}
+	return
+}
+
+func tiledShape(s *geo.Shape, t tiles.Tile) (shp *mvt.Shape) {
+	shp = mvt.MakeShape(len(s.Coordinates))
+	for i, c := range s.Coordinates {
+		pixel := tiles.ClippedCoords(c.Lat, c.Lon).ToPixel(t.Z)
+		x := int(pixel.X - t.ToPixel().X)
+		y := int(pixel.Y - t.ToPixel().Y)
+		point := mvt.Point{X: x, Y: y}
+		//TODO: clipping
+		shp.Insert(i, point)
 	}
 	return
 }
