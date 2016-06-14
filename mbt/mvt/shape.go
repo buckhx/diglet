@@ -1,39 +1,10 @@
 package mvt
 
 import (
+	"fmt"
+
 	vt "github.com/buckhx/diglet/mbt/mvt/vector_tile"
 	"github.com/buckhx/diglet/util"
-)
-
-type Point struct {
-	X, Y int
-}
-
-func (p Point) Add(that Point) Point {
-	x := p.X + that.X
-	y := p.Y + that.Y
-	return Point{X: x, Y: y}
-}
-
-func (p Point) Subtract(that Point) Point {
-	x := p.X - that.X
-	y := p.Y - that.Y
-	return Point{X: x, Y: y}
-}
-
-func (p Point) Increment(x, y int) Point {
-	return Point{X: p.X + x, Y: p.Y + y}
-}
-
-func (p Point) Decrement(x, y int) Point {
-	return Point{X: p.X - x, Y: p.Y - y}
-}
-
-type CursorType string
-
-const (
-	AbsCur CursorType = "ABSOLUTE"
-	RelCur CursorType = "RELATIVE"
 )
 
 type Shape struct {
@@ -66,9 +37,18 @@ func (s *Shape) Insert(i int, p Point) (err error) {
 	if i >= len(s.points) || i < 0 {
 		return util.Errorf("Insert index out of range %v @ %d", s.points, i)
 	} else {
-		s.points[i] = p
+		a := s.points
+		s.points = append(a[:i], append([]Point{p}, a[i:]...)...)
+		//s.points[i] = p
 	}
 	return
+}
+
+func (s *Shape) Delete(i int) (p Point) {
+	a := s.points
+	p = a[i]
+	s.points = append(a[:i], a[i+1:]...)
+	return p
 }
 
 func (s *Shape) Append(point Point) {
@@ -83,12 +63,21 @@ func (s *Shape) Tail() Point {
 	return s.points[len(s.points)-1]
 }
 
+func (s *Shape) Len() int {
+	return len(s.points)
+}
+
 func (s *Shape) GetPoints() []Point {
 	return s.points
 }
 
 func (s *Shape) GetCursorType() CursorType {
 	return s.curType
+}
+
+func (s *Shape) ispoly() bool {
+	fmt.Println(s.geomType)
+	return s.geomType == vt.Tile_POLYGON
 }
 
 func (s *Shape) ToCommands() (cmds []*command) {
@@ -145,3 +134,32 @@ func (s *Shape) Equals(that *Shape) bool {
 	equal = equal && s.geomType == that.geomType
 	return equal
 }
+
+func (s *Shape) edges() (edges []edge) {
+	if s.Len() < 2 {
+		return
+	}
+	edges = make([]edge, s.Len()-1)
+	for i := 0; i < s.Len()-1; i++ {
+		edges[i] = edge{s.points[i], s.points[i+1]}
+	}
+	return
+}
+
+func (s *Shape) edge(i int) edge {
+	if i < 0 {
+		i = s.Len() - i
+	}
+	return edge{s.points[i%s.Len()], s.points[(i+1)%(s.Len())]}
+}
+
+/*
+func (s *Shape) infedges() (edges []edge) {
+	edges = s.edges()
+	for i, e := range edges {
+		edges[i] = e.maxmult(1<<16, 1<<31-1)
+	}
+	return
+
+}
+*/

@@ -23,7 +23,6 @@ func bboxFromBounds(sw, ne mvt.Point) (b bbox, err error) {
 // Giler-Atherton
 func (b bbox) clip(a []mvt.Point) (c []mvt.Point, err error) {
 	// get intersections
-	fmt.Println(b)
 	type cross struct {
 		p      mvt.Point
 		ai, bi int
@@ -38,9 +37,18 @@ func (b bbox) clip(a []mvt.Point) (c []mvt.Point, err error) {
 			}
 		}
 	}
-	// TODO check for no intersections
 	//insert intersections into slices and mark entries
 	in := b.contains(a[0])
+	if len(xing) == 0 {
+		// no intersections, if in then the whole shape is contained by the box
+		// assume that A U B != nil
+		if in {
+			c = a
+		} else {
+			c = b
+		}
+		return
+	}
 	for i, x := range xing {
 		in = !in
 		x.in = in
@@ -51,17 +59,21 @@ func (b bbox) clip(a []mvt.Point) (c []mvt.Point, err error) {
 		b = insert(b, x.p, x.bi, x.bm)
 	}
 	// traverse and build clipped shape
+	fmt.Println(xing)
 	for i, x := range xing {
 		n := xing[0]
 		if i < len(xing)-1 {
 			n = xing[i+1]
 		}
 		if x.in { //entry take a
+			s := x.ai - (n.ai+1)%len(a)
 			d := (n.ai + 1) % len(a)
-			c = append(c, a[x.ai:d]...)
+			c = append(c, a[s:d]...)
 		} else { //exit take box
+			s := x.bi - (n.bi+1)%len(b)
 			d := (n.bi + 1) % len(b)
-			c = append(c, b[x.bi:d]...)
+			fmt.Println(b, s, d)
+			c = append(c, b[s:d]...)
 		}
 	}
 	c = append(c, c[0])
