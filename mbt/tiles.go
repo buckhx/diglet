@@ -75,7 +75,9 @@ func buildTile(layer string, tf tileFeatures) *mvt.TileAdapter {
 	aLayer := aTile.NewLayer(layer, tiles.TileSize)
 	for _, feature := range features {
 		aFeature := MvtAdapter(feature, tile)
-		aLayer.AddFeature(aFeature)
+		if aFeature.Valid() {
+			aLayer.AddFeature(aFeature)
+		}
 	}
 	return aTile
 }
@@ -135,27 +137,33 @@ func MvtAdapter(f *geo.Feature, t tiles.Tile) (a *mvt.Feature) {
 }
 
 func tiledShapes(f *geo.Feature, t tiles.Tile) (shps []*mvt.Shape) {
-	shps = make([]*mvt.Shape, len(f.Geometry))
-	for i, s := range f.Geometry {
+	//shps = make([]*mvt.Shape, len(f.Geometry))
+	for _, s := range f.Geometry {
 		shp := tiledShape(s, t)
-		shps[i] = shp
+		if shp.Len() > 0 {
+			shps = append(shps, shp)
+		}
+		//shps[i] = shp
 	}
 	return
 }
 
-func tiledShape(s *geo.Shape, t tiles.Tile) *mvt.Shape {
-	shp := make([]mvt.Point, len(s.Coordinates))
-	for i, c := range s.Coordinates {
+func tiledShape(gs *geo.Shape, t tiles.Tile) *mvt.Shape {
+	s := make([]mvt.Point, len(gs.Coordinates))
+	for i, c := range gs.Coordinates {
 		pixel := tiles.ClippedCoords(c.Lat, c.Lon).ToPixel(t.Z)
 		x := int(pixel.X - t.ToPixel().X)
 		y := int(pixel.Y - t.ToPixel().Y)
 		p := mvt.Point{X: x, Y: y}
-		shp[i] = p
+		s[i] = p
 	}
-	box, _ := bboxFromBounds(
+	shp := mvt.NewPolygon(s...) //could be line or point
+	box, _ := mvt.NewBox(
 		mvt.Point{-1 * ClipBuffer, -1 * ClipBuffer},
 		mvt.Point{tiles.TileSize + ClipBuffer, tiles.TileSize + ClipBuffer},
 	)
-	shp, _ = box.clip(shp)
-	return mvt.NewPolygon(shp...)
+	if len(s) > 2 {
+		box.Clip(shp)
+	}
+	return shp
 }

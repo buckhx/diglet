@@ -1,9 +1,10 @@
 package mvt
 
 import (
+	"strings"
+
 	vt "github.com/buckhx/diglet/mbt/mvt/vector_tile"
 	"github.com/buckhx/diglet/util"
-	"strings"
 )
 
 type Feature struct {
@@ -32,6 +33,10 @@ func NewFeatureAdapter(id *uint64, geometry_type string, props map[string]interf
 
 func (f *Feature) AddShape(shapes ...*Shape) {
 	f.shapes = append(f.shapes, shapes...)
+}
+
+func (f *Feature) Valid() bool {
+	return len(f.shapes) > 0
 }
 
 // MVT needs relative point instead of absolute

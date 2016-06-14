@@ -32,6 +32,9 @@ func (b Box) Clip(shp *Shape) {
 	ispoly := out[0] == out[len(out)-1]
 	for _, e := range b.ToShape().edges() {
 		in := append([]Point{}, out...)
+		if len(in) < 1 {
+			break
+		}
 		out = []Point{}
 		s := in[len(in)-1]
 		for _, v := range in {
@@ -48,7 +51,7 @@ func (b Box) Clip(shp *Shape) {
 			s = v
 		}
 	}
-	if ispoly {
+	if ispoly && len(out) > 2 {
 		out = append(out, out[0])
 	}
 	shp.points = out
