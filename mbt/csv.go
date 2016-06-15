@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"strconv"
-	"sync/atomic"
 
 	"github.com/buckhx/diglet/geo"
 	"github.com/buckhx/diglet/util"
@@ -13,7 +12,7 @@ import (
 )
 
 type FeatureSource interface {
-	Publish(workers int) (chan *geo.Feature, error)
+	Publish() (chan *geo.Feature, error)
 }
 
 type GeoFields map[string]string
@@ -58,32 +57,28 @@ func NewCsvSource(path string, filter []string, delimiter string, fields GeoFiel
 	}
 }
 
-func (c *CsvSource) Publish(workers int) (features chan *geo.Feature, err error) {
+func (c *CsvSource) Publish() (features chan *geo.Feature, err error) {
 	lines, err := c.publishLines()
 	if err != nil {
 		return
 	}
-	//TODO read ID from csv
-	var id uint64 = 0
-	wg := util.WaitGroup(workers)
-	features = make(chan *geo.Feature, 1000)
-	for i := 0; i < workers; i++ {
-		go func() {
-			defer wg.Done()
-			for line := range lines {
-				if feature, err := c.featureAdapter(line); err != nil {
-					util.Warn(err, "feature adapter")
-				} else {
-					atomic.AddUint64(&id, 1)
-					feature.ID = id
-					features <- feature
-				}
-			}
-		}()
-	}
+	features = make(chan *geo.Feature)
 	go func() {
-		wg.Wait()
 		defer close(features)
+		//TODO read ID from csv
+		id := uint64(0)
+		for line := range lines {
+			if feature, err := c.featureAdapter(line); err != nil {
+				util.Warn(err, "feature adapter")
+			} else {
+				if feature.ID != nil {
+					feature.Properties["fid"] = feature.ID
+				}
+				feature.ID = id
+				features <- feature
+				id++
+			}
+		}
 	}()
 	return
 }

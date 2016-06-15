@@ -39,7 +39,7 @@ func InitTiles(mbtpath string, upsert bool, desc string, extent int) (t Tileset,
 }
 
 func (t Tileset) Build(source FeatureSource, layerName string, zmin, zmax int) (err error) {
-	features, err := source.Publish(1) //TODO rm cores
+	features, err := source.Publish()
 	if err != nil {
 		return
 	}
@@ -126,6 +126,7 @@ func MvtAdapter(f *geo.Feature, t tiles.Tile) (a *mvt.Feature) {
 	case uint, uint32, uint64:
 		id = v.(uint64)
 	case int, int32, int64:
+		//this doesn't work for non int64
 		id = uint64(v.(int64))
 	default:
 		// stay nil

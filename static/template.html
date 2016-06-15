@@ -38,7 +38,7 @@
 		url: "/tileset/{{tileset}}/{z}/{x}/{y}",
 		/* mutexToggle: true, */
 		getIDForLayerFeature: function(feature) {
-			return feature.properties.id;
+			return feature.id;
 		},
 		onClick: function(e) {
 			feature = e.feature;

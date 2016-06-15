@@ -30,9 +30,14 @@ func (c *featureIndex) tileFeatures(zmin, zmax int) <-chan tileFeatures {
 		defer close(tfs)
 		for t := range c.tiles.TileRange(zmin, zmax) {
 			vals := c.tiles.Values(t)
-			feats := make([]*geo.Feature, len(vals))
-			for i, v := range vals {
-				feats[i] = v.(*geo.Feature)
+			ids := make(map[interface{}]struct{})
+			feats := []*geo.Feature{}
+			for _, v := range vals {
+				f := v.(*geo.Feature)
+				if _, ok := ids[f.ID]; !ok {
+					feats = append(feats, f)
+					ids[f.ID] = struct{}{}
+				}
 			}
 			tf := tileFeatures{t: t, f: feats}
 			tfs <- tf

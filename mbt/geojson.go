@@ -30,33 +30,23 @@ func NewGeojsonSource(path string, filter []string) *GeojsonSource {
 	return &GeojsonSource{path, set}
 }
 
-func (gj *GeojsonSource) Publish(workers int) (features chan *geo.Feature, err error) {
+func (gj *GeojsonSource) Publish() (features chan *geo.Feature, err error) {
 	collection := readGeoJson(gj.path)
 	f := make(chan *geo.Feature, 10)
-	wg := util.NWork(func() {
-		for _, feature := range collection.Features {
-			f <- geojsonFeatureAdapter(feature)
-		}
-	}, workers)
 	go func() {
-		wg.Wait()
-		close(features)
+		defer close(f)
+		id := uint64(0)
+		for _, gfeat := range collection.Features {
+			feat := geojsonFeatureAdapter(gfeat)
+			if feat.ID != nil {
+				feat.Properties["fid"] = feat.ID
+			}
+			feat.ID = id
+			f <- feat
+			id++
+		}
 	}()
 	features = f
-	/*
-		for i := 0; i < workers; i++ {
-			go func() {
-				defer wg.Done()
-				for _, feature := range collection.Features {
-					features <- geojsonFeatureAdapter(feature)
-				}
-			}()
-		}
-		go func() {
-			wg.Wait()
-			close(features)
-		}()
-	*/
 	return
 }
 
