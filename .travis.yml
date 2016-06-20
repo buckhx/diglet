@@ -1,4 +1,6 @@
 language: go
+services:
+  - docker
 go:
   - tip
 env:
@@ -16,12 +18,16 @@ install:
   - go env
   - export BINARY="diglet_`go env GOOS`_`go env GOARCH`${EXT}"
   - echo $BINARY
-  # - if [[ $TRAVIS_BRANCH == v* ]]; then cd $GOROOT/src && ./make.bash  && cd $GOPATH/src/github.com/buckhx/diglet; fi
   - make vendor_list
-  # - go get ./...
 script:
   - make test
-  - if [[ $TRAVIS_BRANCH == v* ]]; then make build && mv ./dist/diglet $BINARY; fi
+  - if [[ $TRAVIS_BRANCH == v* ]]; then 
+    make build;
+    docker build -t buckhx/diglet .;
+    docker tag buckhx/diglet buckhx/diglet:$TRAVIS_BRANCH;
+    docker push buckhx/diglet;
+    cp ./dist/diglet $BINARY; 
+    fi
   - ls
 deploy:
   provider: releases

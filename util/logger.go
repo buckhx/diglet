@@ -34,7 +34,6 @@ func Fatal(format string, vals ...interface{}) {
 
 func Check(err error) {
 	if err != nil {
-		panic(err)
 		Fatal("%s", err)
 	}
 }

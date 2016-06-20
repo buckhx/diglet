@@ -1,8 +1,9 @@
 package burrow
 
 import (
-	"github.com/gorilla/websocket"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 const (
@@ -24,7 +25,6 @@ var upgrader = websocket.Upgrader{
 }
 
 func (c *Connection) Close() {
-	panic("ws close")
 	close(c.messages)
 	c.ws.Close()
 }
