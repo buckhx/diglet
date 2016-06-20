@@ -18,14 +18,15 @@ install:
   - go env
   - export BINARY="diglet_`go env GOOS`_`go env GOARCH`${EXT}"
   - echo $BINARY
+  - docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
   - make vendor_list
 script:
   - make test
   - if [[ $TRAVIS_BRANCH == v* ]]; then 
-    make build;
-    docker build -t buckhx/diglet .;
-    docker tag buckhx/diglet buckhx/diglet:$TRAVIS_BRANCH;
-    docker push buckhx/diglet;
+    make build &&;
+    docker build -t buckhx/diglet . &&;
+    docker tag buckhx/diglet buckhx/diglet:$TRAVIS_BRANCH &&;
+    docker push buckhx/diglet &&;
     cp ./dist/diglet $BINARY; 
     fi
   - ls
