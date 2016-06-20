@@ -23,11 +23,11 @@ install:
 script:
   - make test
   - if [[ $TRAVIS_BRANCH == v* ]]; then 
-    make build &&;
-    docker build -t buckhx/diglet . &&;
-    docker tag buckhx/diglet buckhx/diglet:$TRAVIS_BRANCH &&;
-    docker push buckhx/diglet &&;
-    cp ./dist/diglet $BINARY; 
+    make build && \
+    docker build -t buckhx/diglet . && \
+    docker tag buckhx/diglet buckhx/diglet:$TRAVIS_BRANCH && \
+    docker push buckhx/diglet && \
+    cp ./dist/diglet $BINARY \ 
     fi
   - ls
 deploy:
