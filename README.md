@@ -29,7 +29,7 @@ If you just want the binary, the final arg to the install py is a directory to d
 
 Or do it manually by going to the releases page and download the diglet artifact https://github.com/buckhx/diglet/releases/latest
 
-Currently only building 64 bit linux for simplicity, but will build for more archs as things stabilize.
+_Currently only building 64 bit linux_ for simplicity, but will build for more archs as things stabilize.
 Instructions for [building](#building)
 
 # tms
@@ -169,16 +169,14 @@ Prereqs
 
 * [go installed](https://golang.org/doc/install#install), preferably 1.4+
 * gcc access
-* go get github.com/buckhx/diglet
-* cd into diglet 
 
 ```
-CGO_ENABLED=1
-go test -v ./...
-go get ./...
-go generate
-go build -ldflags '-extldflags "-static"'
+go get github.com/buckhx/diglet
+cd $GOPATH/src/github.com/buckhx/diglet
+make build
 ```
+
+There will be a binary for your platform in dist/diglet 
 
 ## Some food for thought
 
