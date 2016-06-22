@@ -82,7 +82,8 @@ func ReadTilesets(mbtilesDir string) (tsi *TilesetIndex, err error) {
 	return
 }
 
-func (tsi *TilesetIndex) read(xyz TileXYZ) (tile *mbtiles.Tile, err error) {
+// Read reads tile data from this index given an xyz
+func (tsi *TilesetIndex) Read(xyz TileXYZ) (tile *mbtiles.Tile, err error) {
 	if ts, ok := tsi.Tilesets[xyz.Tileset]; !ok {
 		err = errorf("Tileset does not exist %s", xyz)
 	} else {

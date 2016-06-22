@@ -32,6 +32,15 @@ Or do it manually by going to the releases page and download the diglet artifact
 _Currently only building 64 bit linux_ for simplicity, but will build for more archs as things stabilize.
 Instructions for [building](#building)
 
+## Running w/ Docker
+
+Just running the Docker container launches tms reading from /opt/diglet/var/tiles in the container.
+You'll probably want to mount that to a dir on your host machine that has mbtiles in it.
+The following is an example of building a tileset from geojson and serving them.
+
+    docker run buckhx/diglet diglet mbt -o /opt/diglet/var/tiles/features.mbt features.geojson -v ~/tiles:/opt/diglet/var/tiles
+    docker run -it buckhx/diglet -v ~/tiles:/opt/diglet/var/tiles
+
 # tms
 
 A tile server in a single binary

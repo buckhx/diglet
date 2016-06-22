@@ -195,7 +195,7 @@ func getTileHandler(ctx *dig.RequestContext) (tile interface{}, err *dig.CodedEr
 	z := params["z"].GetInt()
 	slug := params["tileset"].GetString()
 	xyz := TileXYZ{Tileset: slug, X: x, Y: y, Z: z}
-	tile, tserr := tilesets.read(xyz)
+	tile, tserr := tilesets.Read(xyz)
 	if tserr != nil {
 		err = dig.Cerrorf(500, tserr.Error())
 	}

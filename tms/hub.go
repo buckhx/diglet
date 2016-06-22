@@ -150,7 +150,7 @@ func (s *tileSubscription) notify(conn *dig.Connection) {
 	//TODO ops will have specific tile in the future?
 	for xyz := range s.tiles {
 		var msg *dig.ResponseMessage
-		if tile, err := tilesets.read(xyz); err != nil {
+		if tile, err := tilesets.Read(xyz); err != nil {
 			check(err)
 			msg = dig.Cerrorf(dig.RpcInvalidRequest, err.Error()).ResponseMessage()
 		} else {
