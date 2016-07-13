@@ -122,15 +122,7 @@ func MvtAdapter(f *geo.Feature, t tiles.Tile) (a *mvt.Feature) {
 		g = "linestring"
 	}
 	var id uint64
-	switch v := f.ID.(type) {
-	case uint, uint32, uint64:
-		id = v.(uint64)
-	case int, int32, int64:
-		//this doesn't work for non int64
-		id = uint64(v.(int64))
-	default:
-		// stay nil
-	}
+	id, _ = util.CastUInt64(f.ID)
 	a = mvt.NewFeatureAdapter(&id, g, f.Properties)
 	shps := tiledShapes(f, t)
 	a.AddShape(shps...)

@@ -23,3 +23,35 @@ func SlugBase(path string) (slug string) {
 	f = strings.TrimSuffix(f, filepath.Ext(f))
 	return Slug(f)
 }
+
+// CastUInt64 casts an int64-like interface to int64 and ok == false if not castable
+func CastUInt64(n interface{}) (v uint64, ok bool) {
+	ok = true
+	switch n := n.(type) {
+	case int:
+		v = uint64(n)
+	case int8:
+		v = uint64(n)
+	case int16:
+		v = uint64(n)
+	case int32:
+		v = uint64(n)
+	case int64:
+		v = uint64(n)
+	case uint:
+		v = uint64(n)
+	case uintptr:
+		v = uint64(n)
+	case uint8:
+		v = uint64(n)
+	case uint16:
+		v = uint64(n)
+	case uint32:
+		v = uint64(n)
+	case uint64:
+		v = uint64(n)
+	default:
+		ok = false
+	}
+	return
+}
