@@ -160,7 +160,7 @@ func (tsi *TilesetIndex) watchMbtilesDir() {
 		select {
 		case event := <-tsi.watcher.Events:
 			//TODO make isMbtilesFile
-			if !strings.HasSuffix(event.Name, ".mbtiles") {
+			if !strings.HasSuffix(event.Name, ".mbtiles") && !strings.HasSuffix(event.Name, ".mbt") {
 				continue
 			}
 			//info("fsnotify triggered %s", event.String())
